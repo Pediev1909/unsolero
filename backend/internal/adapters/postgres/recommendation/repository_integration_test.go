@@ -119,6 +119,10 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SaveResult(): %v", err)
 	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM recommendation.recommendation_sessions
+			WHERE id=(SELECT session_id FROM recommendation.recommendations WHERE id=$1)`, saved.RecommendationID)
+	})
 	setups, err := repository.ListSetups(ctx, userID)
 	if err != nil || len(setups) != 1 || setups[0].ID != saved.SetupID {
 		t.Fatalf("ListSetups() = %#v, %v", setups, err)

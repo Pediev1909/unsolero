@@ -71,6 +71,11 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $function$
 BEGIN
+    IF (OLD.workflow_status = 'active' AND NEW.workflow_status NOT IN ('active', 'retired'))
+       OR (OLD.workflow_status = 'retired' AND NEW.workflow_status <> 'retired') THEN
+        RAISE EXCEPTION 'recommendation policy % cannot leave its immutable lifecycle state', OLD.version
+            USING ERRCODE = '55000';
+    END IF;
     IF OLD.workflow_status IN ('active', 'retired') AND (
         NEW.version,
         NEW.vertical_key,
