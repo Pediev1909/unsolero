@@ -668,6 +668,7 @@ WHERE products.id = facts.product_id
 INSERT INTO recommendation.category_policies (policy_version,category_id,support_status)
 SELECT 'fitness-v2', id, 'supported' FROM catalog.categories
 WHERE slug IN ('adjustable-dumbbells','benches','power-racks','barbells','weight-plates','kettlebells','resistance-bands','cardio-machines')
+  AND EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
 ON CONFLICT (policy_version,category_id) DO NOTHING;
 
 INSERT INTO recommendation.category_redundancy_groups
@@ -677,6 +678,7 @@ SELECT 'fitness-v2', id, CASE slug
  WHEN 'weight-plates' THEN 'weight_plates' WHEN 'kettlebells' THEN 'kettlebell_system'
  WHEN 'resistance-bands' THEN 'resistance_band_system' ELSE 'cardio_machine' END
 FROM catalog.categories WHERE slug IN ('adjustable-dumbbells','benches','power-racks','barbells','weight-plates','kettlebells','resistance-bands','cardio-machines')
+AND EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
 ON CONFLICT DO NOTHING;
 
 WITH mappings(slug, capability) AS (VALUES
@@ -689,17 +691,19 @@ WITH mappings(slug, capability) AS (VALUES
 INSERT INTO recommendation.category_policy_capabilities
 SELECT 'fitness-v2', categories.id, mappings.capability FROM mappings
 JOIN catalog.categories categories ON categories.slug=mappings.slug
+WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO recommendation.product_policies
 SELECT 'fitness-v2', id, published_fact_revision_id, published_score_revision_id
 FROM catalog.products WHERE slug LIKE 'demo-%' AND published_fact_revision_id IS NOT NULL AND published_score_revision_id IS NOT NULL
-ON CONFLICT (policy_version,product_id) DO UPDATE SET fact_revision_id=EXCLUDED.fact_revision_id,score_revision_id=EXCLUDED.score_revision_id;
+AND EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
+ON CONFLICT (policy_version,product_id) DO NOTHING;
 
 INSERT INTO recommendation.product_space_profiles (policy_version,product_id,footprint_length_mm,footprint_width_mm,footprint_height_mm)
 SELECT 'fitness-v2', id, length_mm, width_mm, height_mm FROM catalog.products WHERE slug LIKE 'demo-%'
-ON CONFLICT (policy_version,product_id) DO UPDATE SET footprint_length_mm=EXCLUDED.footprint_length_mm,
- footprint_width_mm=EXCLUDED.footprint_width_mm,footprint_height_mm=EXCLUDED.footprint_height_mm;
+AND EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
+ON CONFLICT (policy_version,product_id) DO NOTHING;
 
 WITH mappings(slug, capability, relation_type) AS (VALUES
  ('barbells','weight_plates','requires'),('weight-plates','barbell_training','requires'),('power-racks','barbell_training','requires'),
@@ -709,6 +713,7 @@ INSERT INTO recommendation.product_policy_capabilities
 SELECT 'fitness-v2', products.id, mappings.capability, mappings.relation_type FROM mappings
 JOIN catalog.categories categories ON categories.slug=mappings.slug
 JOIN catalog.products products ON products.category_id=categories.id AND products.slug LIKE 'demo-%'
+WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
 ON CONFLICT DO NOTHING;
 
 WITH goal_scores(category_slug,build_muscle,strength,general_fitness,weight_loss,mobility) AS (VALUES
@@ -721,7 +726,8 @@ INSERT INTO recommendation.product_goal_support
 SELECT 'fitness-v2', products.id, expanded.goal_key, expanded.score FROM expanded
 JOIN catalog.categories categories ON categories.slug=expanded.category_slug
 JOIN catalog.products products ON products.category_id=categories.id AND products.slug LIKE 'demo-%'
-ON CONFLICT (policy_version,product_id,goal_key) DO UPDATE SET match_score=EXCLUDED.match_score;
+WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
+ON CONFLICT (policy_version,product_id,goal_key) DO NOTHING;
 
 WITH tags(slug, preference) AS (VALUES
  ('adjustable-dumbbells','dumbbells'),('power-racks','barbell'),('power-racks','bodyweight'),
@@ -731,9 +737,16 @@ INSERT INTO recommendation.product_preference_tags
 SELECT 'fitness-v2', products.id, tags.preference FROM tags
 JOIN catalog.categories categories ON categories.slug=tags.slug
 JOIN catalog.products products ON products.category_id=categories.id AND products.slug LIKE 'demo-%'
+WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO recommendation.product_preference_tags
 SELECT 'fitness-v2', id, 'low_impact' FROM catalog.products
 WHERE slug LIKE 'demo-%' AND noise_score >= 85
+AND EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
 ON CONFLICT DO NOTHING;
+
+UPDATE recommendation.policy_versions SET workflow_status='active',activated_at=now()
+WHERE version='fitness-v2' AND workflow_status='draft'
+AND EXISTS (SELECT 1 FROM recommendation.category_policies WHERE policy_version='fitness-v2' AND support_status='supported')
+AND EXISTS (SELECT 1 FROM recommendation.product_policies WHERE policy_version='fitness-v2');

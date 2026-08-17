@@ -332,14 +332,20 @@ JOIN catalog.products products ON products.category_id=categories.id AND product
 WITH tags(slug, preference) AS (VALUES
  ('adjustable-dumbbells','dumbbells'),('benches','barbell'),('power-racks','barbell'),('power-racks','bodyweight'),
  ('barbells','barbell'),('weight-plates','barbell'),('kettlebells','kettlebell'),
- ('resistance-bands','resistance_bands'),('cardio-machines','cardio'))
+ ('resistance-bands','resistance_bands'),('resistance-bands','bodyweight'),('cardio-machines','cardio'))
 INSERT INTO recommendation.product_preference_tags
 SELECT 'fitness-v2', products.id, tags.preference FROM tags
 JOIN catalog.categories categories ON categories.slug=tags.slug
 JOIN catalog.products products ON products.category_id=categories.id AND products.slug LIKE 'demo-%';
 
+INSERT INTO recommendation.product_preference_tags
+SELECT 'fitness-v2', id, 'low_impact' FROM catalog.products
+WHERE slug LIKE 'demo-%' AND noise_score >= 85;
+
 UPDATE recommendation.policy_versions SET workflow_status='active', activated_at=now()
-WHERE version='fitness-v2';
+WHERE version='fitness-v2'
+  AND EXISTS (SELECT 1 FROM recommendation.category_policies WHERE policy_version='fitness-v2' AND support_status='supported')
+  AND EXISTS (SELECT 1 FROM recommendation.product_policies WHERE policy_version='fitness-v2');
 
 COMMENT ON TABLE recommendation.category_policies IS
  'Explicit support gate: catalog categories are never recommendation eligible merely because they exist.';

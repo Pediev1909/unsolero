@@ -60,6 +60,10 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 	}
 
 	repository := New(pool)
+	policy, err := repository.ActivePolicy(ctx)
+	if err != nil {
+		t.Fatalf("ActivePolicy(): %v", err)
+	}
 	goal := planning.GoalBuildMuscle
 	experience := planning.ExperienceBeginner
 	budget := int64(70_000)
@@ -81,24 +85,32 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 
 	input := recommendation.Input{
 		Goal: goal, Experience: experience,
-		Budget:              catalog.Money{AmountMinor: budget, Currency: "USD"},
-		AvailableSpace:      *draft.AvailableSpace,
-		ExistingEquipment:   loadedDraft.ExistingEquipment,
+		Budget:         catalog.Money{AmountMinor: budget, Currency: "USD"},
+		AvailableSpace: *draft.AvailableSpace,
+		ExistingEquipment: []recommendation.ExistingEquipment{{
+			Name: "Pull-up bar", CategorySlug: "pull-up-bars",
+			Capabilities:     []recommendation.Capability{recommendation.CapabilityPullUp, recommendation.CapabilityAnchorPoint},
+			RedundancyGroups: []string{"pull_up_station"},
+		}},
 		TrainingPreferences: loadedDraft.TrainingPreferences,
 		Priorities:          loadedDraft.Priorities,
 	}
 	breakdown := recommendation.ScoreBreakdown{GoalMatch: 90, BudgetMatch: 95, SpaceMatch: 92,
 		ExperienceMatch: 94, PreferenceMatch: 80, Quality: 85, Value: 88,
 		Durability: 84, Compatibility: 90, Portability: 82, Noise: 91}
+	candidate, err := policy.Candidate(catalog.Product{ID: productID, FactRevisionID: factRevisionID,
+		ScoreRevisionID: scoreRevisionID, Name: productName, CategorySlug: categorySlug,
+		Price: catalog.Money{AmountMinor: price, Currency: currency}, Dimensions: dimensions, Scores: scores})
+	if err != nil {
+		t.Fatalf("policy Candidate(): %v", err)
+	}
 	ranked := recommendation.RankedProduct{
-		Candidate: recommendation.CandidateSnapshot{ProductID: productID, FactRevisionID: factRevisionID,
-			ScoreRevisionID: scoreRevisionID, Name: productName, CategorySlug: categorySlug,
-			Price: catalog.Money{AmountMinor: price, Currency: currency}, Dimensions: dimensions, Scores: scores},
+		Candidate:      candidate,
 		ObjectiveScore: 89, Breakdown: breakdown,
 		Reasons: []recommendation.Reason{{Code: "space.fits", Message: "Fits your available space", Dimension: "space_match", Score: 92}},
 	}
 	result := recommendation.Result{
-		Status: recommendation.ResultComplete, PolicyVersion: "home-gym-v1", EngineVersion: "test-engine",
+		Status: recommendation.ResultComplete, PolicyVersion: policy.Config.PolicyVersion, EngineVersion: "test-engine",
 		InputFingerprint: fmt.Sprintf("integration-%d", time.Now().UnixNano()), ObjectiveScore: 89,
 		Breakdown: breakdown, TotalCost: ranked.Candidate.Price,
 		Selected: []recommendation.RecommendedItem{{Rank: 1, Product: ranked, Quantity: 1, UnitPriceMinor: price}},
@@ -115,6 +127,13 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 	if err != nil || loaded.Result.ObjectiveScore != 89 || len(loaded.Result.Selected) != 1 ||
 		loaded.Result.Selected[0].Product.Candidate.ProductID != productID || loaded.SetupName != saved.SetupName {
 		t.Fatalf("GetResultBySetupID() = %#v, %v", loaded, err)
+	}
+	if loaded.Result.PolicyVersion != policy.Config.PolicyVersion ||
+		loaded.Result.Selected[0].Product.Candidate.PolicyVersion != policy.Config.PolicyVersion ||
+		len(loaded.Input.ExistingEquipment) != 1 ||
+		len(loaded.Input.ExistingEquipment[0].Capabilities) != 2 ||
+		len(loaded.Input.ExistingEquipment[0].RedundancyGroups) != 1 {
+		t.Fatalf("historical policy inputs were not preserved: %#v", loaded)
 	}
 	if err = repository.RenameSetup(ctx, userID, saved.SetupID, "Compact strength plan"); err != nil {
 		t.Fatalf("RenameSetup(): %v", err)

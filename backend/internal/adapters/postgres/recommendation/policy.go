@@ -83,12 +83,28 @@ func (repository *Repository) TransitionPolicy(ctx context.Context, actor identi
 			var invalid int
 			err = tx.QueryRow(ctx, `SELECT
 				(NOT EXISTS(SELECT 1 FROM recommendation.category_policies WHERE policy_version=$1 AND support_status='supported'))::int +
+				(NOT EXISTS(SELECT 1 FROM recommendation.policy_goals WHERE policy_version=$1))::int +
+				(SELECT count(*) FROM recommendation.policy_goals goals WHERE goals.policy_version=$1 AND NOT EXISTS (
+				 SELECT 1 FROM recommendation.policy_setup_roles roles
+				 WHERE roles.policy_version=goals.policy_version AND roles.goal_key=goals.goal_key)) +
+				(SELECT count(*) FROM recommendation.policy_setup_roles roles WHERE roles.policy_version=$1 AND NOT EXISTS (
+				 SELECT 1 FROM recommendation.policy_setup_role_capabilities capabilities
+				 WHERE capabilities.policy_version=roles.policy_version AND capabilities.goal_key=roles.goal_key AND capabilities.role_key=roles.role_key)) +
+				(SELECT (goal_match_weight+budget_match_weight+space_match_weight+experience_match_weight+
+				 preference_match_weight+quality_weight+value_weight+durability_weight+compatibility_weight+
+				 portability_weight+noise_weight=0)::int FROM recommendation.policy_versions WHERE version=$1) +
+				(NOT EXISTS(SELECT 1 FROM recommendation.product_policies products
+				 JOIN catalog.products catalog_products ON catalog_products.id=products.product_id
+				 JOIN recommendation.category_policies categories ON categories.policy_version=products.policy_version
+				  AND categories.category_id=catalog_products.category_id AND categories.support_status='supported'
+				 WHERE products.policy_version=$1))::int +
 				(SELECT count(*) FROM recommendation.product_policies products
 				 LEFT JOIN recommendation.product_space_profiles space USING(policy_version,product_id)
 				 LEFT JOIN catalog.products catalog_products ON catalog_products.id=products.product_id
-				 WHERE products.policy_version=$1 AND (space.product_id IS NULL OR products.fact_revision_id<>catalog_products.published_fact_revision_id OR products.score_revision_id<>catalog_products.published_score_revision_id OR NOT EXISTS (
+				 LEFT JOIN recommendation.category_policies categories ON categories.policy_version=products.policy_version AND categories.category_id=catalog_products.category_id
+				 WHERE products.policy_version=$1 AND categories.support_status='supported' AND (space.product_id IS NULL OR products.fact_revision_id<>catalog_products.published_fact_revision_id OR products.score_revision_id<>catalog_products.published_score_revision_id OR NOT EXISTS (
 				  SELECT 1 FROM recommendation.product_goal_support goals WHERE goals.policy_version=products.policy_version AND goals.product_id=products.product_id)))`, version).Scan(&invalid)
-			if err == nil && invalid == 0 {
+			if err == nil && invalid != 0 {
 				err = ports.ErrConflict
 			}
 			if err == nil {

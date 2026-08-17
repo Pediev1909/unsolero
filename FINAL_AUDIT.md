@@ -3,6 +3,28 @@
 Date: 2026-08-17  
 Verdict: **controlled staging only; public production launch rejected**
 
+## Phase 2 addendum — data-driven recommendation policy
+
+The prior medium finding for category-slug-driven recommendation behavior is
+resolved. Production engine code no longer assigns capabilities, requirements,
+goal scores, roles, or redundancy from category switches. `fitness-v2` is an
+explicit reviewed policy graph tied to published fact and score revisions.
+Unknown categories and unconfigured products remain excluded, active behavior
+is immutable, completed runs retain their policy-derived inputs, and activation
+requires separate submitter, reviewer, and activator decisions.
+
+Space handling now fails closed for required missing measurements and supports
+known storage footprint, operating/safety clearances, room height, access width,
+and explicit overlap zones. The commercial boundary remains structural and is
+covered by a PostgreSQL test that changes affiliate priority/commission fields
+without changing recommendation output.
+
+This raises the architecture and recommendation-engine assessments to **9/10**.
+It does not improve the unchanged launch blockers: real product evidence,
+staffed governance, merchant refresh, staff MFA, SSR/prerendering, distributed
+abuse controls, observability, recovery proof, browser accessibility testing,
+and load/security validation remain outstanding.
+
 ## Phase 1 addendum — product evidence and recommendation governance
 
 Phase 1 closes the audit's largest trust gap. Recommendation-critical product
@@ -17,8 +39,8 @@ Completed authenticated recommendations now store the commercial-free candidate
 universe with fact and score revision IDs alongside the original constraints,
 policy version, engine version, reasons, and fingerprint. Historical setup reads
 restore the original recommendation inputs rather than substituting current
-scores or dimensions. The policy values for `home-gym-v1` are registered as an
-immutable database record.
+scores or dimensions. `home-gym-v1` remains registered for historical records;
+new runs use the reviewed `fitness-v2` policy graph.
 
 The recommendation trust boundary is structural: its domain inputs cannot
 represent commission, sponsorship, payout, revenue, affiliate performance,
@@ -28,8 +50,8 @@ without changing deterministic output.
 
 This does **not** approve production. The new governance system contains only
 fictional demo evidence until operators supply and review real sources. Staff
-MFA, evidence policy/runbooks, real-source ingestion, hard-coded capability
-taxonomy, merchant refresh, recovery, deployment, and operational controls
+MFA, evidence policy/runbooks, real-source ingestion, policy authoring tooling,
+merchant refresh, recovery, deployment, and operational controls
 remain release blockers.
 
 ## Executive verdict
@@ -44,12 +66,12 @@ The original audit covered 356 repository files, about 17,600 lines of Go, about
 
 | Area | Score | Brutal assessment |
 | --- | ---: | --- |
-| Architecture | **8/10** | Sound modular monolith with an implemented evidence boundary and reproducible run snapshots. Hard-coded capability taxonomy, oversized adapters/handlers, and API contract/versioning mismatch remain. |
+| Architecture | **9/10** | Sound modular monolith with evidence and immutable data-driven policy boundaries plus reproducible run snapshots. Oversized adapters/handlers and API contract/versioning mismatch remain. |
 | UX | **7/10** | Strong decision flow and honest states. Account lifecycle is incomplete, free text is non-functional, and several production transitions still expose demo assumptions. |
 | UI | **8/10** | Restrained, coherent, and much better than generic SaaS. The design system is real. Legacy muted-color utilities required a global accessibility correction. |
 | Mobile | **7/10** | Layouts are mobile-first and comparison is usable, but there is no automated viewport, reflow, real-device, or touch regression evidence. |
 | Security | **6/10** | Session design, SQL parameterization, origin checks, upload restrictions, and role enforcement are good. No verification/recovery/MFA, distributed abuse control, malware scanning, or independent security gate. |
-| Recommendation engine | **8/10** | Deterministic, revision-reproducible, evidence-gated, and structurally commission-independent. It still uses slug-based capability policy and lacks geometric overlap/safety-zone modeling; real evidence has not been populated. |
+| Recommendation engine | **9/10** | Deterministic, revision-reproducible, evidence-gated, structurally commission-independent, and governed by explicit category/product policy data. Clearance/overlap modeling is conservative and only as complete as reviewed measurements; real evidence has not been populated. |
 | Monetization readiness | **4/10** | Multiple offers and tracked redirects exist. There is no feed refresh worker, conversion import, click deduplication/bot filtering, reconciliation, or verified revenue reporting. |
 | SEO readiness | **5/10** | Sitemap, canonicals, metadata, internal links, and editorial models exist. SPA rendering, soft 404s, unreliable unfurls, and no prerender/SSR prevent serious acquisition readiness. |
 | Performance | **7/10** | Route splitting and image discipline are good; the production entry is about 81 kB gzip. Search and analytics storage have no demonstrated scale plan or performance budgets. |
@@ -155,7 +177,7 @@ That is not a security certification. Dependency audit, penetration testing, pro
 | Finding | Why it matters | Required action |
 | --- | --- | --- |
 | **RESOLVED IN PHASE 1:** Product suitability/quality scores had no evidence provenance | The engine could explain arithmetic but could not prove that an input score was deserved. | Versioned sources, observations, fact/score revisions, rationales, confidence, freshness, roles, workflow, public disclosure, and audit history are now implemented and tested. Real evidence population remains operational work. |
-| Recommendation capabilities and requirements are hard-coded by category slug | Adding a category in admin does not make it recommendable without a code release. Unknown categories degrade to generic scores/capabilities. | Model versioned capability policy as reviewed structured data or a policy package with explicit unsupported-category validation. |
+| **RESOLVED IN PHASE 2:** Recommendation capabilities and requirements were hard-coded by category slug | Adding a category previously required an engine code release and unknown categories could receive defaults. | Versioned category/product policies now explicitly gate support and provide capabilities, requirements, goal support, setup roles, redundancy, and spatial rules. Unknown/unconfigured records are excluded. |
 | Free text is stored/fingerprinted but ignored | The conversational promise is ahead of the engine. | Keep the new disclosure; later add validated interpretation through the AI boundary or remove the field. |
 | No merchant-feed/import worker exists | The new freshness control will correctly remove every offer after 72 hours if nobody refreshes it. Monetization therefore stops safely rather than remaining wrong. | Build provider adapters, scheduled imports, reconciliation, freshness alerts, and operator runbooks. |
 | Clicks lack durable idempotency and bot/crawler classification | GET links can be prefetched and retries can duplicate raw click counts. Affiliate CTR is directional, not financially reliable. | Add a bounded click intent/idempotency design, bot classification, and reporting filters without breaking normal navigation. |

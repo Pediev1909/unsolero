@@ -63,7 +63,8 @@ The following work requires deployment infrastructure, policy decisions, or exte
 - The CSP permits inline scripts and styles for current JSON-LD and bounded dynamic presentation. External scripts, frames, plugins, and arbitrary connection targets remain blocked.
 - No revenue, conversion, customer, or review data is fabricated. Seed content and products are explicitly fictional and must not be loaded in production.
 - The only populated evidence is the explicitly fictional development fixture. No real product is publishable until real sources are reviewed and linked to every populated recommendation-critical fact and score.
-- Product capability/requirement taxonomy is still code-versioned by category slug. Candidate facts and scores are now reproducible, but a complete historical rerun also requires retaining the corresponding engine binary/source for the recorded `engine_version` until capability policy becomes a separately persisted versioned artifact.
+- Recommendation capability, requirement, compatibility, redundancy, goal, role, and spatial behavior is now a separately persisted and immutable policy artifact. Historical replay still requires retaining the source/binary for the recorded `engine_version`; policy data cannot reproduce an unavailable algorithm implementation by itself.
+- Policy creation currently has a governed PostgreSQL model and protected list/transition API, but no complete visual policy authoring editor. Operators must create new draft policy data through reviewed migrations or a controlled database workflow until a schema-validating authoring UI/importer exists. Never edit an active policy.
 - Evidence source ingestion is manual/provider-neutral. There is no manufacturer feed, independent-lab connector, scheduled freshness review, or notification job yet; expired evidence correctly removes affected products from public candidate reads.
 - `govulncheck -show verbose` reports one module-level advisory for the unmaintained `golang.org/x/crypto/openpgp` package. UNSOLERO imports `x/crypto/argon2`, not `openpgp`; the scanner reports zero vulnerable imported packages and zero reachable symbols. The module has no release that removes that package, so CI must continue checking reachability and future dependency changes.
 
@@ -184,11 +185,16 @@ The final audit report must record actual results rather than treating this chec
 - `gofmt` verification, `go test ./...`, `go test -race ./...`, `go vet ./...`, and `go build ./...` passed in the official Go 1.25 container.
 - `govulncheck` v1.7.0 reported zero affected vulnerabilities and zero vulnerabilities in imported packages. It reported one advisory in a required module with no reachable symbols.
 - Docker Compose configuration, builds, and startup passed. PostgreSQL, migrations, API readiness, and the Vite development container became healthy/available.
-- A separate empty PostgreSQL 17 volume applied all 11 migrations. The development seed produced exactly 8 categories, 10 brands, 30 governed products, 90 offers, 90 affiliate links, one explicitly fictional verified evidence source, 326 fact-provenance links, 240 score rationales, one recommendation policy version, and zero users.
+- A separate empty PostgreSQL 17 volume applied all 13 migrations. The development seed produced exactly 8 categories, 10 brands, 30 governed products, 90 offers, 90 affiliate links, one explicitly fictional verified evidence source, 326 fact-provenance links, 240 score rationales, and one active data-driven fitness policy. It creates no users.
 - The full PostgreSQL integration suite passed. A post-suite isolation check still reported exactly 30 products, 90 offers, and zero users, analytics events, or affiliate clicks.
 - Phase 1-specific tests verified review/publication separation of duties,
   completeness and freshness enforcement, immediate fail-closed source
   withdrawal, immutable candidate snapshots, and unchanged recommendation
   output after commercial commission/priority changes.
+- Phase 2-specific tests verify policy approval/activation/retirement separation,
+  active-policy immutability, unsupported-category exclusion, revision binding,
+  compatibility/incompatibility, redundancy, room/access/clearance constraints,
+  explicit overlap, missing-measurement rejection, deterministic output,
+  historical policy-input persistence, and commercial-data independence.
 - Live smoke tests verified `200` health/catalog/sitemap/robots responses, `401` account/admin guards, `403` hostile-origin mutation rejection, UNSOLERO frontend/editorial branding, and a complete register/session/logout flow.
 - Production deployment, backup/restore, load, browser-matrix, and external monitoring evidence remain outstanding; this audit does not approve production readiness.

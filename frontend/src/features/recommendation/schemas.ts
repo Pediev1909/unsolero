@@ -54,6 +54,7 @@ const spaceSchema = z.object({
   length_mm: z.number().int().positive(),
   width_mm: z.number().int().positive(),
   height_mm: z.number().int().positive(),
+  access_width_mm: z.number().int().positive().optional(),
   apartment_living: z.boolean(),
 })
 

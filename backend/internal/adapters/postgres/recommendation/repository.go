@@ -149,8 +149,10 @@ func (repository *Repository) SaveResult(
 	}
 	for index, equipment := range input.ExistingEquipment {
 		if _, err = tx.Exec(ctx, `INSERT INTO recommendation.session_existing_equipment
-			(session_id, name, category_slug, sort_order) VALUES ($1,$2,$3,$4)`,
-			sessionID, equipment.Name, equipment.CategorySlug, index); err != nil {
+			(session_id, name, category_slug, capabilities, redundancy_groups, sort_order)
+			VALUES ($1,$2,$3,$4,$5,$6)`,
+			sessionID, equipment.Name, equipment.CategorySlug,
+			capabilityStrings(equipment.Capabilities), equipment.RedundancyGroups, index); err != nil {
 			return ports.SavedResult{}, fmt.Errorf("insert session equipment: %w", err)
 		}
 	}
@@ -705,7 +707,7 @@ func (repository *Repository) listDraftEquipment(ctx context.Context, userID ide
 }
 
 func (repository *Repository) listSessionEquipment(ctx context.Context, recommendationID domain.RecommendationID) ([]domain.ExistingEquipment, error) {
-	rows, err := repository.pool.Query(ctx, `SELECT e.name, e.category_slug
+	rows, err := repository.pool.Query(ctx, `SELECT e.name, e.category_slug, e.capabilities, e.redundancy_groups
 		FROM recommendation.session_existing_equipment e
 		JOIN recommendation.recommendations r ON r.session_id = e.session_id
 		WHERE r.id = $1 ORDER BY e.sort_order`, recommendationID)
@@ -713,7 +715,20 @@ func (repository *Repository) listSessionEquipment(ctx context.Context, recommen
 		return nil, fmt.Errorf("list session equipment: %w", err)
 	}
 	defer rows.Close()
-	return scanEquipment(rows)
+	result := make([]domain.ExistingEquipment, 0)
+	for rows.Next() {
+		var equipment domain.ExistingEquipment
+		var capabilities []string
+		if err = rows.Scan(&equipment.Name, &equipment.CategorySlug, &capabilities, &equipment.RedundancyGroups); err != nil {
+			return nil, fmt.Errorf("scan session equipment: %w", err)
+		}
+		equipment.Capabilities = capabilitiesFromStrings(capabilities)
+		result = append(result, equipment)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("read session equipment: %w", err)
+	}
+	return result, nil
 }
 
 type equipmentRows interface {

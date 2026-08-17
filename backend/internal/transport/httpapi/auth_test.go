@@ -245,7 +245,7 @@ func TestRequireAdminRoleAllowsAdministrator(t *testing.T) {
 	}
 }
 
-func TestRequireAnyRoleSeparatesEvidenceEditorAndReviewer(t *testing.T) {
+func TestRequireAnyRoleSeparatesGovernanceEditorsAndReviewers(t *testing.T) {
 	for _, test := range []struct {
 		name       string
 		roles      []domain.Role
@@ -255,6 +255,10 @@ func TestRequireAnyRoleSeparatesEvidenceEditorAndReviewer(t *testing.T) {
 		{name: "editor allowed on editor route", roles: []domain.Role{domain.RoleEvidenceEditor}, required: []domain.Role{domain.RoleEvidenceEditor}, wantStatus: http.StatusNoContent},
 		{name: "editor denied on review route", roles: []domain.Role{domain.RoleEvidenceEditor}, required: []domain.Role{domain.RoleEvidenceReviewer}, wantStatus: http.StatusForbidden},
 		{name: "reviewer allowed on review route", roles: []domain.Role{domain.RoleEvidenceReviewer}, required: []domain.Role{domain.RoleEvidenceReviewer}, wantStatus: http.StatusNoContent},
+		{name: "policy editor allowed on editor route", roles: []domain.Role{domain.RolePolicyEditor}, required: []domain.Role{domain.RolePolicyEditor}, wantStatus: http.StatusNoContent},
+		{name: "policy editor denied on review route", roles: []domain.Role{domain.RolePolicyEditor}, required: []domain.Role{domain.RolePolicyReviewer}, wantStatus: http.StatusForbidden},
+		{name: "policy reviewer denied on editor route", roles: []domain.Role{domain.RolePolicyReviewer}, required: []domain.Role{domain.RolePolicyEditor}, wantStatus: http.StatusForbidden},
+		{name: "policy reviewer allowed on review route", roles: []domain.Role{domain.RolePolicyReviewer}, required: []domain.Role{domain.RolePolicyReviewer}, wantStatus: http.StatusNoContent},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			authService := &authStub{principal: domain.Principal{UserID: "user-1", Email: "evidence@example.invalid", Roles: test.roles}}

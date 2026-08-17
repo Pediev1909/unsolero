@@ -220,7 +220,9 @@ workflow rather than an unsafe raw-HTML editor.
 
 The pure engine lives under `backend/internal/modules/recommendation/domain`. It accepts normalized user constraints plus bounded catalog candidate snapshots, applies hard eligibility and compatibility rules, calculates an explicit eleven-dimension score breakdown, assembles a budget-constrained non-redundant setup, and returns structured reasons, alternatives, and rejections.
 
-The default policy is versioned as `home-gym-v1`; every weight can be configured through `recommendation.Config`. Stable product-ID tie-breaking, canonical input fingerprints, and candidate-order normalization make results replayable. Free text is validated and fingerprinted but deliberately does not affect scoring until a separately validated interpretation layer exists.
+The active development policy is versioned as `fitness-v2`. Its weights, supported categories and goals, setup roles, capabilities, product requirements, compatibility rules, redundancy groups, and evidence-bound spatial profiles are loaded from PostgreSQL. Creating a catalog category or product never makes it recommendation-eligible: the active policy must explicitly support the category and bind the product's current published fact and score revisions. Stable product-ID tie-breaking, canonical input fingerprints, candidate-order normalization, policy immutability, and commercial-free run snapshots make results reproducible. Free text is validated and fingerprinted but deliberately does not affect scoring until a separately validated interpretation layer exists.
+
+Space decisions never interpret missing data as zero. Base footprint is required; storage footprint, operating and safety clearance, room height, access width, and explicitly shared overlap zones are applied only when governed measurements exist. If a policy requires one of those measurements and it is missing, that product is rejected with a structured unknown-measurement reason.
 
 Recommendation inputs contain no merchant, commission, sponsorship, payout, or affiliate fields. Commerce enrichment remains downstream of the finalized result. The consumer builder is available at `/build`; it validates eight focused steps, preserves guest progress for the browser session, saves authenticated drafts, and renders complete recommendations, alternatives, explicit rejections, and tracked merchant actions.
 
@@ -274,6 +276,13 @@ the approving reviewer, so a real workflow needs at least three staff accounts.
 The ordinary `admin` role can inspect provenance at `/admin/evidence` but cannot
 create or publish evidence unless the relevant additional role is granted.
 
+Recommendation policy governance similarly uses `policy_editor` to submit a
+draft policy and `policy_reviewer` to approve, reject, activate, or retire it.
+The approving reviewer cannot be the author/submitter, and the activator must be
+different from the approving reviewer. Activation fails closed for incomplete
+category, product, revision, spatial, goal, or setup-role configuration. Active
+policy behavior cannot be edited in place.
+
 ```sql
 INSERT INTO identity.user_roles (user_id, role_key)
 SELECT id, 'evidence_editor' FROM identity.users
@@ -282,6 +291,15 @@ WHERE email = 'editor@example.com' ON CONFLICT DO NOTHING;
 INSERT INTO identity.user_roles (user_id, role_key)
 SELECT id, 'evidence_reviewer' FROM identity.users
 WHERE email IN ('reviewer@example.com', 'publisher@example.com')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO identity.user_roles (user_id, role_key)
+SELECT id, 'policy_editor' FROM identity.users
+WHERE email = 'policy-editor@example.com' ON CONFLICT DO NOTHING;
+
+INSERT INTO identity.user_roles (user_id, role_key)
+SELECT id, 'policy_reviewer' FROM identity.users
+WHERE email IN ('policy-reviewer@example.com', 'policy-activator@example.com')
 ON CONFLICT DO NOTHING;
 ```
 

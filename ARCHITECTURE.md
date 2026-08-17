@@ -341,6 +341,63 @@ AI has no import path or repository capability into this module. Model output
 can be used by a human as drafting input, but only authenticated evidence roles
 can create, review, and publish canonical records.
 
+### Implemented data-driven recommendation policy boundary
+
+Phase 2 removes category-slug behavior from production recommendation code.
+`recommendation.policy_versions` owns a reviewed configuration graph:
+supported categories, extensible capability keys, product requirements,
+compatibility and incompatibility relations, goal support, setup roles,
+redundancy groups, preference tags, and evidence-revision-bound spatial
+profiles. A catalog category or product is excluded until the active policy
+explicitly supports it and binds the product's current published fact and score
+revisions. Unknown data therefore fails closed instead of receiving inferred
+defaults.
+
+```mermaid
+flowchart LR
+    C[Published catalog product]
+    E[Published fact + score revisions]
+    CP[Explicit category policy]
+    PP[Explicit product policy]
+    P[Approved active policy version]
+    S[Commercial-free candidate snapshot]
+    R[Deterministic recommendation]
+
+    C --> PP
+    E --> PP
+    CP --> P
+    PP --> P
+    P --> S
+    C --> S
+    S --> R
+    Commerce[Offers, commission, sponsorship] -. structurally unavailable .-> R
+```
+
+Policy activation uses separate `policy_editor` and `policy_reviewer` roles,
+repository-enforced author/reviewer/activator separation, completeness checks,
+and an admin audit record. Active policy definitions are database-immutable;
+changes require a new version. Retired policy behavior remains immutable while
+referenced by a recommendation. Completed runs snapshot the active policy
+version, all candidate capabilities and relations, goal scores, spatial inputs,
+and policy-enriched existing-equipment capabilities. The original engine
+version and fingerprint remain part of the decision record.
+
+The space model distinguishes known values from missing values. Base footprint
+is mandatory for an eligible product. Storage footprint, operating clearance,
+safety clearance, minimum room height, access width, and overlap groups are
+optional evidence-backed policy data. A category can mark an optional class as
+required; a missing required measurement rejects the product explicitly.
+Overlap reduces combined floor use only when the policy assigns the same
+non-empty overlap group.
+
+Capability and relation keys are normalized data, not a closed Go enum. The
+fitness launch policy is `fitness-v2`, but the engine consumes generic roles,
+capabilities, requirements, support scores, and redundancy groups. New product
+categories therefore require reviewed category/product policy data and evidence,
+not a category switch in the engine. New user-goal or intake concepts can still
+require planning and frontend contract work; Phase 2 does not pretend those
+future verticals already exist.
+
 ### Allowed high-level dependencies
 
 ```mermaid
