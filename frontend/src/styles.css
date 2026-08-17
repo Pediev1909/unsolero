@@ -1,0 +1,224 @@
+@import 'tailwindcss';
+@import './design-system/tokens.css';
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button {
+    color: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-bronze);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-canvas);
+  }
+
+  dialog::backdrop {
+    background: rgb(23 24 22 / 0.58);
+    backdrop-filter: blur(2px);
+  }
+}
+
+@layer components {
+  .eyebrow {
+    color: color-mix(in srgb, var(--color-ink) 62%, transparent);
+    font-size: var(--text-caption);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    line-height: 1rem;
+    text-transform: uppercase;
+  }
+
+  .nav-link {
+    position: relative;
+    padding-block: 0.5rem;
+    font-size: var(--text-body-sm);
+    font-weight: 600;
+  }
+
+  .nav-link::after {
+    position: absolute;
+    right: 0;
+    bottom: 0.15rem;
+    left: 0;
+    height: 1px;
+    content: '';
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform var(--duration-standard) var(--ease-standard);
+  }
+
+  .nav-link:hover::after,
+  .nav-link:focus-visible::after,
+  .nav-link[aria-current='page']::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  .control-base {
+    width: 100%;
+    min-height: 3.25rem;
+    border: 1px solid color-mix(in srgb, var(--color-ink) 24%, transparent);
+    border-radius: var(--radius-xs);
+    background: var(--color-surface);
+    padding: 0.75rem 0.875rem;
+    color: var(--color-ink);
+    transition:
+      border-color var(--duration-fast) var(--ease-standard),
+      box-shadow var(--duration-fast) var(--ease-standard),
+      background-color var(--duration-fast) var(--ease-standard);
+  }
+
+  .control-base::placeholder {
+    color: color-mix(in srgb, var(--color-ink) 65%, transparent);
+  }
+
+  .control-base:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--color-ink) 48%, transparent);
+  }
+
+  .control-base:focus {
+    border-color: var(--color-ink);
+    box-shadow: 0 0 0 1px var(--color-ink);
+    outline: none;
+  }
+
+  .control-base[aria-invalid='true'] {
+    border-color: var(--color-ember);
+  }
+
+  .control-base:disabled {
+    cursor: not-allowed;
+    background: var(--color-paper);
+    color: color-mix(in srgb, var(--color-ink) 45%, transparent);
+    opacity: 0.72;
+  }
+
+  .skeleton-shimmer {
+    background-image: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgb(255 255 255 / 0.46) 42%,
+      transparent 64%
+    );
+    background-size: 220% 100%;
+    animation: skeleton-shimmer 1.6s var(--ease-standard) infinite;
+  }
+}
+
+@layer utilities {
+  /*
+   * Small muted copy must remain at least 4.5:1 against the canvas/surface.
+   * Several legacy opacity utilities rendered between 2.2:1 and 4.49:1.
+   * Keep the class API stable while enforcing an accessible semantic floor.
+   */
+  :is(
+    .text-ink\/25,
+    .text-ink\/30,
+    .text-ink\/35,
+    .text-ink\/40,
+    .text-ink\/45,
+    .text-ink\/50,
+    .text-ink\/55,
+    .text-ink\/60
+  ) {
+    color: color-mix(in srgb, var(--color-ink) 65%, transparent) !important;
+  }
+
+  .text-canvas\/45 {
+    color: color-mix(in srgb, var(--color-canvas) 55%, transparent) !important;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 130% 0;
+  }
+
+  to {
+    background-position: -90% 0;
+  }
+}
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drawer-enter {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawer-left-enter {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

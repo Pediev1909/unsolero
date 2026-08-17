@@ -1,0 +1,17 @@
+.env
+*.local
+.DS_Store
+
+# Frontend
+node_modules/
+dist/
+coverage/
+
+# Go
+bin/
+*.test
+backend/uploads/
+
+# Editors
+.idea/
+.vscode/

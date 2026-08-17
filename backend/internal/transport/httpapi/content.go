@@ -1,0 +1,189 @@
+package httpapi
+
+import (
+	"encoding/xml"
+	"errors"
+	"net/http"
+	"strconv"
+	"time"
+
+	content "rigmark/internal/modules/content/application"
+	"rigmark/internal/modules/content/domain"
+	"rigmark/internal/modules/content/ports"
+)
+
+type contentSummaryResponse struct {
+	ID          string        `json:"id"`
+	Type        string        `json:"type"`
+	Title       string        `json:"title"`
+	Slug        string        `json:"slug"`
+	Path        string        `json:"path"`
+	Description string        `json:"description"`
+	HeroImage   imageResponse `json:"hero_image"`
+	AuthorName  string        `json:"author_name"`
+	PublishedAt time.Time     `json:"published_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
+}
+
+type contentBlockResponse struct {
+	Type        string   `json:"type"`
+	Heading     string   `json:"heading,omitempty"`
+	Text        string   `json:"text,omitempty"`
+	Items       []string `json:"items,omitempty"`
+	Attribution string   `json:"attribution,omitempty"`
+}
+
+type contentAuthorResponse struct {
+	Name      string  `json:"name"`
+	Slug      string  `json:"slug"`
+	Bio       string  `json:"bio"`
+	AvatarURL *string `json:"avatar_url"`
+}
+
+type contentSEOResponse struct {
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	CanonicalURL string `json:"canonical_url"`
+}
+
+type contentDetailResponse struct {
+	contentSummaryResponse
+	Content           []contentBlockResponse   `json:"content"`
+	Author            contentAuthorResponse    `json:"author"`
+	RelatedProducts   []productSummaryResponse `json:"related_products"`
+	RelatedCategories []categoryResponse       `json:"related_categories"`
+	RelatedContent    []contentSummaryResponse `json:"related_content"`
+	SEO               contentSEOResponse       `json:"seo"`
+}
+
+func (h *Handler) listContent(response http.ResponseWriter, request *http.Request) {
+	limit := 12
+	if raw := request.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			h.writeContentError(response, content.ErrInvalidQuery)
+			return
+		}
+		limit = parsed
+	}
+	entries, err := h.content.List(
+		request.Context(),
+		request.URL.Query().Get("section"),
+		request.URL.Query().Get("category"),
+		limit,
+	)
+	if err != nil {
+		h.writeContentError(response, err)
+		return
+	}
+	result := make([]contentSummaryResponse, 0, len(entries))
+	for _, entry := range entries {
+		result = append(result, contentSummaryDTO(entry))
+	}
+	response.Header().Set("Cache-Control", "public, max-age=300, stale-while-revalidate=600")
+	writeJSON(response, http.StatusOK, result, h.logger)
+}
+
+func (h *Handler) getContent(response http.ResponseWriter, request *http.Request) {
+	entry, err := h.content.Get(request.Context(), request.PathValue("slug"))
+	if err != nil {
+		h.writeContentError(response, err)
+		return
+	}
+	response.Header().Set("Cache-Control", "public, max-age=300, stale-while-revalidate=600")
+	writeJSON(response, http.StatusOK, contentDetailDTO(entry), h.logger)
+}
+
+func contentSummaryDTO(entry domain.Summary) contentSummaryResponse {
+	return contentSummaryResponse{
+		ID: entry.ID, Type: string(entry.Type), Title: entry.Title, Slug: entry.Slug,
+		Path: entry.Path, Description: entry.Description,
+		HeroImage:  imageResponse{URL: entry.HeroImageURL, AltText: entry.HeroImageAlt},
+		AuthorName: entry.AuthorName, PublishedAt: entry.PublishedAt, UpdatedAt: entry.UpdatedAt,
+	}
+}
+
+func contentDetailDTO(entry domain.Entry) contentDetailResponse {
+	blocks := make([]contentBlockResponse, 0, len(entry.Content))
+	for _, block := range entry.Content {
+		blocks = append(blocks, contentBlockResponse{
+			Type: string(block.Type), Heading: block.Heading, Text: block.Text,
+			Items: block.Items, Attribution: block.Attribution,
+		})
+	}
+	products := make([]productSummaryResponse, 0, len(entry.RelatedProducts))
+	for _, product := range entry.RelatedProducts {
+		products = append(products, productSummaryDTO(product))
+	}
+	categories := make([]categoryResponse, 0, len(entry.RelatedCategories))
+	for _, category := range entry.RelatedCategories {
+		categories = append(categories, categoryResponse{
+			ID: string(category.ID), Name: category.Name, Slug: category.Slug, Description: category.Description,
+		})
+	}
+	related := make([]contentSummaryResponse, 0, len(entry.RelatedEntries))
+	for _, item := range entry.RelatedEntries {
+		related = append(related, contentSummaryDTO(item))
+	}
+	return contentDetailResponse{
+		contentSummaryResponse: contentSummaryDTO(entry.Summary),
+		Content:                blocks,
+		Author:                 contentAuthorResponse{Name: entry.Author.Name, Slug: entry.Author.Slug, Bio: entry.Author.Bio, AvatarURL: entry.Author.AvatarURL},
+		RelatedProducts:        products, RelatedCategories: categories, RelatedContent: related,
+		SEO: contentSEOResponse{Title: entry.SEOTitle, Description: entry.SEODescription, CanonicalURL: entry.CanonicalURL},
+	}
+}
+
+func (h *Handler) writeContentError(response http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, content.ErrInvalidQuery):
+		writeAPIError(response, http.StatusBadRequest, "invalid_content_query", "The content query is invalid.", nil, h.logger)
+	case errors.Is(err, ports.ErrNotFound):
+		writeAPIError(response, http.StatusNotFound, "content_not_found", "The requested content could not be found.", nil, h.logger)
+	default:
+		h.logger.Error("editorial content request failed", "error", err)
+		writeAPIError(response, http.StatusInternalServerError, "content_unavailable", "Editorial content is temporarily unavailable.", nil, h.logger)
+	}
+}
+
+type sitemapURLSet struct {
+	XMLName xml.Name     `xml:"urlset"`
+	XMLNS   string       `xml:"xmlns,attr"`
+	URLs    []sitemapURL `xml:"url"`
+}
+
+type sitemapURL struct {
+	Location string `xml:"loc"`
+	LastMod  string `xml:"lastmod,omitempty"`
+}
+
+func (h *Handler) sitemap(response http.ResponseWriter, request *http.Request) {
+	entries, err := h.content.Sitemap(request.Context())
+	if err != nil {
+		h.logger.Error("generate sitemap", "error", err)
+		http.Error(response, "Sitemap unavailable", http.StatusInternalServerError)
+		return
+	}
+	result := sitemapURLSet{XMLNS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: make([]sitemapURL, 0, len(entries))}
+	for _, entry := range entries {
+		result.URLs = append(result.URLs, sitemapURL{
+			Location: h.content.AbsoluteURL(entry.Path), LastMod: entry.ModifiedAt.UTC().Format("2006-01-02"),
+		})
+	}
+	data, err := xml.MarshalIndent(result, "", "  ")
+	if err != nil {
+		h.logger.Error("encode sitemap", "error", err)
+		http.Error(response, "Sitemap unavailable", http.StatusInternalServerError)
+		return
+	}
+	response.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	response.Header().Set("Cache-Control", "public, max-age=3600")
+	response.WriteHeader(http.StatusOK)
+	_, _ = response.Write(append([]byte(xml.Header), data...))
+}
+
+func (h *Handler) robots(response http.ResponseWriter, _ *http.Request) {
+	response.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	response.Header().Set("Cache-Control", "public, max-age=3600")
+	_, _ = response.Write([]byte("User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\nDisallow: /account\nDisallow: /setups\nDisallow: /wishlist\nDisallow: /build\nDisallow: /login\nDisallow: /register\nDisallow: /design-system\nSitemap: " + h.content.AbsoluteURL("/sitemap.xml") + "\n"))
+}
