@@ -289,10 +289,14 @@ services:
     ports: !reset []
     depends_on: !reset []
     read_only: true
+    # A tmpfs mount replaces the image's ownership with a fresh root-owned
+    # filesystem, so the unprivileged nginx user cannot write its cache or pid
+    # without an explicit mode. The image chowns these paths at build time and
+    # the mount hides that.
     tmpfs:
-      - /tmp
-      - /var/cache/nginx
-      - /var/run
+      - /tmp:mode=1777
+      - /var/cache/nginx:mode=1777
+      - /var/run:mode=1777
     security_opt:
       - no-new-privileges:true
     deploy:
