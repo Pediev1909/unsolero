@@ -26,6 +26,13 @@
 	}
 }
 
+# The www host exists in DNS, so it must be served or it fails the TLS
+# handshake outright rather than redirecting. Consolidating on the apex keeps
+# one canonical origin, which is also what the sitemap and canonical URLs use.
+www.{$PUBLIC_HOSTNAME} {
+	redir https://{$PUBLIC_HOSTNAME}{uri} permanent
+}
+
 {$PUBLIC_HOSTNAME} {
 	encode zstd gzip
 
