@@ -17,6 +17,7 @@ import (
 
 var ErrInvalidDraft = errors.New("invalid recommendation draft")
 var ErrInvalidSetupName = errors.New("setup name must contain between 1 and 120 characters")
+var ErrInvalidSetupPagination = errors.New("saved setup pagination is invalid")
 var ErrCandidateCatalogTooLarge = errors.New("published catalog exceeds recommendation engine capacity")
 var ErrStoredProductMissing = errors.New("a product referenced by the saved setup no longer exists")
 var ErrUngovernedCandidate = errors.New("a published recommendation candidate has no approved evidence revision")
@@ -124,8 +125,11 @@ func (service *Service) DeleteDraft(ctx context.Context, userID identity.UserID)
 	return service.repository.DeleteDraft(ctx, userID)
 }
 
-func (service *Service) ListSetups(ctx context.Context, userID identity.UserID) ([]ports.SetupSummary, error) {
-	return service.repository.ListSetups(ctx, userID)
+func (service *Service) ListSetups(ctx context.Context, userID identity.UserID, page, pageSize int) (ports.SetupPage, error) {
+	if page < 1 || page > 10_000 || pageSize < 1 || pageSize > 100 {
+		return ports.SetupPage{}, ErrInvalidSetupPagination
+	}
+	return service.repository.ListSetups(ctx, userID, pageSize, (page-1)*pageSize)
 }
 
 func (service *Service) GetSetup(

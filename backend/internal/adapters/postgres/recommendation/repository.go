@@ -330,33 +330,39 @@ func (repository *Repository) loadCandidateGoalSupport(
 	return result, rows.Err()
 }
 
-func (repository *Repository) ListSetups(ctx context.Context, userID identity.UserID) ([]ports.SetupSummary, error) {
+func (repository *Repository) ListSetups(ctx context.Context, userID identity.UserID, limit, offset int) (ports.SetupPage, error) {
 	rows, err := repository.pool.Query(ctx, `
-		SELECT s.id, s.name, count(si.id), r.total_price_minor, s.currency,
+		SELECT count(*) OVER(), s.id, s.name, count(si.id), r.total_price_minor, s.currency,
 			r.objective_score, s.created_at, s.updated_at
 		FROM planning.setups s
 		JOIN recommendation.recommendations r ON r.id = s.source_recommendation_id
 		LEFT JOIN planning.setup_items si ON si.setup_id = s.id AND si.purchase_status <> 'removed'
 		WHERE s.user_id = $1
 		GROUP BY s.id, r.total_price_minor, r.objective_score
-		ORDER BY s.updated_at DESC`, userID)
+		ORDER BY s.updated_at DESC, s.id DESC
+		LIMIT $2 OFFSET $3`, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("list saved setups: %w", err)
+		return ports.SetupPage{}, fmt.Errorf("list saved setups: %w", err)
 	}
 	defer rows.Close()
-	setups := make([]ports.SetupSummary, 0)
+	page := ports.SetupPage{Setups: make([]ports.SetupSummary, 0)}
 	for rows.Next() {
 		var setup ports.SetupSummary
-		if err = rows.Scan(&setup.ID, &setup.Name, &setup.ItemCount, &setup.TotalCostMinor,
+		if err = rows.Scan(&page.Total, &setup.ID, &setup.Name, &setup.ItemCount, &setup.TotalCostMinor,
 			&setup.Currency, &setup.ObjectiveScore, &setup.CreatedAt, &setup.UpdatedAt); err != nil {
-			return nil, fmt.Errorf("scan saved setup: %w", err)
+			return ports.SetupPage{}, fmt.Errorf("scan saved setup: %w", err)
 		}
-		setups = append(setups, setup)
+		page.Setups = append(page.Setups, setup)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("read saved setups: %w", err)
+		return ports.SetupPage{}, fmt.Errorf("read saved setups: %w", err)
 	}
-	return setups, nil
+	if len(page.Setups) == 0 && offset > 0 {
+		if err := repository.pool.QueryRow(ctx, `SELECT count(*) FROM planning.setups WHERE user_id=$1`, userID).Scan(&page.Total); err != nil {
+			return ports.SetupPage{}, fmt.Errorf("count saved setups: %w", err)
+		}
+	}
+	return page, nil
 }
 
 func (repository *Repository) GetResultBySetupID(

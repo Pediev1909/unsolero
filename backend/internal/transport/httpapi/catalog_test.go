@@ -28,16 +28,16 @@ func (stub *commerceStub) ListOffers(context.Context, catalogdomain.ProductID, s
 	return stub.offers, nil
 }
 
-func (stub *commerceStub) TrackOfferClick(_ context.Context, click commercedomain.AffiliateClick) (string, error) {
+func (stub *commerceStub) TrackOfferClick(_ context.Context, click commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error) {
 	stub.trackedOffer = click.OfferID
 	stub.surface = click.Source
-	return stub.destination, nil
+	return commercedomain.AffiliateRedirectResult{DestinationURL: stub.destination}, nil
 }
 
-func (stub *commerceStub) TrackLegacyLinkClick(_ context.Context, click commercedomain.AffiliateClick) (string, error) {
+func (stub *commerceStub) TrackLegacyLinkClick(_ context.Context, click commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error) {
 	stub.trackedID = click.LinkID
 	stub.surface = click.Source
-	return stub.destination, nil
+	return commercedomain.AffiliateRedirectResult{DestinationURL: stub.destination}, nil
 }
 
 func TestOfferResponseExposesTrackedPathNotMerchantURLs(t *testing.T) {

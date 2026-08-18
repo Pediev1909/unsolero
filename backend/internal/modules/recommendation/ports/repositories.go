@@ -56,12 +56,17 @@ type SetupSummary struct {
 	UpdatedAt      time.Time
 }
 
+type SetupPage struct {
+	Setups []SetupSummary
+	Total  int
+}
+
 type Repository interface {
 	GetDraft(context.Context, identity.UserID) (Draft, error)
 	SaveDraft(context.Context, identity.UserID, Draft) (Draft, error)
 	DeleteDraft(context.Context, identity.UserID) error
 	SaveResult(context.Context, identity.UserID, domain.Input, domain.Result, []domain.CandidateSnapshot) (SavedResult, error)
-	ListSetups(context.Context, identity.UserID) ([]SetupSummary, error)
+	ListSetups(context.Context, identity.UserID, int, int) (SetupPage, error)
 	GetResultBySetupID(context.Context, identity.UserID, planning.SetupID) (PersistedResult, error)
 	RenameSetup(context.Context, identity.UserID, planning.SetupID, string) error
 	DeleteSetup(context.Context, identity.UserID, planning.SetupID) error

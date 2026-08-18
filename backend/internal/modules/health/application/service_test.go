@@ -6,57 +6,26 @@ import (
 	"testing"
 )
 
-type fakePinger struct {
-	err error
-}
+type pingerStub struct{ err error }
 
-func (p fakePinger) Ping(context.Context) error {
-	return p.err
-}
+func (stub pingerStub) Ping(context.Context) error { return stub.err }
 
-func TestLive(t *testing.T) {
-	service := NewService(fakePinger{}, "test-version")
-	report := service.Live()
+type checkerStub struct{ err error }
 
-	if report.Status != "ok" || report.Service != "rigmark-api" || report.Version != "test-version" {
-		t.Fatalf("Live() returned unexpected report: %+v", report)
-	}
-	if report.Checks != nil {
-		t.Fatalf("Live() checks = %v, want nil", report.Checks)
-	}
-}
+func (stub checkerStub) Ready(context.Context) error { return stub.err }
 
-func TestCheck(t *testing.T) {
-	tests := []struct {
-		name       string
-		pingErr    error
-		wantStatus string
-		wantCheck  string
-		wantErr    bool
-	}{
-		{name: "database available", wantStatus: "ok", wantCheck: "ok"},
-		{
-			name:       "database unavailable",
-			pingErr:    errors.New("unavailable"),
-			wantStatus: "degraded",
-			wantCheck:  "unavailable",
-			wantErr:    true,
-		},
+func TestReadinessDistinguishesCriticalAndAdvisoryDependencies(t *testing.T) {
+	service := NewServiceWithDependencies(pingerStub{}, "test", []Dependency{
+		{Name: "alerting", Checker: checkerStub{err: errors.New("disabled")}},
+	})
+	report, err := service.Check(context.Background())
+	if err != nil || report.Status != "degraded" || report.Checks["database"] != "ok" || report.Checks["alerting"] != "unavailable" {
+		t.Fatalf("report=%#v err=%v", report, err)
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			service := NewService(fakePinger{err: test.pingErr}, "test")
-			report, err := service.Check(context.Background())
-			if (err != nil) != test.wantErr {
-				t.Fatalf("Check() error = %v, wantErr %v", err, test.wantErr)
-			}
-			if report.Status != test.wantStatus {
-				t.Errorf("Status = %q, want %q", report.Status, test.wantStatus)
-			}
-			if report.Checks["database"] != test.wantCheck {
-				t.Errorf("database check = %q, want %q", report.Checks["database"], test.wantCheck)
-			}
-		})
+	service = NewService(pingerStub{err: errors.New("down")}, "test")
+	report, err = service.Check(context.Background())
+	if err == nil || report.Status != "unavailable" {
+		t.Fatalf("report=%#v err=%v", report, err)
 	}
 }

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -22,6 +23,22 @@ type authStub struct {
 	err                error
 	authenticatedToken string
 	loggedOutToken     string
+}
+
+type accountSecurityStub struct {
+	AccountSecurityService
+	verificationRequests int
+	recentMFA            bool
+}
+
+func (stub *accountSecurityStub) RequestEmailVerification(context.Context, string) (identity.RequestReceipt, error) {
+	stub.verificationRequests++
+	return identity.RequestReceipt{Recorded: true}, nil
+}
+
+func (stub *accountSecurityStub) RecentMFA(domain.Principal) bool { return stub.recentMFA }
+func (stub *accountSecurityStub) RecordAuthorizationFailure(context.Context, domain.Principal, domain.Permission) error {
+	return nil
 }
 
 func (stub authStub) Register(
@@ -112,6 +129,49 @@ func TestLoginReturnsSafeCredentialError(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), `"code":"invalid_credentials"`) {
 		t.Fatalf("body = %s", response.Body)
+	}
+}
+
+func TestRegistrationIsAntiEnumeratedWhenSecurityServiceIsEnabled(t *testing.T) {
+	security := &accountSecurityStub{}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	responses := make([]*httptest.ResponseRecorder, 0, 2)
+	for _, authService := range []*authStub{
+		{session: identity.AuthenticatedSession{User: domain.User{ID: "new-user"}, RawToken: "new-token", ExpiresAt: time.Now().Add(time.Hour)}},
+		{err: identity.ErrEmailAlreadyUsed},
+	} {
+		request := httptest.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(`{"email":"person@example.com","password":"a long secure password"}`))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		NewRouter(healthStub{}, authService, testCookieConfig, logger, PublicServices{Security: security}).ServeHTTP(response, request)
+		responses = append(responses, response)
+	}
+	if responses[0].Code != http.StatusAccepted || responses[1].Code != http.StatusAccepted || responses[0].Body.String() != responses[1].Body.String() {
+		t.Fatalf("registration responses differ: %d %q vs %d %q", responses[0].Code, responses[0].Body, responses[1].Code, responses[1].Body)
+	}
+	if len(responses[0].Result().Cookies()) != 0 || len(responses[1].Result().Cookies()) != 0 {
+		t.Fatal("anti-enumerated registration must not create a browser session")
+	}
+}
+
+func TestLoginMFAChallengeUsesScopedHttpOnlyCookie(t *testing.T) {
+	expires := time.Now().Add(5 * time.Minute)
+	authService := &authStub{session: identity.AuthenticatedSession{MFARequired: true,
+		MFAChallengeToken: "challenge-secret", MFAChallengeExpiresAt: &expires}}
+	request := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"email":"admin@example.com","password":"a long secure password"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	newAuthTestRouter(authService).ServeHTTP(response, request)
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body)
+	}
+	cookies := response.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != "test_session_mfa" || cookies[0].Path != "/api/auth/mfa/complete" ||
+		!cookies[0].HttpOnly || !cookies[0].Secure || cookies[0].SameSite != http.SameSiteStrictMode {
+		t.Fatalf("MFA challenge cookie = %#v", cookies)
+	}
+	if strings.Contains(response.Body.String(), "challenge-secret") {
+		t.Fatal("MFA challenge token leaked into response")
 	}
 }
 
@@ -245,6 +305,27 @@ func TestRequireAdminRoleAllowsAdministrator(t *testing.T) {
 	}
 }
 
+func TestAffiliateOptionalAuthenticationFailsOpen(t *testing.T) {
+	authService := &authStub{err: errors.New("session store unavailable")}
+	handler := &Handler{auth: authService, cookie: testCookieConfig,
+		logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	called := false
+	protected := handler.attachOptionalAuthenticationFailOpen(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		called = true
+		if _, authenticated := principalFromContext(request.Context()); authenticated {
+			t.Fatal("failed authentication must continue anonymously")
+		}
+		response.WriteHeader(http.StatusNoContent)
+	}))
+	request := httptest.NewRequest(http.MethodGet, "/api/affiliate/click/offer", nil)
+	request.AddCookie(&http.Cookie{Name: testCookieConfig.Name, Value: "opaque-token"})
+	response := httptest.NewRecorder()
+	protected.ServeHTTP(response, request)
+	if !called || response.Code != http.StatusNoContent {
+		t.Fatalf("called=%v status=%d", called, response.Code)
+	}
+}
+
 func TestRequireAnyRoleSeparatesGovernanceEditorsAndReviewers(t *testing.T) {
 	for _, test := range []struct {
 		name       string
@@ -274,5 +355,63 @@ func TestRequireAnyRoleSeparatesGovernanceEditorsAndReviewers(t *testing.T) {
 				t.Fatalf("status = %d, want %d", response.Code, test.wantStatus)
 			}
 		})
+	}
+}
+
+func TestRequirePermissionEnforcesLeastPrivilege(t *testing.T) {
+	tests := []struct {
+		name       string
+		role       domain.Role
+		permission domain.Permission
+		want       int
+	}{
+		{"catalog edits catalog", domain.RoleCatalogEditor, domain.PermissionCatalogUpdate, http.StatusNoContent},
+		{"catalog cannot approve evidence", domain.RoleCatalogEditor, domain.PermissionEvidenceApprove, http.StatusForbidden},
+		{"reviewer approves evidence", domain.RoleEvidenceReviewer, domain.PermissionEvidenceApprove, http.StatusNoContent},
+		{"commerce cannot mutate policy", domain.RoleCommerceOperator, domain.PermissionPolicyCreate, http.StatusForbidden},
+		{"analyst cannot mutate commerce", domain.RoleAnalyst, domain.PermissionCommerceUpdate, http.StatusForbidden},
+		{"analyst reads aggregates", domain.RoleAnalyst, domain.PermissionAnalyticsRead, http.StatusNoContent},
+		{"analyst cannot read raw events", domain.RoleAnalyst, domain.PermissionAnalyticsRawRead, http.StatusForbidden},
+		{"analyst cannot read consent records", domain.RoleAnalyst, domain.PermissionConsentRead, http.StatusForbidden},
+		{"analyst cannot read security events", domain.RoleAnalyst, domain.PermissionSecurityEventsRead, http.StatusForbidden},
+		{"content cannot export analytics", domain.RoleContentEditor, domain.PermissionAnalyticsExport, http.StatusForbidden},
+		{"unknown forged role denied", domain.Role("administrator"), domain.PermissionAdminRead, http.StatusForbidden},
+		{"administrator allowed", domain.RoleAdmin, domain.PermissionSecurityEventsRead, http.StatusNoContent},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			authService := &authStub{principal: domain.Principal{UserID: "user-1", Roles: []domain.Role{test.role}}}
+			handler := &Handler{auth: authService, cookie: testCookieConfig, logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+			protected := handler.requirePermission(test.permission, http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) { response.WriteHeader(http.StatusNoContent) }))
+			request := httptest.NewRequest(http.MethodPost, "/api/admin/resource", nil)
+			request.AddCookie(&http.Cookie{Name: testCookieConfig.Name, Value: "session"})
+			response := httptest.NewRecorder()
+			protected.ServeHTTP(response, request)
+			if response.Code != test.want {
+				t.Fatalf("status=%d want=%d body=%s", response.Code, test.want, response.Body)
+			}
+		})
+	}
+}
+
+func TestPrivilegedPermissionRequiresBackendVerifiedRecentMFA(t *testing.T) {
+	security := &accountSecurityStub{recentMFA: false}
+	verifiedAt := time.Now().Add(-time.Hour)
+	authService := &authStub{principal: domain.Principal{UserID: "admin", Roles: []domain.Role{domain.RoleAdmin}, EmailVerifiedAt: &verifiedAt}}
+	handler := &Handler{auth: authService, security: security, securityPolicy: SecurityPolicyConfig{EnforcePrivilegedMFA: true},
+		cookie: testCookieConfig, logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	protected := handler.requirePermission(domain.PermissionCommerceRead, http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) { response.WriteHeader(http.StatusNoContent) }))
+	request := httptest.NewRequest(http.MethodGet, "/api/admin/commerce/conversions", nil)
+	request.AddCookie(&http.Cookie{Name: testCookieConfig.Name, Value: "session"})
+	response := httptest.NewRecorder()
+	protected.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), "mfa_step_up_required") {
+		t.Fatalf("stale MFA response=%d body=%s", response.Code, response.Body)
+	}
+	security.recentMFA = true
+	response = httptest.NewRecorder()
+	protected.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("recent MFA status=%d body=%s", response.Code, response.Body)
 	}
 }

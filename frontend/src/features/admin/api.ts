@@ -5,6 +5,13 @@ import {
   affiliatePageSchema,
   brandSchema,
   categorySchema,
+  commerceImportFailuresSchema,
+  commerceImportSchema,
+  commerceImportsSchema,
+  conversionImportSchema,
+  conversionImportsSchema,
+  commerceProviderSchema,
+  commerceProvidersSchema,
   dashboardSchema,
   eventPageSchema,
   merchantSchema,
@@ -14,10 +21,13 @@ import {
   productSchema,
   productGovernancePageSchema,
   productGovernanceSchema,
+  monetizationReportSchema,
+  reconciliationsSchema,
   recommendationDetailSchema,
   recommendationPageSchema,
   referencesSchema,
   userPageSchema,
+  verifiedConversionsSchema,
 } from './schemas'
 
 export interface ProductInput {
@@ -71,6 +81,16 @@ export interface OfferInput {
   condition: string
   is_active: boolean
   affiliate: AffiliateInput | null
+}
+
+export interface CommerceProviderInput {
+  merchant_id: string
+  provider_key: string
+  adapter_key: string
+  external_merchant_id: string
+  credential_reference: string | null
+  schedule_interval_minutes: number
+  freshness_ttl_minutes: number
 }
 
 const query = (page = 1, pageSize = 30) => `?page=${page}&page_size=${pageSize}`
@@ -225,6 +245,100 @@ export const adminApi = {
       `/admin/affiliate-links/${id}`,
       { method: 'PATCH', body: input },
       (value) => affiliateLinkSchema.parse(value),
+    ),
+  commerceProviders: () =>
+    apiRequest('/admin/commerce/providers', { method: 'GET' }, (value) =>
+      commerceProvidersSchema.parse(value),
+    ),
+  createCommerceProvider: (input: CommerceProviderInput) =>
+    apiRequest(
+      '/admin/commerce/providers',
+      { method: 'POST', body: input },
+      (value) => commerceProviderSchema.parse(value),
+    ),
+  setCommerceProviderLifecycle: (id: string, status: string) =>
+    apiRequest(
+      `/admin/commerce/providers/${id}/lifecycle`,
+      { method: 'PUT', body: { status } },
+      (value) => commerceProviderSchema.parse(value),
+    ),
+  commerceImports: (page = 1) =>
+    apiRequest(
+      `/admin/commerce/imports${query(page)}`,
+      { method: 'GET' },
+      (value) => commerceImportsSchema.parse(value),
+    ),
+  triggerCommerceImport: (providerConfigurationID: string) =>
+    apiRequest(
+      '/admin/commerce/imports',
+      {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: { provider_configuration_id: providerConfigurationID },
+      },
+      (value) => commerceImportSchema.parse(value),
+    ),
+  retryCommerceImport: (id: string) =>
+    apiRequest(
+      `/admin/commerce/imports/${id}/retry`,
+      { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() } },
+      (value) => commerceImportSchema.parse(value),
+    ),
+  commerceImportFailures: (id: string, page = 1) =>
+    apiRequest(
+      `/admin/commerce/imports/${id}/failures${query(page)}`,
+      { method: 'GET' },
+      (value) => commerceImportFailuresSchema.parse(value),
+    ),
+  setConversionProvider: (id: string, enabled: boolean) =>
+    apiRequest(
+      `/admin/commerce/providers/${id}/conversions`,
+      { method: 'PUT', body: { enabled } },
+      (value) => commerceProviderSchema.parse(value),
+    ),
+  verifiedConversions: (page = 1) =>
+    apiRequest(
+      `/admin/commerce/conversions${query(page)}`,
+      { method: 'GET' },
+      (value) => verifiedConversionsSchema.parse(value),
+    ),
+  conversionImports: (page = 1) =>
+    apiRequest(
+      `/admin/commerce/conversion-imports${query(page)}`,
+      { method: 'GET' },
+      (value) => conversionImportsSchema.parse(value),
+    ),
+  triggerConversionImport: (providerConfigurationID: string) =>
+    apiRequest(
+      '/admin/commerce/conversion-imports',
+      {
+        method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: { provider_configuration_id: providerConfigurationID },
+      },
+      (value) => conversionImportSchema.parse(value),
+    ),
+  retryConversionImport: (id: string) =>
+    apiRequest(
+      `/admin/commerce/conversion-imports/${id}/retry`,
+      { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() } },
+      (value) => conversionImportSchema.parse(value),
+    ),
+  conversionReconciliations: (page = 1) =>
+    apiRequest(
+      `/admin/commerce/reconciliations${query(page)}`,
+      { method: 'GET' },
+      (value) => reconciliationsSchema.parse(value),
+    ),
+  reconcileConversionImport: (id: string) =>
+    apiRequest(
+      `/admin/commerce/conversion-imports/${id}/reconcile`,
+      { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() } },
+      (value) => reconciliationsSchema.shape.items.element.parse(value),
+    ),
+  monetizationMetrics: () =>
+    apiRequest('/admin/commerce/metrics', { method: 'GET' }, (value) =>
+      monetizationReportSchema.parse(value),
     ),
   recommendations: (page = 1) =>
     apiRequest(

@@ -77,6 +77,9 @@ func (repository *Repository) ListAvailableByProduct(
 			offers.availability,
 			offers.condition,
 			offers.last_checked_at,
+			offers.provider_observed_at,
+			offers.imported_at,
+			offers.expires_at,
 			offers.is_active,
 			merchants.id,
 			merchants.name,
@@ -109,6 +112,7 @@ func (repository *Repository) ListAvailableByProduct(
 			AND offers.is_active = true
 			AND offers.availability IN ('in_stock', 'backorder')
 			AND offers.last_checked_at >= now() - make_interval(secs => $3::double precision)
+			AND (offers.expires_at IS NULL OR offers.expires_at > now())
 			AND merchants.status = 'active'
 		ORDER BY offers.price_minor + offers.shipping_minor, merchants.trust_score DESC,
 			affiliate_links.priority DESC, affiliate_links.provider`,
@@ -125,6 +129,9 @@ func (repository *Repository) ListAvailableByProduct(
 	offerIndexes := make(map[string]int)
 	for rows.Next() {
 		var offer domain.Offer
+		var providerObservedAt sql.NullTime
+		var importedAt sql.NullTime
+		var expiresAt sql.NullTime
 		var affiliateID sql.NullString
 		var provider sql.NullString
 		var destinationURL sql.NullString
@@ -148,6 +155,9 @@ func (repository *Repository) ListAvailableByProduct(
 			&offer.Availability,
 			&offer.Condition,
 			&offer.LastCheckedAt,
+			&providerObservedAt,
+			&importedAt,
+			&expiresAt,
 			&offer.IsActive,
 			&offer.Merchant.ID,
 			&offer.Merchant.Name,
@@ -170,6 +180,15 @@ func (repository *Repository) ListAvailableByProduct(
 			&commissionCurrency,
 		); err != nil {
 			return nil, fmt.Errorf("scan product offer: %w", err)
+		}
+		if providerObservedAt.Valid {
+			offer.ProviderObservedAt = &providerObservedAt.Time
+		}
+		if importedAt.Valid {
+			offer.ImportedAt = &importedAt.Time
+		}
+		if expiresAt.Valid {
+			offer.ExpiresAt = &expiresAt.Time
 		}
 
 		index, exists := offerIndexes[string(offer.ID)]
@@ -218,105 +237,105 @@ func (repository *Repository) ListAvailableByProduct(
 	return offers, nil
 }
 
-func (repository *Repository) TrackOfferClick(ctx context.Context, click domain.AffiliateClick) (string, error) {
-	return repository.trackClick(ctx, string(click.OfferID), click, true)
+func (repository *Repository) ResolveOfferDestination(ctx context.Context, click domain.AffiliateClick) (domain.ResolvedAffiliateDestination, error) {
+	return repository.resolveDestination(ctx, string(click.OfferID), click, true)
 }
 
-func (repository *Repository) TrackLegacyLinkClick(ctx context.Context, click domain.AffiliateClick) (string, error) {
-	return repository.trackClick(ctx, string(click.LinkID), click, false)
+func (repository *Repository) ResolveLegacyDestination(ctx context.Context, click domain.AffiliateClick) (domain.ResolvedAffiliateDestination, error) {
+	return repository.resolveDestination(ctx, string(click.LinkID), click, false)
 }
 
-func (repository *Repository) trackClick(
+func (repository *Repository) resolveDestination(
 	ctx context.Context,
 	targetID string,
 	click domain.AffiliateClick,
 	byOffer bool,
-) (string, error) {
+) (domain.ResolvedAffiliateDestination, error) {
 	targetPredicate := "offers.id = $1"
 	if !byOffer {
 		targetPredicate = "affiliate_links.id = $1"
 	}
 	query := fmt.Sprintf(`
-		WITH destination AS (
-			SELECT
-				affiliate_links.id AS affiliate_link_id,
-				affiliate_links.destination_url,
-				offers.id AS offer_id,
-				offers.product_id,
-				offers.merchant_id
-			FROM commerce.affiliate_links AS affiliate_links
-			JOIN commerce.merchant_offers AS offers
-				ON offers.id = affiliate_links.merchant_offer_id
-			JOIN commerce.merchants AS merchants ON merchants.id = offers.merchant_id
-			WHERE %s
-				AND affiliate_links.is_active = true
-				AND (affiliate_links.valid_from IS NULL OR affiliate_links.valid_from <= now())
-				AND (affiliate_links.valid_until IS NULL OR affiliate_links.valid_until > now())
-				AND offers.is_active = true
-				AND offers.availability IN ('in_stock', 'backorder')
-				AND offers.last_checked_at >= now() - make_interval(secs => $13::double precision)
-				AND merchants.status = 'active'
-				AND ($12::uuid IS NULL OR (
-					$2::uuid IS NOT NULL
-					AND EXISTS (
-						SELECT 1
-						FROM recommendation.recommendations AS recommendations
-						JOIN recommendation.recommendation_sessions AS sessions
-							ON sessions.id = recommendations.session_id
-						JOIN recommendation.recommendation_items AS items
-							ON items.recommendation_id = recommendations.id
-						WHERE recommendations.id = $12::uuid
-							AND sessions.user_id = $2::uuid
-							AND items.product_id = offers.product_id
-					)
-				))
-			ORDER BY affiliate_links.priority DESC, affiliate_links.provider
-			LIMIT 1
-		), recorded AS (
-			INSERT INTO commerce.affiliate_clicks (
-				affiliate_link_id, merchant_offer_id, product_id, user_id,
-				anonymous_id, session_id, source, campaign, referrer, request_id,
-				traffic_source, traffic_medium, referrer_host, recommendation_id
-			)
-			SELECT affiliate_link_id, offer_id, product_id, $2::uuid,
-				$3, $4, $5, $6, $7, $8, $9, $10, $11, $12::uuid
-			FROM destination
-			RETURNING id, affiliate_link_id, merchant_offer_id, product_id
-		), analytics_event AS (
-			INSERT INTO analytics.events (
-				event_name, schema_version, user_id, anonymous_id, session_id,
-				request_id, surface, properties, traffic_source, traffic_medium,
-				campaign, referrer_host, consent_state, occurred_at
-			)
-			SELECT 'affiliate_clicked', 2, $2::uuid, $3, $4, $8, $5,
-				jsonb_strip_nulls(jsonb_build_object(
-					'offer_id', recorded.merchant_offer_id,
-					'product_id', recorded.product_id,
-					'source', $5,
-					'campaign', $6
-				)), $9, $10, $6, $11, 'essential', now()
-			FROM recorded
-		)
-		SELECT destination.destination_url
-		FROM destination
-		JOIN recorded ON recorded.affiliate_link_id = destination.affiliate_link_id`, targetPredicate)
+		SELECT affiliate_links.id, offers.id, offers.product_id,
+			CASE WHEN $3::uuid IS NULL THEN NULL ELSE items.id END,
+			affiliate_links.destination_url
+		FROM commerce.affiliate_links affiliate_links
+		JOIN commerce.merchant_offers offers ON offers.id=affiliate_links.merchant_offer_id
+		JOIN commerce.merchants merchants ON merchants.id=offers.merchant_id
+		LEFT JOIN recommendation.recommendation_items items
+			ON items.recommendation_id=$3::uuid AND items.product_id=offers.product_id
+		LEFT JOIN recommendation.recommendations recommendations ON recommendations.id=$3::uuid
+		LEFT JOIN recommendation.recommendation_sessions sessions
+			ON sessions.id=recommendations.session_id AND sessions.user_id=$2::uuid
+		WHERE %s AND affiliate_links.is_active=true
+			AND (affiliate_links.valid_from IS NULL OR affiliate_links.valid_from<=now())
+			AND (affiliate_links.valid_until IS NULL OR affiliate_links.valid_until>now())
+			AND offers.is_active=true AND offers.availability IN ('in_stock','backorder')
+			AND offers.last_checked_at >= now() - make_interval(secs => $4::double precision)
+			AND (offers.expires_at IS NULL OR offers.expires_at > now())
+			AND merchants.status='active'
+			AND ($3::uuid IS NULL OR (sessions.user_id IS NOT NULL AND items.id IS NOT NULL))
+		ORDER BY affiliate_links.priority DESC, affiliate_links.provider
+		LIMIT 1`, targetPredicate)
 
 	var userID any
 	if click.UserID != nil {
 		userID = *click.UserID
 	}
-	var destinationURL string
-	err := repository.pool.QueryRow(ctx, query, targetID, userID, click.AnonymousID,
-		click.SessionID, click.Source, click.Campaign, click.Referrer, click.RequestID,
-		click.TrafficSource, click.TrafficMedium, click.ReferrerHost,
-		click.RecommendationID, int64(repository.maxOfferAge.Seconds())).Scan(&destinationURL)
+	var destination domain.ResolvedAffiliateDestination
+	err := repository.pool.QueryRow(ctx, query, targetID, userID, click.RecommendationID,
+		int64(repository.maxOfferAge.Seconds())).Scan(&destination.AffiliateLinkID,
+		&destination.OfferID, &destination.ProductID, &destination.RecommendationItem,
+		&destination.DestinationURL)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", ports.ErrAffiliateDestinationNotFound
+		return domain.ResolvedAffiliateDestination{}, ports.ErrAffiliateDestinationNotFound
 	}
 	if err != nil {
-		return "", fmt.Errorf("track outbound click: %w", err)
+		return domain.ResolvedAffiliateDestination{}, fmt.Errorf("resolve affiliate destination: %w", err)
 	}
-	return destinationURL, nil
+	return destination, nil
+}
+
+func (repository *Repository) RecordClick(ctx context.Context, destination domain.ResolvedAffiliateDestination, click domain.AffiliateClick) error {
+	retentionExpires := click.RetentionExpires
+	if retentionExpires.IsZero() {
+		retentionExpires = time.Now().UTC().Add(397 * 24 * time.Hour)
+	}
+	var userID any
+	if click.UserID != nil {
+		userID = *click.UserID
+	}
+	_, err := repository.pool.Exec(ctx, `WITH recorded AS (
+		INSERT INTO commerce.affiliate_clicks (
+			affiliate_link_id, merchant_offer_id, product_id, user_id, anonymous_id,
+			session_id, source, campaign, referrer, request_id, traffic_source,
+			traffic_medium, referrer_host, recommendation_id, recommendation_item_id,
+			classification, is_countable, user_agent_hash, idempotency_key,
+			retention_expires_at)
+		VALUES ($1,$2,$3,$4::uuid,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::uuid,
+			$15::uuid,$16,$17,$18,$19,$20)
+		ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
+		RETURNING id, merchant_offer_id, product_id
+	), analytics_event AS (
+		INSERT INTO analytics.events (
+			event_name, schema_version, user_id, anonymous_id, session_id, request_id,
+			surface, properties, traffic_source, traffic_medium, campaign, referrer_host,
+			consent_state, classification, is_reportable, retention_expires_at, occurred_at)
+		SELECT 'affiliate_clicked', 2, $4::uuid, $5, $6, $10, $7,
+			jsonb_strip_nulls(jsonb_build_object('offer_id', recorded.merchant_offer_id,
+			'product_id', recorded.product_id, 'source', $7, 'campaign', $8)),
+			$11,$12,$8,$13,'essential',$16,$17,$20,now() FROM recorded WHERE $17
+	)
+	SELECT count(*) FROM recorded`, destination.AffiliateLinkID, destination.OfferID,
+		destination.ProductID, userID, click.AnonymousID, click.SessionID, click.Source,
+		click.Campaign, click.Referrer, click.RequestID, click.TrafficSource,
+		click.TrafficMedium, click.ReferrerHost, click.RecommendationID,
+		destination.RecommendationItem, click.Classification, click.IsCountable,
+		click.UserAgentHash, click.IdempotencyKey, retentionExpires)
+	if err != nil {
+		return fmt.Errorf("record affiliate click: %w", err)
+	}
+	return nil
 }
 
 var (

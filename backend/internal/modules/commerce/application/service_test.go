@@ -2,18 +2,25 @@ package application
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"rigmark/internal/modules/commerce/domain"
 )
 
-type redirectStub struct{ destination string }
-
-func (stub redirectStub) TrackOfferClick(context.Context, domain.AffiliateClick) (string, error) {
-	return stub.destination, nil
+type redirectStub struct {
+	destination string
+	recordErr   error
 }
-func (stub redirectStub) TrackLegacyLinkClick(context.Context, domain.AffiliateClick) (string, error) {
-	return stub.destination, nil
+
+func (stub redirectStub) ResolveOfferDestination(context.Context, domain.AffiliateClick) (domain.ResolvedAffiliateDestination, error) {
+	return domain.ResolvedAffiliateDestination{DestinationURL: stub.destination}, nil
+}
+func (stub redirectStub) ResolveLegacyDestination(context.Context, domain.AffiliateClick) (domain.ResolvedAffiliateDestination, error) {
+	return domain.ResolvedAffiliateDestination{DestinationURL: stub.destination}, nil
+}
+func (stub redirectStub) RecordClick(context.Context, domain.ResolvedAffiliateDestination, domain.AffiliateClick) error {
+	return stub.recordErr
 }
 
 func validClick() domain.AffiliateClick {
@@ -30,12 +37,32 @@ func TestTrackOfferClickRejectsUnsafePersistedURL(t *testing.T) {
 
 func TestTrackOfferClickAcceptsHTTPS(t *testing.T) {
 	service := &Service{redirects: redirectStub{destination: "https://merchant.example/product"}}
-	destination, err := service.TrackOfferClick(context.Background(), validClick())
+	result, err := service.TrackOfferClick(context.Background(), validClick())
 	if err != nil {
 		t.Fatalf("track and resolve: %v", err)
 	}
-	if destination != "https://merchant.example/product" {
-		t.Fatalf("unexpected destination %q", destination)
+	if result.DestinationURL != "https://merchant.example/product" {
+		t.Fatalf("unexpected destination %q", result.DestinationURL)
+	}
+}
+
+func TestTrackOfferClickPreservesNavigationWhenRecordingFails(t *testing.T) {
+	recordErr := errors.New("analytics unavailable")
+	service := &Service{redirects: redirectStub{destination: "https://merchant.example/product", recordErr: recordErr}}
+	result, err := service.TrackOfferClick(context.Background(), validClick())
+	if err != nil || result.DestinationURL == "" || !errors.Is(result.TrackingError, recordErr) {
+		t.Fatalf("result = %#v, error = %v", result, err)
+	}
+}
+
+func TestNormalizeAttributionUsesCanonicalSourceAndCampaign(t *testing.T) {
+	campaign := " Summer_Launch "
+	click := validClick()
+	click.Source = " Product_Detail "
+	click.Campaign = &campaign
+	normalized := normalizeAttribution(click)
+	if normalized.Source != "product_detail" || normalized.Campaign == nil || *normalized.Campaign != "summer_launch" {
+		t.Fatalf("normalized attribution = %#v", normalized)
 	}
 }
 
@@ -69,5 +96,13 @@ func TestTrackOfferClickRejectsRecommendationOnUnrelatedSurface(t *testing.T) {
 	click.RecommendationID = &recommendationID
 	if _, err := service.TrackOfferClick(context.Background(), click); err != ErrInvalidAttribution {
 		t.Fatalf("error = %v, want ErrInvalidAttribution", err)
+	}
+}
+
+func TestNormalizeAttributionDropsReferrerPathAndQuery(t *testing.T) {
+	referrer := "https://Example.COM/account/person@example.com?token=secret"
+	click := normalizeAttribution(domain.AffiliateClick{Referrer: &referrer})
+	if click.Referrer == nil || *click.Referrer != "https://example.com" {
+		t.Fatalf("normalized referrer = %v", click.Referrer)
 	}
 }

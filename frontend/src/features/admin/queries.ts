@@ -5,6 +5,7 @@ import {
   type AffiliateInput,
   type OfferInput,
   type ProductInput,
+  type CommerceProviderInput,
 } from './api'
 
 export const adminKeys = {
@@ -30,6 +31,18 @@ export const adminKeys = {
   users: (page: number) => ['admin', 'users', page] as const,
   events: (name: string, page: number) =>
     ['admin', 'events', name, page] as const,
+  commerceProviders: ['admin', 'commerce', 'providers'] as const,
+  commerceImports: (page: number) =>
+    ['admin', 'commerce', 'imports', page] as const,
+  commerceImportFailures: (id: string, page: number) =>
+    ['admin', 'commerce', 'imports', id, 'failures', page] as const,
+  verifiedConversions: (page: number) =>
+    ['admin', 'commerce', 'conversions', page] as const,
+  conversionImports: (page: number) =>
+    ['admin', 'commerce', 'conversion-imports', page] as const,
+  conversionReconciliations: (page: number) =>
+    ['admin', 'commerce', 'reconciliations', page] as const,
+  monetizationMetrics: ['admin', 'commerce', 'metrics'] as const,
 }
 
 export const useAdminDashboard = () =>
@@ -98,6 +111,49 @@ export const useAdminEvents = (name = '', page = 1) =>
     queryFn: () => adminApi.events(name, page),
   })
 
+export const useCommerceProviders = () =>
+  useQuery({
+    queryKey: adminKeys.commerceProviders,
+    queryFn: adminApi.commerceProviders,
+  })
+
+export const useCommerceImports = (page = 1) =>
+  useQuery({
+    queryKey: adminKeys.commerceImports(page),
+    queryFn: () => adminApi.commerceImports(page),
+  })
+
+export const useCommerceImportFailures = (id: string | undefined, page = 1) =>
+  useQuery({
+    queryKey: adminKeys.commerceImportFailures(id ?? '', page),
+    queryFn: () => adminApi.commerceImportFailures(id ?? '', page),
+    enabled: Boolean(id),
+  })
+
+export const useVerifiedConversions = (page = 1) =>
+  useQuery({
+    queryKey: adminKeys.verifiedConversions(page),
+    queryFn: () => adminApi.verifiedConversions(page),
+  })
+
+export const useConversionImports = (page = 1) =>
+  useQuery({
+    queryKey: adminKeys.conversionImports(page),
+    queryFn: () => adminApi.conversionImports(page),
+  })
+
+export const useConversionReconciliations = (page = 1) =>
+  useQuery({
+    queryKey: adminKeys.conversionReconciliations(page),
+    queryFn: () => adminApi.conversionReconciliations(page),
+  })
+
+export const useMonetizationMetrics = () =>
+  useQuery({
+    queryKey: adminKeys.monetizationMetrics,
+    queryFn: adminApi.monetizationMetrics,
+  })
+
 export function useProductMutation(id?: string) {
   const client = useQueryClient()
   return useMutation({
@@ -136,5 +192,80 @@ export function useAffiliateMutation(id: string) {
     mutationFn: (input: AffiliateInput) => adminApi.updateAffiliate(id, input),
     onSuccess: () =>
       void client.invalidateQueries({ queryKey: adminKeys.root }),
+  })
+}
+
+export function useCreateCommerceProvider() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CommerceProviderInput) =>
+      adminApi.createCommerceProvider(input),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: adminKeys.commerceProviders }),
+  })
+}
+
+export function useCommerceProviderLifecycle() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      adminApi.setCommerceProviderLifecycle(id, status),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: adminKeys.commerceProviders }),
+  })
+}
+
+export function useTriggerCommerceImport() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: adminApi.triggerCommerceImport,
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ['admin', 'commerce'] }),
+  })
+}
+
+export function useRetryCommerceImport() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: adminApi.retryCommerceImport,
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ['admin', 'commerce'] }),
+  })
+}
+
+export function useConversionProviderState() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      adminApi.setConversionProvider(id, enabled),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ['admin', 'commerce'] }),
+  })
+}
+
+export function useTriggerConversionImport() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: adminApi.triggerConversionImport,
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ['admin', 'commerce'] }),
+  })
+}
+
+export function useRetryConversionImport() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: adminApi.retryConversionImport,
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ['admin', 'commerce'] }),
+  })
+}
+
+export function useReconcileConversionImport() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: adminApi.reconcileConversionImport,
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: ['admin', 'commerce'] }),
   })
 }

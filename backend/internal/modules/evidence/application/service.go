@@ -96,7 +96,7 @@ func (service *Service) GetProduct(ctx context.Context, productID catalog.Produc
 }
 
 func (service *Service) ListProducts(ctx context.Context, page, pageSize int) ([]domain.ProductGovernance, int64, error) {
-	if page < 1 || pageSize < 1 || pageSize > 100 {
+	if page < 1 || page > 10_000 || pageSize < 1 || pageSize > 100 {
 		return nil, 0, ErrInvalidInput
 	}
 	return service.repository.ListProductGovernance(ctx, pageSize, (page-1)*pageSize)

@@ -92,8 +92,8 @@ func (repository *repositoryStub) SaveResult(context.Context, identity.UserID, d
 	repository.saveCalls++
 	return ports.SavedResult{RecommendationID: "recommendation-1", SetupID: "setup-1"}, nil
 }
-func (*repositoryStub) ListSetups(context.Context, identity.UserID) ([]ports.SetupSummary, error) {
-	return nil, nil
+func (*repositoryStub) ListSetups(context.Context, identity.UserID, int, int) (ports.SetupPage, error) {
+	return ports.SetupPage{}, nil
 }
 func (repository *repositoryStub) GetResultBySetupID(context.Context, identity.UserID, planning.SetupID) (ports.PersistedResult, error) {
 	if repository.persisted.SetupID == "" {

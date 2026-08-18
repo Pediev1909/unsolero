@@ -48,7 +48,7 @@ export function MethodSection() {
               key={number}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold tracking-[0.16em] text-bronze">
+                <span className="text-xs font-bold tracking-[0.16em] text-bronze-dark">
                   {number}
                 </span>
                 <Icon

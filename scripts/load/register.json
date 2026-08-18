@@ -1,0 +1,4 @@
+{
+  "email": "phase8-load-{{SEQ}}-{{UUID}}@example.invalid",
+  "password": "Phase8-local-validation-password-42"
+}

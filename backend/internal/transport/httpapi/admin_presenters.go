@@ -118,22 +118,24 @@ type adminReferencesResponse struct {
 	Products   []productReferenceResponse `json:"products"`
 }
 type offerAdminResponse struct {
-	ID             string    `json:"id"`
-	MerchantID     string    `json:"merchant_id"`
-	MerchantName   string    `json:"merchant_name"`
-	ProductID      string    `json:"product_id"`
-	ProductName    string    `json:"product_name"`
-	MerchantSKU    string    `json:"merchant_sku"`
-	ProductURL     string    `json:"product_url"`
-	PriceMinor     int64     `json:"price_minor"`
-	ShippingMinor  int64     `json:"shipping_minor"`
-	Currency       string    `json:"currency"`
-	Availability   string    `json:"availability"`
-	Condition      string    `json:"condition"`
-	IsActive       bool      `json:"is_active"`
-	LastCheckedAt  time.Time `json:"last_checked_at"`
-	AffiliateLinks int64     `json:"affiliate_links"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID              string     `json:"id"`
+	MerchantID      string     `json:"merchant_id"`
+	MerchantName    string     `json:"merchant_name"`
+	ProductID       string     `json:"product_id"`
+	ProductName     string     `json:"product_name"`
+	MerchantSKU     string     `json:"merchant_sku"`
+	ProductURL      string     `json:"product_url"`
+	PriceMinor      int64      `json:"price_minor"`
+	ShippingMinor   int64      `json:"shipping_minor"`
+	Currency        string     `json:"currency"`
+	Availability    string     `json:"availability"`
+	Condition       string     `json:"condition"`
+	IsActive        bool       `json:"is_active"`
+	LastCheckedAt   time.Time  `json:"last_checked_at"`
+	ExpiresAt       *time.Time `json:"expires_at"`
+	FreshnessStatus string     `json:"freshness_status"`
+	AffiliateLinks  int64      `json:"affiliate_links"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 type affiliateAdminResponse struct {
 	ID                 string    `json:"id"`
@@ -297,7 +299,7 @@ func referencesDTO(value admin.References) adminReferencesResponse {
 	return adminReferencesResponse{categoriesDTO(value.Categories), brandsDTO(value.Brands), merchantsDTO(value.Merchants), products}
 }
 func offerDTOAdmin(v admin.Offer) offerAdminResponse {
-	return offerAdminResponse{v.ID, v.MerchantID, v.MerchantName, v.ProductID, v.ProductName, v.MerchantSKU, v.ProductURL, v.PriceMinor, v.ShippingMinor, v.Currency, v.Availability, v.Condition, v.IsActive, v.LastCheckedAt, v.AffiliateLinks, v.UpdatedAt}
+	return offerAdminResponse{v.ID, v.MerchantID, v.MerchantName, v.ProductID, v.ProductName, v.MerchantSKU, v.ProductURL, v.PriceMinor, v.ShippingMinor, v.Currency, v.Availability, v.Condition, v.IsActive, v.LastCheckedAt, v.ExpiresAt, v.FreshnessStatus, v.AffiliateLinks, v.UpdatedAt}
 }
 func offersPageDTO(v admin.Page[admin.Offer], page, pageSize int) adminPageResponse[offerAdminResponse] {
 	items := make([]offerAdminResponse, 0, len(v.Items))

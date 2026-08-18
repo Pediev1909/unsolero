@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	analytics "rigmark/internal/modules/analytics/domain"
 )
@@ -17,11 +18,12 @@ type analyticsReportingStub struct {
 	err    error
 }
 
-func (stub analyticsReportingStub) Report(context.Context) (analytics.Report, error) {
+func (stub analyticsReportingStub) Report(context.Context, analytics.ReportQuery) (analytics.Report, error) {
 	return stub.report, stub.err
 }
 
 func TestAdminAnalyticsReportPreservesUnavailableRates(t *testing.T) {
+	now := time.Now().UTC()
 	handler := &Handler{
 		analyticsReporting: analyticsReportingStub{report: analytics.Report{
 			Summary:         analytics.ReportSummary{Users: 4},
@@ -31,6 +33,7 @@ func TestAdminAnalyticsReportPreservesUnavailableRates(t *testing.T) {
 			TopMerchants:    []analytics.RankedEntity{},
 			TopCategories:   []analytics.RankedEntity{},
 			TrafficSources:  []analytics.TrafficSource{},
+			Window:          analytics.ReportingWindow{From: now.Add(-24 * time.Hour), To: now, ReportableFrom: now.Add(-time.Hour), CompleteThrough: now, Coverage: "partial", DataState: "no_data", Layer: "validated_filtered", MinimumSampleSize: 20},
 		}},
 		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
@@ -56,5 +59,14 @@ func TestAdminAnalyticsReportPreservesUnavailableRates(t *testing.T) {
 	}
 	if body.MostViewed == nil {
 		t.Fatal("empty rankings must encode as an array")
+	}
+}
+
+func TestAdminAnalyticsReportRejectsInvalidWindow(t *testing.T) {
+	handler := &Handler{analyticsReporting: analyticsReportingStub{}, logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	response := httptest.NewRecorder()
+	handler.adminAnalyticsReport(response, httptest.NewRequest(http.MethodGet, "/api/admin/analytics?from=not-a-date&limit=500", nil))
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body)
 	}
 }

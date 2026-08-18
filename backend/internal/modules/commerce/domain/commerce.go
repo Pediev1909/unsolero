@@ -42,18 +42,21 @@ type CommissionMetadata struct {
 }
 
 type Offer struct {
-	ID             OfferID
-	Merchant       Merchant
-	ProductID      catalog.ProductID
-	MerchantSKU    string
-	ProductURL     string
-	Price          catalog.Money
-	ShippingMinor  int64
-	Availability   string
-	Condition      string
-	LastCheckedAt  time.Time
-	IsActive       bool
-	AffiliateLinks []AffiliateLink
+	ID                 OfferID
+	Merchant           Merchant
+	ProductID          catalog.ProductID
+	MerchantSKU        string
+	ProductURL         string
+	Price              catalog.Money
+	ShippingMinor      int64
+	Availability       string
+	Condition          string
+	LastCheckedAt      time.Time
+	ProviderObservedAt *time.Time
+	ImportedAt         *time.Time
+	ExpiresAt          *time.Time
+	IsActive           bool
+	AffiliateLinks     []AffiliateLink
 }
 
 type AffiliateClick struct {
@@ -70,6 +73,33 @@ type AffiliateClick struct {
 	ReferrerHost     *string
 	RecommendationID *string
 	RequestID        *string
+	IdempotencyKey   *string
+	Classification   ClickClassification
+	IsCountable      bool
+	UserAgentHash    *string
+	RetentionExpires time.Time
+}
+
+type ClickClassification string
+
+const (
+	ClickHuman    ClickClassification = "human"
+	ClickBot      ClickClassification = "bot"
+	ClickPrefetch ClickClassification = "prefetch"
+	ClickUnknown  ClickClassification = "unknown"
+)
+
+type ResolvedAffiliateDestination struct {
+	AffiliateLinkID    AffiliateLinkID
+	OfferID            OfferID
+	ProductID          catalog.ProductID
+	RecommendationItem *string
+	DestinationURL     string
+}
+
+type AffiliateRedirectResult struct {
+	DestinationURL string
+	TrackingError  error
 }
 
 func (offer Offer) Validate() error {

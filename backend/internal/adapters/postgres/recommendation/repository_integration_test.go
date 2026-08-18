@@ -123,8 +123,8 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM recommendation.recommendation_sessions
 			WHERE id=(SELECT session_id FROM recommendation.recommendations WHERE id=$1)`, saved.RecommendationID)
 	})
-	setups, err := repository.ListSetups(ctx, userID)
-	if err != nil || len(setups) != 1 || setups[0].ID != saved.SetupID {
+	setups, err := repository.ListSetups(ctx, userID, 100, 0)
+	if err != nil || len(setups.Setups) != 1 || setups.Total != 1 || setups.Setups[0].ID != saved.SetupID {
 		t.Fatalf("ListSetups() = %#v, %v", setups, err)
 	}
 	loaded, err := repository.GetResultBySetupID(ctx, userID, saved.SetupID)

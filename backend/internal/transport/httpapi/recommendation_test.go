@@ -32,9 +32,9 @@ func (*recommendationHTTPStub) SaveDraft(_ context.Context, _ identity.UserID, d
 	return draft, nil
 }
 func (*recommendationHTTPStub) DeleteDraft(context.Context, identity.UserID) error { return nil }
-func (stub *recommendationHTTPStub) ListSetups(context.Context, identity.UserID) ([]recommendationports.SetupSummary, error) {
+func (stub *recommendationHTTPStub) ListSetups(context.Context, identity.UserID, int, int) (recommendationports.SetupPage, error) {
 	stub.listCalls++
-	return nil, nil
+	return recommendationports.SetupPage{}, nil
 }
 func (*recommendationHTTPStub) GetSetup(context.Context, identity.UserID, planning.SetupID) (recommendation.Generated, error) {
 	return recommendation.Generated{}, recommendationports.ErrNotFound
@@ -70,7 +70,10 @@ func TestGenerateRecommendationAllowsGuestWithoutPersistedIdentifiers(t *testing
 		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body)
 	}
 	if !strings.Contains(response.Body.String(), `"saved":false`) ||
-		!strings.Contains(response.Body.String(), `"recommendation_id":null`) {
+		!strings.Contains(response.Body.String(), `"recommendation_id":null`) ||
+		!strings.Contains(response.Body.String(), `"existing_equipment":[]`) ||
+		!strings.Contains(response.Body.String(), `"training_preferences":[]`) ||
+		!strings.Contains(response.Body.String(), `"priorities":[]`) {
 		t.Fatalf("unexpected guest response: %s", response.Body)
 	}
 }

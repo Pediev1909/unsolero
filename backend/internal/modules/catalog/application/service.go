@@ -14,6 +14,7 @@ var ErrInvalidQuery = errors.New("invalid catalog query")
 const (
 	defaultPageSize = 12
 	maximumPageSize = 48
+	maximumPage     = 10_000
 )
 
 type Query struct {
@@ -166,6 +167,9 @@ func normalizeQuery(query Query) (Query, error) {
 	}
 	if query.Page <= 0 {
 		query.Page = 1
+	}
+	if query.Page > maximumPage {
+		return Query{}, ErrInvalidQuery
 	}
 	if query.PageSize <= 0 {
 		query.PageSize = defaultPageSize

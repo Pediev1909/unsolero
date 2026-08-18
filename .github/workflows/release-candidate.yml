@@ -1,0 +1,112 @@
+name: Release candidate images
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full commit SHA already verified by required CI checks
+        required: true
+        type: string
+      sign_with_sigstore:
+        description: Sign published digests with GitHub OIDC/Sigstore
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
+concurrency:
+  group: release-candidate-${{ inputs.source_sha }}
+  cancel-in-progress: false
+
+jobs:
+  immutable-images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - role: api
+            context: backend
+            target: api
+          - role: worker
+            context: backend
+            target: worker
+          - role: migrate
+            context: backend
+            target: migrate
+          - role: media-reconcile
+            context: backend
+            target: media-reconcile
+          - role: media-init
+            context: backend
+            target: media-init
+          - role: web
+            context: frontend
+            target: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+      - name: Validate release source
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          printf '%s\n' "$SOURCE_SHA" | grep -Eq '^[0-9a-f]{40}$' || {
+            echo "source_sha must be a full lowercase 40-character commit SHA" >&2
+            exit 2
+          }
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/main
+      - name: Require pinned Docker base images
+        run: sh scripts/check-docker-base-digests.sh backend/Dockerfile frontend/Dockerfile compose.yaml
+      - name: Build candidate locally
+        env:
+          ROLE: ${{ matrix.role }}
+          CONTEXT: ${{ matrix.context }}
+          TARGET: ${{ matrix.target }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          image="ghcr.io/$owner/unsolero-$ROLE:sha-$SOURCE_SHA"
+          docker build --target "$TARGET" --label "org.opencontainers.image.revision=$SOURCE_SHA" --tag "$image" "$CONTEXT"
+          echo "CANDIDATE_IMAGE=$image" >> "$GITHUB_ENV"
+      - name: Scan candidate before publishing
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: ${{ env.CANDIDATE_IMAGE }}
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Generate candidate SBOM
+        uses: anchore/sbom-action@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
+        with:
+          image: ${{ env.CANDIDATE_IMAGE }}
+          format: spdx-json
+          output-file: unsolero-${{ matrix.role }}.spdx.json
+          artifact-name: release-candidate-${{ matrix.role }}-sbom
+      - name: Publish immutable candidate tag
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker push "$CANDIDATE_IMAGE"
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$CANDIDATE_IMAGE")
+          test -n "$digest"
+          echo "PUBLISHED_DIGEST=$digest" >> "$GITHUB_ENV"
+          printf '| `%s` | `%s` |\n' '${{ matrix.role }}' "$digest" >> "$GITHUB_STEP_SUMMARY"
+      - name: Install Cosign
+        if: inputs.sign_with_sigstore
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Sign candidate digest with GitHub OIDC
+        if: inputs.sign_with_sigstore
+        run: cosign sign --yes "$PUBLISHED_DIGEST"
+      - name: End registry session
+        if: always()
+        run: docker logout ghcr.io || true

@@ -102,6 +102,7 @@ export function AdminOffersPage() {
                     'Merchant',
                     'Price',
                     'Availability',
+                    'Freshness',
                     'Links',
                     'Status',
                     '',
@@ -131,6 +132,14 @@ export function AdminOffersPage() {
                     </td>
                     <td className={adminTableCell}>
                       {offer.availability.replaceAll('_', ' ')}
+                    </td>
+                    <td className={adminTableCell}>
+                      <Badge>{offer.freshness_status.replace('_', ' ')}</Badge>
+                      <p className="mt-1 text-xs text-ink/55">
+                        {offer.expires_at
+                          ? `Expires ${new Date(offer.expires_at).toLocaleString()}`
+                          : `Checked ${new Date(offer.last_checked_at).toLocaleString()}`}
+                      </p>
                     </td>
                     <td className={adminTableCell}>{offer.affiliate_links}</td>
                     <td className={adminTableCell}>

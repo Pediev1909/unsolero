@@ -1,5 +1,13 @@
 import { apiRequest, ApiError } from '../../lib/api/client'
-import { parseAuthResponse, type AuthUser, type Credentials } from './schemas'
+import {
+  parseAuthResponse,
+  parseLoginResponse,
+  parseRegistrationReceipt,
+  type AuthUser,
+  type Credentials,
+  type LoginResult,
+  type RegistrationReceipt,
+} from './schemas'
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
@@ -12,19 +20,21 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   }
 }
 
-export function login(credentials: Credentials): Promise<AuthUser> {
+export function login(credentials: Credentials): Promise<LoginResult> {
   return apiRequest(
     '/auth/login',
     { method: 'POST', body: credentials },
-    parseAuthResponse,
+    parseLoginResponse,
   )
 }
 
-export function register(credentials: Credentials): Promise<AuthUser> {
+export function register(
+  credentials: Credentials,
+): Promise<RegistrationReceipt> {
   return apiRequest(
     '/auth/register',
     { method: 'POST', body: credentials },
-    parseAuthResponse,
+    parseRegistrationReceipt,
   )
 }
 

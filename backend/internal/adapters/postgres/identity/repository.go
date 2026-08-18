@@ -44,7 +44,7 @@ func (repository *Repository) GetByEmail(ctx context.Context, email string) (dom
 		SELECT id, email, status, email_verified_at, last_login_at,
 			created_at, updated_at, deleted_at
 		FROM identity.users
-		WHERE email = $1`, normalizeEmail(email))
+		WHERE lower(email) = $1`, normalizeEmail(email))
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -67,7 +67,7 @@ func (repository *Repository) GetPasswordCredentialByEmail(
 		SELECT id, email, status, email_verified_at, last_login_at,
 			created_at, updated_at, deleted_at, password_hash
 		FROM identity.users
-		WHERE email = $1`, normalizeEmail(email)).Scan(
+		WHERE lower(email) = $1`, normalizeEmail(email)).Scan(
 		&credential.User.ID,
 		&credential.User.Email,
 		&credential.User.Status,
@@ -181,11 +181,16 @@ func (repository *Repository) ResolveSession(
 			AND sessions.idle_expires_at > $2
 			AND users.status = 'active'
 			AND users.deleted_at IS NULL
-		RETURNING users.id, users.email,
+		RETURNING users.id, users.email, sessions.id, users.email_verified_at, sessions.mfa_authenticated_at,
+			EXISTS(SELECT 1 FROM identity.mfa_credentials WHERE user_id=users.id AND status='enabled'),
 			ARRAY(SELECT role_key FROM identity.user_roles WHERE user_id = users.id ORDER BY role_key)`,
 		tokenHash, now, nextIdleExpiration).Scan(
 		&principal.UserID,
 		&principal.Email,
+		&principal.SessionID,
+		&principal.EmailVerifiedAt,
+		&principal.MFAAuthenticatedAt,
+		&principal.MFAEnabled,
 		&principal.Roles,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {

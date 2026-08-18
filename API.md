@@ -36,25 +36,22 @@ Authentication uses an opaque cookie. The cookie is `HttpOnly`, `SameSite=Lax`, 
 }
 ```
 
-Returns `201 Created`, establishes the session cookie, and returns:
+Returns the same `202 Accepted` response whether the address is new or already registered. Registration does not establish a browser session. If the address is eligible, a verification delivery intent is recorded:
 
 ```json
 {
-  "user": {
-    "id": "opaque-user-id",
-    "email": "person@example.com",
-    "roles": []
-  }
+  "recorded": true,
+  "message": "If the address is eligible, an account verification intent has been recorded."
 }
 ```
 
-Registration normalizes the email address. Roles are resolved from server-owned membership and never accepted from registration or login input. Duplicate email addresses return `409 email_already_registered`. Invalid fields return `422 validation_failed`.
+Registration normalizes the email address. Roles are resolved from server-owned membership and never accepted from registration or login input. Invalid fields return `422 validation_failed`.
 
 ### Login
 
 `POST /api/auth/login`
 
-Uses the same request and success response as registration, returning `200 OK`. Invalid credentials and unavailable accounts share the `401 invalid_credentials` response to avoid account-state disclosure.
+Uses the credential request above and returns `200 OK` with `user.id`, `user.email`, server-resolved `user.roles`, `user.email_verified`, and `user.mfa_enabled`. Invalid credentials and unavailable accounts share `401 invalid_credentials`. An MFA-enabled account returns `202` with `mfa_required: true`; the challenge secret is held only in a scoped `HttpOnly` cookie. Complete it with `POST /api/auth/mfa/complete` and `{ "code": "123456" }`.
 
 ### Current account
 
@@ -67,6 +64,30 @@ Requires a valid session and returns `200 OK` with the user response above. Miss
 `POST /api/auth/logout`
 
 Revokes the supplied server session, clears the cookie, and returns `204 No Content`. The operation is idempotent when no session exists.
+
+### Verification and recovery
+
+- `POST /api/auth/email-verification/request` — `{ "email": "..." }`; always generic `202`.
+- `POST /api/auth/email-verification/complete` — `{ "token": "..." }`; returns `200`, `400 token_invalid`, or `410 token_expired|token_used`.
+- `POST /api/auth/password-reset/request` — `{ "email": "..." }`; always generic `202`.
+- `POST /api/auth/password-reset/complete` — `{ "token": "...", "password": "..." }`; consumes the token once, replaces the Argon2id hash, revokes every session, and returns `204`.
+
+### Account security
+
+All endpoints derive ownership from the authenticated session and never accept a user ID:
+
+- `POST /api/account/security/password` — current/new password; keeps the current session and revokes all others.
+- `GET /api/account/security/sessions` — stable session metadata only.
+- `DELETE /api/account/security/sessions/{sessionID}` — revokes one owned session; cross-account IDs return `404`.
+- `DELETE /api/account/security/sessions` — revokes every session except the current one.
+- `GET /api/account/export` — structured owned-data JSON; no credentials or internal secrets.
+- `DELETE /api/account` — current password plus `confirmation: "DELETE"`; anonymizes retained history and clears the session.
+- `POST /api/account/security/mfa/enroll` — current password; returns the TOTP secret once.
+- `POST /api/account/security/mfa/verify` — TOTP code; enables MFA and returns recovery codes once.
+- `POST /api/account/security/mfa/recovery-codes` — current TOTP/recovery code; replaces all recovery codes.
+- `POST /api/account/security/mfa/step-up` — records bounded recent MFA on the current server session.
+
+Development-only `GET /api/dev/email-deliveries` exposes local delivery intents only when the application is in development with the development adapter. It is absent in production.
 
 ## Request protections
 
@@ -83,6 +104,12 @@ Revokes the supplied server session, clears the cookie, and returns `204 No Cont
 - `GET /api/v1/health/ready`
 
 See the README for the health response contract.
+
+When `METRICS_ENABLED=true`, `GET /api/v1/metrics` requires an exact
+`Authorization: Bearer <METRICS_TOKEN>` credential and returns only
+process-local, bounded-cardinality operational aggregates. The route is absent
+when metrics are disabled. It is not product analytics and contains no raw
+request path, client address, user agent, body, query, or account identifier.
 
 ## Public catalog
 
@@ -142,23 +169,29 @@ surfaces. Both use the server-controlled `PUBLIC_SITE_URL` origin.
 - `GET /api/catalog/products/{slug}/offers`
 - `GET /api/affiliate/click/{offerID}`
 
-Offers include merchant identity and trust score, item price, shipping, landed price, availability, condition, last-check time, disclosure label, and a same-origin `purchase_path`. Responses never include merchant product URLs, affiliate destinations, or affiliate provider references.
+Offers include merchant identity and trust score, item price, shipping, landed price, availability, condition, observation/check time, optional expiry, freshness status, disclosure label, and a same-origin `purchase_path`. Responses never include merchant product URLs, affiliate destinations, credentials, or provider references.
 
-The redirect endpoint resolves an active affiliate link attached to an active, available offer from an active merchant, records the commerce click and `affiliate_clicked` analytics event, then returns a `302` redirect to the validated HTTPS destination. It accepts optional `source`, `session_id`, `campaign`, `traffic_source`, `traffic_medium`, and `recommendation_id` attribution parameters. `source` is restricted to `product_detail`, `wishlist`, `recommendation`, `comparison`, or `setup`; attribution tokens and identifiers are validated, and the server generates an anonymous session identifier when one is absent. The authenticated user is associated through the session cookie, never through a query parameter.
+The redirect resolves an active, available, fresh/unexpired offer, validates recommendation ownership when supplied, and validates the HTTPS destination before click persistence. A click/analytics write or optional-session lookup failure does not block an already resolved `302`. Obvious bots/prefetches remain raw but do not emit filtered `affiliate_clicked` events. `X-Request-ID` is the bounded idempotency key. Source/session/campaign/traffic/recommendation values are normalized and validated; account identity comes only from the session cookie.
 
-`Referer` is reduced to its scheme, host, and path before storage. Responses use `Cache-Control: no-store` and do not expose provider, destination, program, or commission records. Affiliate commission and click data are not inputs to offer ordering, catalog scores, or recommendation scores. `GET /api/out/{affiliateLinkID}` remains as a compatibility route for previously issued paths but is not returned by current APIs.
+`Referer` is reduced to scheme and host before storage; paths, queries, fragments, and user information are discarded. Responses use `Cache-Control: no-store` and do not expose provider, destination, program, or commission records. Affiliate commission and click data are not inputs to offer ordering, catalog scores, or recommendation scores. `GET /api/out/{affiliateLinkID}` remains as a compatibility route for previously issued paths but is not returned by current APIs.
 
 ## Product analytics
 
 `POST /api/analytics/events`
 
+- `GET /api/analytics/consent`
+- `PUT /api/analytics/consent`
+- `POST /api/analytics/identity/claim` (authenticated)
+
 The first-party endpoint accepts a versioned, allowlisted interaction envelope:
 
 ```json
 {
+  "event_id": "c3448188-244c-4b2a-9f97-53c1ad10a7ee",
   "name": "product_viewed",
   "surface": "product_detail",
   "session_id": "1191bb26-a9a2-41df-9346-74d693350ce8",
+  "consent_version": "analytics-v1",
   "properties": {
     "product_id": "4ba7d524-9fd5-4d18-8c42-778c42d996f3"
   },
@@ -171,14 +204,16 @@ The first-party endpoint accepts a versioned, allowlisted interaction envelope:
 }
 ```
 
-Accepted browser events are `page_view`, `onboarding_started`, `onboarding_completed`, `recommendation_generated`, `product_viewed`, `product_saved`, `comparison_created`, and `setup_saved`. Each has an exact property schema; unknown names, properties, nested context fields, or envelope fields are rejected. Account identity is derived only from the secure session. `affiliate_clicked` is server-authored by the redirect flow and is deliberately rejected here. Page paths exclude query strings, referrers are reduced to hostnames, and source/medium/campaign values are bounded. Successful ingestion returns `204 No Content`.
+Accepted browser events are `page_view`, `onboarding_started`, `onboarding_completed`, `recommendation_generated`, `product_viewed`, `product_saved`, `comparison_created`, and `setup_saved`. Each has an exact property schema; unknown names, properties, nested context fields, or envelope fields are rejected. Account identity is derived only from the secure session. Anonymous identity comes from a server-issued random HttpOnly subject cookie whose SHA-256 digest is stored; the body cannot select identity. `affiliate_clicked` is server-authored by the redirect flow and rejected here. Page paths exclude query strings, referrers are hostnames, and attribution values are bounded. Successful and duplicate ingestion return the same `204 No Content` surface.
+
+`PUT /api/analytics/consent` accepts `state` (`granted` or `denied`), `policy_version` (`analytics-v1`), and `source` (`banner`, `preferences`, or `account_sync`). A decline after a grant becomes `withdrawn`. The frontend cache is not authoritative: insertion locks and verifies current persisted consent/version. The claim endpoint accepts no body identifiers and requires matching current grants for the authenticated account and browser subject.
 
 ## Administration
 
-All endpoints below require a valid session whose current database-backed roles include `admin`. Missing authentication returns `401`; an authenticated account without the role receives `403 permission_denied`. Responses use `Cache-Control: no-store`, inputs reject unknown JSON fields, and mutation identity is derived only from the secure session.
+All endpoints below require a valid session and their explicit current database-backed permission; administrators receive all permissions while scoped staff roles receive only their documented routes. Missing authentication returns `401`; insufficient permission returns `403 permission_denied`. Responses use `Cache-Control: no-store`, inputs reject unknown JSON fields, and mutation identity is derived only from the secure session.
 
 - `GET /api/admin/dashboard`
-- `GET /api/admin/analytics`
+- `GET /api/admin/analytics?from={RFC3339}&to={RFC3339}&limit={1..50}`
 - `GET /api/admin/references`
 - `GET|POST /api/admin/products`
 - `GET|PATCH /api/admin/products/{productID}`
@@ -193,6 +228,18 @@ All endpoints below require a valid session whose current database-backed roles 
 - `PATCH /api/admin/offers/{offerID}`
 - `GET /api/admin/affiliate-links`
 - `PATCH /api/admin/affiliate-links/{linkID}`
+- `GET|POST /api/admin/commerce/providers`
+- `PUT /api/admin/commerce/providers/{providerID}/lifecycle`
+- `GET|POST /api/admin/commerce/imports`
+- `POST /api/admin/commerce/imports/{importID}/retry`
+- `GET /api/admin/commerce/imports/{importID}/failures`
+- `PUT /api/admin/commerce/providers/{providerID}/conversions`
+- `GET /api/admin/commerce/conversions`
+- `GET|POST /api/admin/commerce/conversion-imports`
+- `POST /api/admin/commerce/conversion-imports/{importID}/retry`
+- `GET /api/admin/commerce/reconciliations`
+- `POST /api/admin/commerce/conversion-imports/{importID}/reconcile`
+- `GET /api/admin/commerce/metrics`
 - `GET /api/admin/recommendations`
 - `GET /api/admin/recommendations/{recommendationID}`
 - `GET /api/admin/users`
@@ -200,9 +247,22 @@ All endpoints below require a valid session whose current database-backed roles 
 
 Product image creation accepts either strict JSON for a validated external URL or `multipart/form-data` with `file`, `alt_text`, `sort_order`, and `is_primary`. Uploaded JPEG, PNG, and WebP files are limited to 5 MB and returned from an immutable same-origin `/api/media/products/{file}` path. SVG and executable formats are rejected.
 
-Recommendation inspection exposes persisted engine/policy versions, objective and dimension scores, selected/alternative/rejected products, and deterministic reasons. It never exposes password hashes, session tokens, or affiliate commission as scoring data. Event and dashboard values are direct database counts; absent observations are returned as zero and rendered as “No data.”
+Recommendation inspection exposes persisted engine/policy versions, objective and dimension scores, selected/alternative/rejected products, and deterministic reasons. It never exposes password hashes, session tokens, or affiliate commission as scoring data. Aggregate analytics requires `analytics.read`; event-level `/api/admin/events` requires administrator-only `analytics.raw.read`.
 
-The analytics report returns observed users, persisted recommendation sessions, paired onboarding starts/completions, recommendation completion rate, product views, affiliate clicks, affiliate CTR, product/merchant/category rankings, and traffic sources by distinct page-view session. Completion pairs unique onboarding IDs. Affiliate CTR uses observed product/session view pairs as its denominator and only matching product-detail click pairs as its numerator. A missing denominator returns `null`, rendered as “No data”; rates and revenue are never estimated.
+The analytics report returns observed users, recommendation sessions, paired onboarding, product views, countable/raw click counts, rankings, traffic sources, and payload-free ingestion outcomes. Only `is_reportable` events and `is_countable` clicks enter metrics. It labels `no_data`, `insufficient_data`, or `available`, plus partial/complete coverage. Rates remain `null` below 20 eligible denominator observations. Windows are at most 366 days and limits 1–50. Revenue/conversion data remains in verified commerce reporting and is never inferred here.
+
+`POST /api/webhooks/commerce/{providerConfigurationID}` is the provider-neutral
+conversion webhook terminus. It accepts JSON up to 256 KiB and delegates
+authentication, signature timestamp extraction, and structured parsing to the
+configured adapter. Disabled or unknown adapters fail closed. Replays of a
+processed verified delivery return `200`; accepted processing returns `202`.
+Responses never expose credentials, raw payloads, or provider error details.
+
+Conversion and metric operator routes are admin-only. Conversion lists expose
+normalized verified facts and reconciliation status, never raw provider
+payloads or credentials. Metrics return `available`, `no_data`, or
+`insufficient_data` plus numerator, denominator, definition, reporting window,
+freshness, and original-currency values. No FX conversion is performed.
 
 ## Saved equipment
 

@@ -106,22 +106,24 @@ type Merchant struct {
 }
 
 type Offer struct {
-	ID             string
-	MerchantID     string
-	MerchantName   string
-	ProductID      string
-	ProductName    string
-	MerchantSKU    string
-	ProductURL     string
-	PriceMinor     int64
-	ShippingMinor  int64
-	Currency       string
-	Availability   string
-	Condition      string
-	IsActive       bool
-	LastCheckedAt  time.Time
-	AffiliateLinks int64
-	UpdatedAt      time.Time
+	ID              string
+	MerchantID      string
+	MerchantName    string
+	ProductID       string
+	ProductName     string
+	MerchantSKU     string
+	ProductURL      string
+	PriceMinor      int64
+	ShippingMinor   int64
+	Currency        string
+	Availability    string
+	Condition       string
+	IsActive        bool
+	LastCheckedAt   time.Time
+	ExpiresAt       *time.Time
+	FreshnessStatus string
+	AffiliateLinks  int64
+	UpdatedAt       time.Time
 }
 
 type OfferInput struct {

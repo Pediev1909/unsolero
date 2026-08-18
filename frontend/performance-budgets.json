@@ -1,0 +1,6 @@
+{
+  "entryJavaScriptGzipBytes": 102400,
+  "lazyChunkGzipBytes": 76800,
+  "globalCssGzipBytes": 15360,
+  "initialTransferGzipBytes": 307200
+}

@@ -10,6 +10,16 @@ const errorSchema = z.object({
 })
 
 const apiBaseUrl = '/api'
+const authenticationExpiredListeners = new Set<() => void>()
+
+export function onAuthenticationExpired(listener: () => void): () => void {
+  authenticationExpiredListeners.add(listener)
+  return () => authenticationExpiredListeners.delete(listener)
+}
+
+function notifyAuthenticationExpired() {
+  for (const listener of authenticationExpiredListeners) listener()
+}
 
 export class ApiError extends Error {
   readonly status: number
@@ -72,6 +82,7 @@ export async function apiRequest<T>(
         'The request took too long. Please try again.',
       )
     }
+    if (signal?.aborted) throw error
     if (error instanceof ApiError) throw error
     throw new ApiError(
       0,
@@ -84,6 +95,7 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
+    if (response.status === 401) notifyAuthenticationExpired()
     throw await responseError(response)
   }
   if (response.status === 204) {

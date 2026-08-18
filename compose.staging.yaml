@@ -1,0 +1,124 @@
+services:
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.50"
+          memory: 1G
+
+  redis-staging:
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+  minio-staging:
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+
+  migrate:
+    environment:
+      APP_VERSION: ${APP_VERSION:?Set APP_VERSION for staging}
+
+  media-init:
+    environment: &staging-application-environment
+      APP_ENV: staging
+      # This override is accepted only with a loopback public origin. Hosted
+      # staging must omit it and use encrypted managed dependencies.
+      ALLOW_INSECURE_LOCAL_STAGING: "true"
+      APP_VERSION: ${APP_VERSION:?Set APP_VERSION for staging}
+      PUBLIC_SITE_URL: https://localhost:${STAGING_TLS_PORT:-8443}
+      SESSION_COOKIE_NAME: unsolero_staging_session
+      SESSION_COOKIE_SECURE: "true"
+      MFA_ENFORCE_PRIVILEGED: "true"
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a staging-only 32-byte raw-base64 key}
+      EMAIL_PROVIDER: disabled
+      DATABASE_URL: postgres://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}?sslmode=disable
+      API_REPLICA_COUNT: "2"
+      RATE_LIMIT_PROVIDER: redis
+      RATE_LIMIT_REDIS_URL: redis://:${STAGING_REDIS_PASSWORD:?Set a URL-safe staging Redis password}@redis-staging:6379/0
+      RATE_LIMIT_KEY_SECRET: ${RATE_LIMIT_KEY_SECRET:?Set a staging-only 32-byte raw-base64 key}
+      TRUSTED_PROXY_CIDRS: 172.16.0.0/12
+      MEDIA_STORAGE_PROVIDER: s3
+      MEDIA_S3_ENDPOINT: minio-staging:9000
+      MEDIA_S3_ACCESS_KEY: ${STAGING_MINIO_ROOT_USER:?Set a staging MinIO user}
+      MEDIA_S3_SECRET_KEY: ${STAGING_MINIO_ROOT_PASSWORD:?Set a staging MinIO password}
+      MEDIA_S3_BUCKET: unsolero-staging-media
+      MEDIA_S3_SECURE: "false"
+      MEDIA_SCAN_PROVIDER: development
+      METRICS_ENABLED: "true"
+      METRICS_TOKEN: ${METRICS_TOKEN:?Set a staging-only metrics bearer token}
+      ALERT_PROVIDER: disabled
+      AI_PROVIDER: disabled
+
+  api:
+    environment:
+      <<: *staging-application-environment
+    ports: !reset []
+    volumes: !reset []
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      media-init:
+        condition: service_completed_successfully
+      redis-staging:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+
+  commerce-worker:
+    environment:
+      <<: *staging-application-environment
+    volumes: !reset []
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      media-init:
+        condition: service_completed_successfully
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 384M
+
+  media-reconcile:
+    environment:
+      <<: *staging-application-environment
+    volumes: !reset []
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      media-init:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: ./frontend
+      target: staging
+    environment: !reset {}
+    ports: !override
+      - "${STAGING_TLS_PORT:-8443}:8443"
+    volumes: !reset []
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M

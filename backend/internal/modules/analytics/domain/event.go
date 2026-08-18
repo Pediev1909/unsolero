@@ -7,6 +7,8 @@ import (
 
 type EventID string
 
+const CurrentConsentPolicyVersion = "analytics-v1"
+
 const (
 	EventPageView                = "page_view"
 	EventOnboardingStarted       = "onboarding_started"
@@ -26,6 +28,7 @@ type Event struct {
 	UserID                  *string
 	RecommendationSessionID *string
 	AnonymousID             *string
+	AnonymousSubjectHash    []byte
 	SessionID               *string
 	RequestID               *string
 	Surface                 string
@@ -36,6 +39,48 @@ type Event struct {
 	Campaign                *string
 	ReferrerHost            *string
 	ConsentState            string
+	ConsentPolicyVersion    string
+	Origin                  string
+	Classification          string
+	Reportable              bool
+	RetentionExpiresAt      time.Time
 	OccurredAt              time.Time
 	ReceivedAt              time.Time
+}
+
+type Subject struct {
+	UserID               *string
+	AnonymousSubjectHash []byte
+}
+
+type ConsentDecision struct {
+	Subject        Subject
+	RequestedState string
+	PolicyVersion  string
+	Source         string
+	DecidedAt      time.Time
+}
+
+type Consent struct {
+	State         string
+	PolicyVersion string
+	Source        string
+	DecidedAt     time.Time
+}
+
+type IngestionOutcome string
+
+const (
+	IngestionAccepted        IngestionOutcome = "accepted"
+	IngestionRejected        IngestionOutcome = "rejected"
+	IngestionPrivacyFiltered IngestionOutcome = "privacy_filtered"
+	IngestionBotFiltered     IngestionOutcome = "bot_filtered"
+	IngestionDeduplicated    IngestionOutcome = "deduplicated"
+)
+
+type IngestionResult struct{ Outcome IngestionOutcome }
+
+type CleanupResult struct {
+	EventsDeleted   int64
+	ReceiptsDeleted int64
 }

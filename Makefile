@@ -1,4 +1,4 @@
-.PHONY: install dev down dev-web dev-api migrate seed test typecheck lint format format-check build check compose-config
+.PHONY: install dev down dev-web dev-api migrate seed backup restore-verify media-reconcile-dry test e2e typecheck lint format format-check build check compose-config
 
 install:
 	npm --prefix frontend ci
@@ -22,9 +22,22 @@ migrate:
 seed:
 	cd backend && go run ./cmd/seed
 
+backup:
+	docker compose --env-file .env --profile tools run --rm backup
+
+restore-verify:
+	docker compose --env-file .env --profile restore up -d restore-postgres
+	docker compose --env-file .env --profile restore run --rm restore
+
+media-reconcile-dry:
+	docker compose --env-file .env --profile tools run --rm media-reconcile
+
 test:
 	npm --prefix frontend run test
 	cd backend && go test ./...
+
+e2e:
+	npm --prefix frontend run test:e2e
 
 typecheck:
 	npm --prefix frontend run typecheck
@@ -43,7 +56,7 @@ format-check:
 
 build:
 	npm --prefix frontend run build
-	cd backend && go build ./cmd/api ./cmd/migrate ./cmd/seed
+	cd backend && go build ./cmd/api ./cmd/migrate ./cmd/seed ./cmd/worker ./cmd/media-reconcile ./cmd/media-init
 
 check: typecheck lint format-check test build
 

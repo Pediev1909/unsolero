@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { ApiError } from '../../lib/api/client'
+import { synchronizeAnalyticsConsentAfterAuthentication } from '../analytics/consent'
 import { credentialsSchema, type Credentials } from './schemas'
 import { useLogin, useRegister } from './queries'
 
@@ -35,7 +36,23 @@ export function useCredentialsForm(mode: AuthMode) {
     }
 
     try {
-      await mutation.mutateAsync(validation.data)
+      const result = await mutation.mutateAsync(validation.data)
+      if (mode === 'login' && !('mfa_required' in result)) {
+        void synchronizeAnalyticsConsentAfterAuthentication().catch(() => {
+          // Authentication succeeds independently; analytics remains fail-closed.
+        })
+      }
+      if (mode === 'register') {
+        await navigate('/check-email', {
+          replace: true,
+          state: { email: validation.data.email },
+        })
+        return
+      }
+      if ('mfa_required' in result) {
+        await navigate('/login/mfa', { replace: true })
+        return
+      }
       const state = location.state as LocationState | null
       const destination = safeInternalPath(state?.from) ?? '/account'
       await navigate(destination, { replace: true })

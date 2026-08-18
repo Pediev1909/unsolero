@@ -46,13 +46,36 @@ export function AdminDashboardPage() {
               ]}
               title="Inventory"
             />
+            <ReportingStatus data={analytics.data} />
             <AnalyticsSummary data={analytics.data} />
+            <IngestionSummary data={analytics.data} />
             <RankingGrid data={analytics.data} />
             <UnavailableMetrics />
           </div>
         ) : null}
       </AdminQueryState>
     </>
+  )
+}
+
+function ReportingStatus({ data }: { data: AnalyticsReportData }) {
+  const state =
+    data.window.data_state === 'no_data'
+      ? 'No data'
+      : data.window.data_state === 'insufficient_data'
+        ? 'Insufficient data'
+        : 'Data available'
+  return (
+    <section className="border border-ink/10 bg-paper p-5 text-sm leading-6 sm:p-6">
+      <h2 className="font-semibold">Validated analytics window</h2>
+      <p className="mt-1 text-ink/60">
+        {state}. Coverage is {data.window.coverage}; reporting uses the{' '}
+        validated and filtered layer from{' '}
+        {new Date(data.window.from).toLocaleDateString()} to{' '}
+        {new Date(data.window.to).toLocaleDateString()}. Rates remain hidden
+        below {data.window.minimum_sample_size} eligible observations.
+      </p>
+    </section>
   )
 }
 
@@ -65,36 +88,75 @@ function AnalyticsSummary({ data }: { data: AnalyticsReportData }) {
         </h2>
         <p className="mt-2 text-xs leading-5 text-ink/50">
           Completion pairs unique onboarding attempts. Affiliate CTR is the
-          share of observed product-detail sessions that also produced an
-          observed merchant click for that product.
+          share of observed product-detail sessions that also produced a
+          countable merchant click for that product. Raw automated and unknown
+          requests remain separately auditable.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-px overflow-hidden border border-ink/10 bg-ink/10 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Users" value={data.summary.users} />
+        <Metric
+          dataState={data.window.data_state}
+          label="Users"
+          value={data.summary.users}
+        />
         <Metric
           label="Recommendation sessions"
           value={data.summary.recommendation_sessions}
+          dataState={data.window.data_state}
         />
         <Metric
           label="Onboarding starts"
           value={data.summary.onboarding_started}
+          dataState={data.window.data_state}
         />
         <Metric
           label="Completed onboarding"
           value={data.summary.onboarding_completed}
+          dataState={data.window.data_state}
         />
         <RateMetric
           label="Recommendation completion rate"
           value={data.summary.recommendation_completion_rate}
+          dataState={data.window.data_state}
         />
-        <Metric label="Product views" value={data.summary.product_views} />
         <Metric
-          label="Affiliate clicks"
-          value={data.summary.affiliate_clicks}
+          dataState={data.window.data_state}
+          label="Product views"
+          value={data.summary.product_views}
         />
-        <RateMetric label="Affiliate CTR" value={data.summary.affiliate_ctr} />
+        <Metric
+          label="Countable affiliate clicks"
+          value={data.summary.affiliate_clicks}
+          dataState={data.window.data_state}
+        />
+        <Metric
+          label="Raw affiliate requests"
+          value={data.summary.affiliate_clicks_raw}
+          dataState={data.window.data_state}
+        />
+        <RateMetric
+          dataState={data.window.data_state}
+          label="Affiliate CTR"
+          value={data.summary.affiliate_ctr}
+        />
       </div>
     </section>
+  )
+}
+
+function IngestionSummary({ data }: { data: AnalyticsReportData }) {
+  return (
+    <MetricSection
+      items={[
+        ['Received', data.ingestion.received],
+        ['Accepted', data.ingestion.accepted],
+        ['Rejected', data.ingestion.rejected],
+        ['Privacy filtered', data.ingestion.privacy_filtered],
+        ['Bot or prefetch filtered', data.ingestion.bot_filtered],
+        ['Deduplicated', data.ingestion.deduplicated],
+      ]}
+      title="Payload-free ingestion outcomes"
+    />
   )
 }
 
@@ -183,24 +245,48 @@ function MetricSection({
   )
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({
+  label,
+  value,
+  dataState,
+}: {
+  label: string
+  value: number
+  dataState?: AnalyticsReportData['window']['data_state']
+}) {
   return (
     <div className="bg-surface p-5 sm:p-6">
       <p className="text-xs font-medium text-ink/50">{label}</p>
       <p className="mt-3 font-editorial text-3xl">
-        <DataValue value={value} />
+        {dataState === 'no_data' ? (
+          <span className="text-sm font-medium text-ink/35">No data</span>
+        ) : (
+          <DataValue value={value} />
+        )}
       </p>
     </div>
   )
 }
 
-function RateMetric({ label, value }: { label: string; value: number | null }) {
+function RateMetric({
+  label,
+  value,
+  dataState,
+}: {
+  label: string
+  value: number | null
+  dataState: AnalyticsReportData['window']['data_state']
+}) {
   return (
     <div className="bg-surface p-5 sm:p-6">
       <p className="text-xs font-medium text-ink/50">{label}</p>
       <p className="mt-3 font-editorial text-3xl">
         {value === null ? (
-          <span className="text-sm font-medium text-ink/35">No data</span>
+          <span className="text-sm font-medium text-ink/35">
+            {dataState === 'insufficient_data'
+              ? 'Insufficient data'
+              : 'No data'}
+          </span>
         ) : (
           `${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}%`
         )}

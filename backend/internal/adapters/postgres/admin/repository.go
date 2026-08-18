@@ -35,10 +35,10 @@ func (repository *Repository) Dashboard(ctx context.Context) (admin.Dashboard, e
 			(SELECT count(*) FROM recommendation.recommendations),
 			(SELECT count(*) FROM recommendation.recommendation_sessions),
 			(SELECT count(*) FROM recommendation.recommendation_sessions WHERE status = 'completed'),
-			(SELECT count(*) FROM analytics.events WHERE event_name = 'product_viewed'),
+			(SELECT count(*) FROM analytics.events WHERE is_reportable AND event_name = 'product_viewed'),
 			(SELECT count(*) FROM commerce.affiliate_clicks),
-			(SELECT count(*) FROM analytics.events WHERE event_name = 'product_saved'),
-			(SELECT count(*) FROM analytics.events WHERE event_name = 'setup_saved')`).Scan(
+			(SELECT count(*) FROM analytics.events WHERE is_reportable AND event_name = 'product_saved'),
+			(SELECT count(*) FROM analytics.events WHERE is_reportable AND event_name = 'setup_saved')`).Scan(
 		&dashboard.Counts.Products,
 		&dashboard.Counts.Published,
 		&dashboard.Counts.Offers,

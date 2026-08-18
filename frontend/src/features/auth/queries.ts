@@ -20,19 +20,15 @@ export function useLogin() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (credentials: Credentials) => login(credentials),
-    onSuccess: (user) => {
-      queryClient.setQueryData(authKeys.currentUser, user)
+    onSuccess: (result) => {
+      if ('id' in result) queryClient.setQueryData(authKeys.currentUser, result)
     },
   })
 }
 
 export function useRegister() {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (credentials: Credentials) => register(credentials),
-    onSuccess: (user) => {
-      queryClient.setQueryData(authKeys.currentUser, user)
-    },
   })
 }
 

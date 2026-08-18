@@ -136,7 +136,7 @@ func adminPagination(response http.ResponseWriter, request *http.Request, handle
 			pageSize, err = strconv.Atoi(raw)
 		}
 	}
-	if err != nil || page < 1 || pageSize < 1 || pageSize > 100 {
+	if err != nil || page < 1 || page > 10_000 || pageSize < 1 || pageSize > 100 {
 		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_pagination", "Page values are invalid.", nil, handler.logger)
 		return 0, 0, false
 	}

@@ -10,6 +10,8 @@ import {
 
 export function AnalyticsConsentBanner() {
   const [open, setOpen] = useState(() => getAnalyticsConsent() === 'unknown')
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const showPreferences = () => setOpen(true)
@@ -20,9 +22,19 @@ export function AnalyticsConsentBanner() {
 
   if (!open) return null
 
-  const choose = (consent: 'granted' | 'denied') => {
-    setAnalyticsConsent(consent)
-    setOpen(false)
+  const choose = async (consent: 'granted' | 'denied') => {
+    setPending(true)
+    setError('')
+    try {
+      await setAnalyticsConsent(consent, 'banner')
+      setOpen(false)
+    } catch {
+      setError(
+        'We could not save this preference. Optional analytics remain disabled.',
+      )
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
@@ -38,13 +50,30 @@ export function AnalyticsConsentBanner() {
           when you choose “View at Merchant.”
         </p>
         <div className="flex shrink-0 gap-2">
-          <Button onClick={() => choose('denied')} size="sm" variant="quiet">
+          <Button
+            disabled={pending}
+            onClick={() => void choose('denied')}
+            size="sm"
+            variant="secondary"
+          >
             Decline
           </Button>
-          <Button onClick={() => choose('granted')} size="sm">
+          <Button
+            disabled={pending}
+            loading={pending}
+            loadingLabel="Saving preference…"
+            onClick={() => void choose('granted')}
+            size="sm"
+            variant="secondary"
+          >
             Allow analytics
           </Button>
         </div>
+        {error && (
+          <p className="text-sm text-danger" role="alert">
+            {error}
+          </p>
+        )}
       </Container>
     </aside>
   )

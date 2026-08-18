@@ -8,8 +8,20 @@ import {
 } from './tracking'
 import { setAnalyticsConsent } from './consent'
 
-beforeEach(() => {
-  setAnalyticsConsent('granted')
+beforeEach(async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          state: 'granted',
+          policy_version: 'analytics-v1',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ),
+  )
+  await setAnalyticsConsent('granted')
 })
 
 afterEach(() => {
@@ -68,7 +80,7 @@ describe('affiliate and analytics tracking', () => {
     expect(body).toMatchObject({
       name: 'product_viewed',
       surface: 'product_detail',
-      consent_state: 'granted',
+      consent_version: 'analytics-v1',
       properties: {
         product_id: '97bfb760-6d09-4b96-8a39-d2bb16445537',
       },
@@ -78,12 +90,22 @@ describe('affiliate and analytics tracking', () => {
       traffic_source: 'editorial',
     })
     expect(body).not.toHaveProperty('user_id')
+    expect(body.event_id).toMatch(/^[0-9a-f-]{36}$/)
   })
 
   it('does not send optional analytics after consent is declined', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          state: 'denied',
+          policy_version: 'analytics-v1',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
     vi.stubGlobal('fetch', fetchMock)
-    setAnalyticsConsent('denied')
+    await setAnalyticsConsent('denied')
+    fetchMock.mockClear()
 
     await sendAnalyticsEvent('page_view', 'route', {})
 

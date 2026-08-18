@@ -1,5 +1,5 @@
 import { apiRequest } from '../../lib/api/client'
-import { getAnalyticsConsent } from './consent'
+import { analyticsConsentPolicyVersion, getAnalyticsConsent } from './consent'
 
 const sessionStorageKey = 'rigmark:analytics-session:v1'
 const attributionStorageKey = 'rigmark:analytics-attribution:v1'
@@ -48,9 +48,10 @@ type AnalyticsContext = {
 type AnalyticsEnvelope = {
   [Name in keyof AnalyticsEventMap]: {
     name: Name
+    event_id: string
     surface: string
     session_id: string
-    consent_state: 'granted'
+    consent_version: string
     properties: AnalyticsEventMap[Name]
     context: AnalyticsContext
   }
@@ -115,10 +116,11 @@ function envelope<Name extends keyof AnalyticsEventMap>(
   properties: AnalyticsEventMap[Name],
 ): AnalyticsEnvelope {
   return {
+    event_id: crypto.randomUUID(),
     name,
     surface,
     session_id: analyticsSessionID(),
-    consent_state: 'granted',
+    consent_version: analyticsConsentPolicyVersion,
     properties,
     context: analyticsContext(),
   } as AnalyticsEnvelope

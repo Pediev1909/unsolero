@@ -8,14 +8,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"rigmark/internal/platform/config"
 	"rigmark/internal/platform/database"
+	"rigmark/internal/platform/observability"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := observability.NewJSONLogger(os.Stdout, slog.LevelInfo)
 	if err := run(logger); err != nil {
 		logger.Error("migration failed", "error", err)
 		os.Exit(1)
@@ -31,16 +30,20 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("load configuration: %w", err)
 	}
 
-	pool, err := pgxpool.New(ctx, cfg.Database.URL)
+	pool, err := database.OpenPool(ctx, database.PoolConfig{
+		URL: cfg.Database.URL, ApplicationName: "unsolero-migrate", MaxConnections: 1,
+		MinConnections: 0, MaxConnectionLifetime: cfg.Database.MaxConnectionLifetime,
+		MaxConnectionIdleTime: cfg.Database.MaxConnectionIdleTime, HealthCheckPeriod: cfg.Database.HealthCheckPeriod,
+		ConnectTimeout: cfg.Database.ConnectTimeout, StatementTimeout: cfg.Database.MigrationTimeout,
+		LockTimeout: cfg.Database.MigrationTimeout, IdleTransactionTimeout: cfg.Database.MigrationTimeout,
+	})
 	if err != nil {
-		return fmt.Errorf("create database pool: %w", err)
+		return err
 	}
 	defer pool.Close()
-
-	if err := pool.Ping(ctx); err != nil {
-		return fmt.Errorf("connect to database: %w", err)
-	}
-	if err := database.ApplyMigrations(ctx, pool, os.DirFS(cfg.Migrations.Directory)); err != nil {
+	migrationCtx, cancel := context.WithTimeout(ctx, cfg.Database.MigrationTimeout)
+	defer cancel()
+	if err := database.ApplyMigrations(migrationCtx, pool, os.DirFS(cfg.Migrations.Directory)); err != nil {
 		return fmt.Errorf("apply migrations: %w", err)
 	}
 

@@ -1,11 +1,28 @@
 package application
 
 import (
+	"context"
 	"testing"
 
 	admin "rigmark/internal/modules/admin/domain"
+	adminports "rigmark/internal/modules/admin/ports"
 	catalog "rigmark/internal/modules/catalog/domain"
+	identity "rigmark/internal/modules/identity/domain"
 )
+
+type ownershipRepository struct {
+	adminports.Repository
+	addCalled bool
+}
+
+func (repository *ownershipRepository) AddImage(context.Context, identity.UserID, catalog.ProductID, admin.ImageInput) (catalog.ProductImage, error) {
+	repository.addCalled = true
+	return catalog.ProductImage{}, nil
+}
+
+type ownershipStorage struct{ adminports.ImageStorage }
+
+func (ownershipStorage) BelongsTo(catalog.ProductID, string) bool { return false }
 
 func TestValidateProductInputRejectsOutOfRangeRecommendationScore(t *testing.T) {
 	input := validProductInput()
@@ -44,6 +61,43 @@ func TestValidateAffiliateRejectsUnsafeDestination(t *testing.T) {
 	input := admin.AffiliateLinkInput{Provider: "direct", DestinationURL: "javascript:alert(1)", DisclosureLabel: "Affiliate link", CommissionType: "unknown"}
 	if err := validateAffiliate(input); err == nil {
 		t.Fatal("expected unsafe destination to be rejected")
+	}
+}
+
+func TestValidateMerchantURLsRejectsPrivateNetworksAndUserInfo(t *testing.T) {
+	for _, destination := range []string{
+		"https://127.0.0.1/product",
+		"https://10.0.0.5/product",
+		"https://user:secret@merchant.example/product",
+	} {
+		input := admin.AffiliateLinkInput{Provider: "direct", DestinationURL: destination,
+			DisclosureLabel: "Affiliate link", CommissionType: "unknown"}
+		if err := validateAffiliate(input); err == nil {
+			t.Fatalf("unsafe destination accepted: %s", destination)
+		}
+	}
+}
+
+func TestPaginationRejectsUnboundedPageAndPageSize(t *testing.T) {
+	for _, input := range [][2]int{{0, 30}, {10_001, 30}, {1, 101}} {
+		if _, _, err := pagination(input[0], input[1]); err == nil {
+			t.Fatalf("pagination accepted page=%d pageSize=%d", input[0], input[1])
+		}
+	}
+	if offset, limit, err := pagination(10_000, 100); err != nil || offset != 999_900 || limit != 100 {
+		t.Fatalf("pagination boundary = (%d, %d, %v)", offset, limit, err)
+	}
+}
+
+func TestAddImageRejectsCrossProductManagedObject(t *testing.T) {
+	repository := &ownershipRepository{}
+	service := NewService(repository, ownershipStorage{})
+	_, err := service.AddImage(context.Background(), "actor", "12345678-1234-4234-8234-123456789abc", admin.ImageInput{
+		URL:     "/api/media/products/22345678-1234-4234-8234-123456789abc_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png",
+		AltText: "Wrong product image",
+	})
+	if err != ErrInvalidInput || repository.addCalled {
+		t.Fatalf("AddImage() error=%v addCalled=%v", err, repository.addCalled)
 	}
 }
 

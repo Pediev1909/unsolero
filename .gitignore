@@ -1,4 +1,5 @@
 .env
+.env.staging
 *.local
 .DS_Store
 
@@ -11,6 +12,9 @@ coverage/
 bin/
 *.test
 backend/uploads/
+backups/
+frontend/test-results/
+frontend/playwright-report/
 
 # Editors
 .idea/

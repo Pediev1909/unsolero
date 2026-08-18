@@ -6,14 +6,18 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	admin "rigmark/internal/modules/admin/domain"
 	"rigmark/internal/modules/admin/ports"
 	catalog "rigmark/internal/modules/catalog/domain"
+	commerce "rigmark/internal/modules/commerce/domain"
 	identity "rigmark/internal/modules/identity/domain"
 )
 
 var ErrInvalidInput = errors.New("admin input is invalid")
+
+const productMediaPathPrefix = "/api/media/products/"
 
 var (
 	slugPattern     = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
@@ -22,17 +26,16 @@ var (
 
 type Service struct {
 	repository ports.Repository
-	images     ImageStorage
+	images     ports.ImageStorage
+	scanner    ports.ImageScanner
 }
 
-type ImageStorage interface {
-	Save(context.Context, []byte, string) (string, error)
-	Open(context.Context, string) ([]byte, string, error)
-	Delete(context.Context, string) error
-}
-
-func NewService(repository ports.Repository, images ImageStorage) *Service {
+func NewService(repository ports.Repository, images ports.ImageStorage) *Service {
 	return &Service{repository: repository, images: images}
+}
+
+func NewServiceWithMedia(repository ports.Repository, images ports.ImageStorage, scanner ports.ImageScanner) *Service {
+	return &Service{repository: repository, images: images, scanner: scanner}
 }
 
 func (service *Service) Dashboard(ctx context.Context) (admin.Dashboard, error) {
@@ -85,6 +88,10 @@ func (service *Service) AddImage(ctx context.Context, actor identity.UserID, pro
 	if productID == "" || input.SortOrder < 0 || len(input.AltText) < 1 || len(input.AltText) > 240 || !validImageURL(input.URL) {
 		return catalog.ProductImage{}, ErrInvalidInput
 	}
+	if strings.HasPrefix(input.URL, productMediaPathPrefix) &&
+		(service.images == nil || !service.images.BelongsTo(productID, strings.TrimPrefix(input.URL, productMediaPathPrefix))) {
+		return catalog.ProductImage{}, ErrInvalidInput
+	}
 	return service.repository.AddImage(ctx, actor, productID, input)
 }
 
@@ -103,13 +110,23 @@ func (service *Service) UploadImage(ctx context.Context, actor identity.UserID, 
 	default:
 		return catalog.ProductImage{}, ErrInvalidInput
 	}
-	path, err := service.images.Save(ctx, upload.Data, extension)
+	if service.scanner == nil {
+		return catalog.ProductImage{}, ports.ErrMediaScanUnavailable
+	}
+	if err := service.scanner.Scan(ctx, upload.Data, upload.MIMEType); err != nil {
+		return catalog.ProductImage{}, err
+	}
+	path, created, err := service.images.Save(ctx, productID, upload.Data, extension)
 	if err != nil {
 		return catalog.ProductImage{}, err
 	}
-	image, err := service.repository.AddImage(ctx, actor, productID, admin.ImageInput{URL: "/api/media/products/" + path, AltText: strings.TrimSpace(upload.AltText), SortOrder: upload.SortOrder, IsPrimary: upload.IsPrimary})
+	image, err := service.repository.AddImage(ctx, actor, productID, admin.ImageInput{URL: productMediaPathPrefix + path, AltText: strings.TrimSpace(upload.AltText), SortOrder: upload.SortOrder, IsPrimary: upload.IsPrimary})
 	if err != nil {
-		_ = service.images.Delete(ctx, path)
+		if created {
+			if deleteErr := service.images.Delete(ctx, path); deleteErr != nil {
+				_ = service.repository.ScheduleMediaDeletion(ctx, productID, path)
+			}
+		}
 		return catalog.ProductImage{}, err
 	}
 	return image, nil
@@ -130,9 +147,19 @@ func (service *Service) DeleteImage(ctx context.Context, actor identity.UserID, 
 	if err != nil {
 		return err
 	}
-	const prefix = "/api/media/products/"
-	if service.images != nil && strings.HasPrefix(imageURL, prefix) {
-		if err := service.images.Delete(ctx, strings.TrimPrefix(imageURL, prefix)); err != nil {
+	if imageURL == "" {
+		return nil
+	}
+	if service.images != nil && strings.HasPrefix(imageURL, productMediaPathPrefix) {
+		name := strings.TrimPrefix(imageURL, productMediaPathPrefix)
+		if !service.images.BelongsTo(productID, name) {
+			return ErrInvalidInput
+		}
+		if err := service.images.Delete(ctx, name); err != nil {
+			_ = service.repository.FailMediaDeletion(ctx, name, "storage.delete_failed", time.Now().UTC())
+			return err
+		}
+		if err := service.repository.CompleteMediaDeletion(ctx, name, time.Now().UTC()); err != nil {
 			return err
 		}
 	}
@@ -244,7 +271,7 @@ func (service *Service) ListEvents(ctx context.Context, name string, page, pageS
 }
 
 func pagination(page, pageSize int) (int, int, error) {
-	if page < 1 || pageSize < 1 || pageSize > 100 {
+	if page < 1 || page > 10_000 || pageSize < 1 || pageSize > 100 {
 		return 0, 0, ErrInvalidInput
 	}
 	return (page - 1) * pageSize, pageSize, nil
@@ -281,7 +308,7 @@ func normalizeOffer(input admin.OfferInput) admin.OfferInput {
 }
 
 func validateOfferInput(input admin.OfferInput) error {
-	if input.MerchantID == "" || input.ProductID == "" || len(input.MerchantSKU) < 1 || len(input.MerchantSKU) > 120 || input.PriceMinor < 0 || input.ShippingMinor < 0 || len(input.Currency) != 3 || !validHTTPSURL(input.ProductURL) {
+	if input.MerchantID == "" || input.ProductID == "" || len(input.MerchantSKU) < 1 || len(input.MerchantSKU) > 120 || input.PriceMinor < 0 || input.ShippingMinor < 0 || len(input.Currency) != 3 || !validMerchantAdminURL(input.ProductURL) {
 		return ErrInvalidInput
 	}
 	if input.Availability != "in_stock" && input.Availability != "backorder" && input.Availability != "out_of_stock" && input.Availability != "discontinued" {
@@ -317,7 +344,7 @@ func normalizeAffiliate(input admin.AffiliateLinkInput) admin.AffiliateLinkInput
 }
 
 func validateAffiliate(input admin.AffiliateLinkInput) error {
-	if !providerPattern.MatchString(input.Provider) || !validHTTPSURL(input.DestinationURL) || len(input.DisclosureLabel) < 1 || input.Priority < -1000 || input.Priority > 1000 {
+	if !providerPattern.MatchString(input.Provider) || !validMerchantAdminURL(input.DestinationURL) || len(input.DisclosureLabel) < 1 || input.Priority < -1000 || input.Priority > 1000 {
 		return ErrInvalidInput
 	}
 	switch input.CommissionType {
@@ -342,6 +369,15 @@ func validateAffiliate(input admin.AffiliateLinkInput) error {
 func validHTTPSURL(value string) bool {
 	parsed, err := url.ParseRequestURI(value)
 	return err == nil && parsed.Scheme == "https" && parsed.Host != "" && parsed.User == nil
+}
+
+func validMerchantAdminURL(value string) bool {
+	if commerce.SafeMerchantURL(value) {
+		return true
+	}
+	parsed, err := url.ParseRequestURI(value)
+	return err == nil && parsed.Scheme == "https" && parsed.User == nil && parsed.Fragment == "" &&
+		strings.HasSuffix(strings.ToLower(parsed.Hostname()), ".invalid")
 }
 
 func validImageURL(value string) bool {

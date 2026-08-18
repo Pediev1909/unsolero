@@ -1,0 +1,16 @@
+{
+  "goal": "build_muscle",
+  "experience": "beginner",
+  "budget_minor": 70000,
+  "currency": "USD",
+  "available_space": {
+    "length_mm": 2400,
+    "width_mm": 1800,
+    "height_mm": 2400,
+    "apartment_living": true
+  },
+  "existing_equipment": [],
+  "training_preferences": ["dumbbells", "bodyweight"],
+  "priorities": ["compact", "budget"],
+  "free_text": ""
+}

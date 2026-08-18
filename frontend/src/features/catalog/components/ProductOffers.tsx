@@ -97,6 +97,9 @@ export function ProductOffers({
                 {new Intl.DateTimeFormat('en-US', {
                   dateStyle: 'medium',
                 }).format(new Date(offer.last_checked_at))}
+                {offer.expires_at
+                  ? ` · Valid until ${new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(offer.expires_at))}`
+                  : ''}
               </p>
             </div>
             {offer.purchase_path && (
@@ -118,9 +121,10 @@ export function ProductOffers({
         ))}
       </div>
       <p className="mt-4 text-xs leading-5 text-ink/50">
-        Prices and availability are last checked records, not live checkout
-        quotes. Outbound links are tracked for attribution. Affiliate commission
-        never changes product ranking or suitability scores.
+        Only fresh offer observations are shown; prices and availability are not
+        live checkout quotes. Outbound links are tracked for attribution.
+        Affiliate commission never changes product ranking or suitability
+        scores.
       </p>
     </div>
   )

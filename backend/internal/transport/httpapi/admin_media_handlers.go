@@ -11,6 +11,7 @@ import (
 	admindomain "rigmark/internal/modules/admin/domain"
 	adminports "rigmark/internal/modules/admin/ports"
 	catalog "rigmark/internal/modules/catalog/domain"
+	"rigmark/internal/platform/observability"
 )
 
 func (h *Handler) adminAddImage(response http.ResponseWriter, request *http.Request) {
@@ -64,6 +65,9 @@ func (h *Handler) adminUploadImage(response http.ResponseWriter, request *http.R
 	principal, _ := principalFromContext(request.Context())
 	image, err := h.admin.UploadImage(request.Context(), principal.UserID, productID, admindomain.ImageUpload{Data: data, MIMEType: http.DetectContentType(data), AltText: request.FormValue("alt_text"), SortOrder: sortOrder, IsPrimary: isPrimary})
 	if err != nil {
+		if h.metrics != nil {
+			h.metrics.Increment(observability.MetricStorageFailure)
+		}
 		h.writeAdminError(response, err)
 		return
 	}
@@ -78,6 +82,9 @@ func (h *Handler) productImage(response http.ResponseWriter, request *http.Reque
 			return
 		}
 		h.logger.Error("serve product image", "error", err)
+		if h.metrics != nil {
+			h.metrics.Increment(observability.MetricStorageFailure)
+		}
 		http.Error(response, "Image unavailable", http.StatusServiceUnavailable)
 		return
 	}

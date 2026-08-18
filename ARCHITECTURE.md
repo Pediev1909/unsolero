@@ -2,9 +2,45 @@
 
 Status: approved architecture with incremental implementation status  
 Scope: target architecture with implemented sections called out explicitly  
-Last reviewed: 2026-08-17
+Last reviewed: 2026-08-18
 
-This document is the architectural source of truth for UNSOLERO. It expands and supersedes the preliminary notes in `docs/architecture.md`. The current repository implements the consumer and admin web surfaces, API and health checks, the core relational model, PostgreSQL adapters, opaque-session authentication, deterministic recommendations, affiliate commerce, first-party analytics, and the provider-neutral AI boundary described below.
+This document is the architectural source of truth for UNSOLERO. It expands and supersedes the preliminary notes in `docs/architecture.md`. The current repository implements the consumer and admin web surfaces, API and health checks, the core relational model, PostgreSQL adapters, opaque-session authentication, deterministic recommendations, provider-neutral merchant ingestion and affiliate operations, first-party analytics, and the provider-neutral AI boundary described below.
+
+## Phase 11 operational edge
+
+Phase 11 preserves the modular monolith and adds operational adapters rather
+than new business domains. Public browser routes pass through a bounded route
+resolver before the edge serves the SPA. Operational metrics combine bounded
+replica-local counters/pool state with durable cross-process queue, import,
+media, backup, and restore state from PostgreSQL. Media inventory remains an
+admin application service behind database and object-inventory ports.
+
+```mermaid
+flowchart TD
+  Browser --> TLS[TLS edge]
+  TLS --> Route[Bounded public-route resolver]
+  Route --> API1[API replica 1]
+  Route --> API2[API replica 2]
+  API1 --> PG[(PostgreSQL)]
+  API2 --> PG
+  API1 --> Redis[(Redis limiter)]
+  API2 --> Redis
+  API1 --> S3[(Private object storage)]
+  API2 --> S3
+  W1[Worker replica 1] --> PG
+  W2[Worker replica 2] --> PG
+  W1 --> S3
+  W2 --> S3
+  Reconcile[Bounded media reconciler] --> PG
+  Reconcile --> S3
+  Collector[External collector - blocked] -. authenticated scrape .-> API1
+  Collector -. authenticated scrape .-> API2
+```
+
+The route resolver exposes no account or product payload and cannot capture
+`/api`, assets, media, sitemap, or robots locations. The recommendation module
+still has no commerce/analytics/AI dependency; none of the new operational
+metrics or reconciliation inputs can enter recommendation scoring.
 
 ## 0. Architectural position
 
@@ -100,7 +136,7 @@ frontend/
 │   ├── styles/                     # tokens and global styles
 │   ├── test/                       # render helpers and API fakes
 │   └── main.tsx
-├── e2e/                            # browser tests when introduced
+├── e2e/                            # Playwright browser and Axe regression paths
 └── package.json
 ```
 
@@ -508,15 +544,15 @@ The unversioned editorial discovery routes above are implemented public-read con
 
 The consumer web application should use **opaque secure server sessions**, not browser-stored bearer JWTs.
 
-Implementation status: password registration/login/logout, session resolution, authenticated principals, and the consumer route guard are implemented. Email verification, recovery, OAuth/OpenID Connect, consumer roles, and staff MFA remain later phases.
+Implementation status: password registration/login/logout, hashed one-time email verification and reset tokens, authenticated password change, session inventory/revocation/cleanup, structured account export, anonymizing deletion, encrypted TOTP, hashed single-use recovery codes, MFA login, recent step-up, immutable security events, and backend permission gates are implemented. OAuth/OpenID Connect remains a replaceable future credential adapter. A live email adapter is intentionally not linked without provider credentials.
 
 ### Session design
 
 - The browser receives a high-entropy opaque token in a `Secure`, `HttpOnly`, `SameSite=Lax`, path-scoped cookie.
 - Only a one-way hash of the session token is stored in `identity.sessions`.
 - Sessions have absolute and idle expirations, device metadata kept to the minimum needed for security, and explicit revocation timestamps.
-- Session IDs rotate after login, credential changes, privilege changes, and other fixation-sensitive actions.
-- State-changing requests require same-origin checks and a CSRF token where SameSite protection alone is insufficient.
+- Every login creates a new session ID. Password reset revokes all sessions; authenticated password change keeps the current response-bearing session and revokes every other session. Privilege membership is resolved from PostgreSQL on every request rather than embedded in the session.
+- State-changing requests require exact-origin/Fetch-Metadata checks in addition to SameSite cookie policy. The same-origin SPA does not use a separately readable CSRF token.
 - Authentication responses use `Cache-Control: no-store` and never expose secret material to analytics or logs.
 - Guest users receive a separate short-lived anonymous planning session that can be claimed after registration without merging unrelated identities.
 
@@ -527,10 +563,10 @@ sequenceDiagram
     participant S as Identity service
     participant R as Session repository
 
-    B->>H: POST /auth/sessions + credentials + CSRF context
+    B->>H: POST /api/auth/login + credentials + origin context
     H->>S: Authenticate(command)
     S->>S: Verify credential and account state
-    S->>R: Revoke fixation-prone session; store new token hash
+    S->>R: Store a new session token hash
     R-->>S: Session metadata
     S-->>H: Opaque raw token once
     H-->>B: Set-Cookie Secure; HttpOnly; SameSite=Lax
@@ -546,7 +582,7 @@ If password authentication is offered, passwords use a current memory-hard passw
 - Application services receive an authenticated principal and enforce ownership or role policy.
 - Consumer ownership checks are scoped in repository queries as defense in depth.
 - Admin access uses named roles and granular permissions, not a single boolean.
-- High-risk staff accounts require MFA before production launch.
+- Production permission middleware requires backend-recorded MFA no older than the configured step-up window for every privileged role.
 - Service-to-service JWTs may be introduced only if processes become independently deployed. They are not the browser session mechanism.
 
 ## 7. Recommendation engine architecture
@@ -619,11 +655,67 @@ This boundary is now enforced in three layers: the candidate/config types cannot
 represent commission, sponsorship, payout, revenue, affiliate performance, or
 conversion fields; architecture tests reject commerce/analytics/AI imports; and
 a PostgreSQL integration test mutates affiliate priority and commission metadata
-then proves the deterministic result is unchanged.
+plus verified conversion, order, commission, provider, attribution, and click
+metadata, then proves the deterministic result is unchanged.
 
 ## 8. Affiliate architecture
 
 Affiliate behavior belongs entirely to the commerce module and begins only after the recommendation result is finalized.
+
+### Phase 3 merchant operations
+
+Merchant ingestion uses a `ProviderAdapter` port and a registry whose unknown
+providers resolve to a fail-closed disabled adapter. The commerce worker owns
+scheduled imports, cursor progression, bounded retry, and expired-click
+anonymization. A one-hour running-job lease recovers abandoned work into the
+bounded retry or terminal-failure state. Protected operator commands create disabled configurations,
+verify lifecycle transitions, queue idempotent imports, inspect failures, and
+retry terminal runs.
+
+PostgreSQL separately owns current offer state, external mappings, immutable
+price/availability observations, import history, lifecycle/cursors, clicks, and
+commerce audit history. Only a complete successful snapshot reconciles unseen
+offers. Partial/failed runs do not advance cursors or deactivate inventory.
+Explicit expiry and the platform maximum-age policy both fail closed.
+
+### Phase 4 verified conversions
+
+Verified conversion ingestion is a second commerce port, not an extension of
+the recommendation port. `ConversionProviderAdapter` verifies provider-specific
+webhook authentication and fetches authenticated conversion pages. Unknown or
+unconfigured adapters resolve to a disabled implementation and fail closed.
+The application layer enforces a ten-minute signature window, bounded event and
+page counts, normalized lifecycle validation, and a thirty-day maximum click
+attribution window. Provider authentication details remain adapter-owned.
+
+PostgreSQL stores request/body fingerprints rather than raw webhook bodies,
+immutable verified provider events, a current conversion projection, bounded
+import failures, reconciliation runs/items, and provider health. Uniqueness on
+`(provider_configuration_id, provider_event_id)` is the authoritative event
+idempotency boundary. Retried requests resume a verified but unprocessed
+delivery, while processed deliveries return a safe duplicate acknowledgement.
+Conflicting reuse of a provider event ID fails without rewriting history.
+
+Attribution is derived only from an existing countable click for the same
+merchant that predates the provider event and falls within the attribution
+window. Insufficient evidence produces an unattributed verified conversion;
+the system never infers a conversion from a click. Click-retention cleanup also
+removes recommendation identifiers from the mutable conversion projection.
+Immutable events contain no email, IP address, user agent, token, free text, or
+raw provider payload.
+
+Monetization reports require a successful provider reconciliation covering the
+entire requested window. Without that evidence every metric is `no_data`, not
+zero. A known denominator of zero is `insufficient_data`; a verified numerator
+of zero with a non-zero denominator is an available zero. Pending, rejected,
+and reversed commission is excluded from earned commission. Original provider
+currencies are reported independently; there is no implicit FX conversion.
+
+Destination resolution precedes best-effort click persistence, so a write-side
+tracking failure does not block an already validated navigation. Raw requests
+and human-classified reporting are separate, and retention anonymization removes
+identifying attribution. No live merchant adapter or credential ships in this
+phase; see `docs/MERCHANT_INTEGRATION.md`.
 
 ### Data flow
 
@@ -632,7 +724,7 @@ Affiliate behavior belongs entirely to the commerce module and begins only after
 3. Offer selection considers availability, delivered consumer price, return/warranty facts, merchant eligibility, and freshness.
 4. A stored affiliate destination may be attached to the selected offer.
 5. The API returns `/api/affiliate/click/:offerID`, never a hard-coded affiliate URL or affiliate-link identifier.
-6. The redirect resolves the current active link, validates its stored HTTPS destination, records click and analytics attribution in one database operation, and issues a temporary redirect.
+6. The redirect resolves the current active link, validates ownership, freshness, and its stored HTTPS destination, then attempts idempotent click/analytics attribution before issuing a temporary redirect. A write-side attribution failure does not block an already validated destination.
 
 Commission is not a recommendation input and should not select the default merchant destination. If multiple offers are materially identical, the product policy must document a user-benefiting tie-breaker rather than silently optimizing payout.
 
@@ -649,8 +741,8 @@ Commission is not a recommendation input and should not select the default merch
 - Redirects accept only server-resolved opaque tokens and allowlisted HTTPS hosts, preventing open redirects.
 - Click records include link, offer, product, optional authenticated user or pseudonymous browser session, source, bounded campaign, reduced referrer, request identifier, and timestamp. They avoid raw sensitive profile data.
 - Query parameters and secrets are redacted from application logs.
-- Click recording is transactional with the server-authored analytics event. A durable browser-retry idempotency key and bot/crawler classification are not implemented yet, so reporting must treat raw click counts as directional until that control exists.
-- Merchant postbacks, if later supported, terminate in a dedicated authenticated adapter and never write recommendation tables.
+- Click recording is transactional with the server-authored analytics event. Database-backed request idempotency, bot/prefetch classification, raw-versus-countable separation, and bounded retry protection are implemented.
+- Conversion webhooks terminate in a dedicated authenticated adapter and never receive recommendation repository capabilities.
 
 ## 9. Analytics architecture
 
@@ -675,20 +767,23 @@ page_path (query-free)
 traffic_source / traffic_medium / campaign (bounded)
 referrer_host (hostname only)
 consent_state
+consent_policy_version
+classification / is_reportable
+retention_expires_at
 ```
 
 The implemented product events are `page_view`, `onboarding_started`, `onboarding_completed`, `recommendation_generated`, `product_viewed`, `product_saved`, `comparison_created`, `setup_saved`, and server-authored `affiliate_clicked`. An event exists only when emitted by a real interaction or backend transition; dashboards never substitute invented data. Onboarding events share a per-attempt UUID so completion can be paired without identity guessing.
 
 ### Separation of concerns
 
-- Product analytics is separate from security audit logs and operational telemetry.
+- Product analytics is separate from security audit logs and operational telemetry. A payload-free receipt ledger records ingestion outcomes; it is not a source of business facts.
 - Security audit records are durable, actor-attributed, immutable, and retained according to security policy.
 - Operational metrics measure service behavior without copying product profiles into metric labels.
-- Frontend event emission goes through one typed provider dispatcher. The default provider sends only to the first-party API; additional providers do not change product components. Consent and event validation are centralized.
+- Frontend event emission goes through one typed provider dispatcher. The default provider sends only to the first-party API; additional providers do not change product components. Each logical event gets a client UUID. PostgreSQL uniqueness and transactional consent locking make concurrent retries idempotent.
 - Backend lifecycle events use a transactional outbox when losing the event would corrupt funnels; low-value UI telemetry may be best-effort.
 - Backend persistence and reporting depend on analytics-owned ports. Exporters to PostHog or another vendor can be added as replaceable adapters without changing event producers. PostgreSQL is adequate for the early event volume; a warehouse is added only after demonstrated analytical need.
-- Admin reporting has a separate read boundary from ingestion. Completion uses paired onboarding attempts; affiliate CTR uses observed product/session views and matching product-detail clicks. Null denominators remain “No data.”
-- The normalized affiliate conversion table remains empty until an authenticated provider webhook/import verifies a conversion. Its structured order value, commission, currency, status, provider identity, click relationship, and optional recommendation attribution support later conversion rate, EPC, revenue-per-visitor, revenue-per-recommendation, revenue-per-user, and LTV work without manufacturing present-day metrics. The separate empty acquisition-cost ledger accepts only verified source/campaign spend and enables later CAC. Repeat-user rate will use observed identity/session activity rather than inferred customer behavior.
+- Admin reporting has a separate read boundary from ingestion. Only reportable events/countable clicks enter metrics; reports label coverage and sufficiency and suppress rates below 20 eligible observations. Event-level access is administrator-only while analysts receive aggregates.
+- The normalized affiliate conversion model accepts only authenticated adapter output. Verified facts can support conversion rate, EPC, revenue-per-visitor, revenue-per-recommendation, commission, reversal rate, and observed repeat-user rate, but reports remain `no_data` until a complete successful reconciliation covers the window. The separate empty acquisition-cost ledger remains reserved for verified spend and future CAC; no metric is estimated.
 
 ### Privacy
 
@@ -696,6 +791,10 @@ The implemented product events are `page_view`, `onboarding_started`, `onboardin
 - Never send full recommendation intake text, precise room descriptions, email addresses, tokens, or affiliate URLs as generic event properties.
 - Honor consent, deletion, export, retention, and regional requirements from the start.
 - Keep identity resolution explicit and auditable when a guest session is claimed by a user.
+
+The concrete consent, subject-claim, event schema, access, export/deletion, and
+retention behavior is specified in `docs/ANALYTICS.md`,
+`docs/DATA_GOVERNANCE.md`, and `docs/DATA_RETENTION.md`.
 
 ## 10. AI integration architecture
 
@@ -763,20 +862,13 @@ No vector database is part of the initial architecture. If semantic retrieval be
 
 Admin is a protected surface in the same React and Go applications initially, with separate route trees, authorization middleware, DTOs, and navigation. It is not a separate direct-to-database application.
 
-Implementation status: the initial operations surface is available under `/admin` and `/api/admin/*`. `identity.roles` and `identity.user_roles` provide normalized membership; session resolution loads roles on every authenticated request, so revoked access is not embedded in a long-lived client token. The HTTP layer currently requires the coarse `admin` role, application services validate commands, PostgreSQL adapters own queries and atomic mutation/audit transactions, and the frontend guard is only a navigation aid.
+Implementation status: the operations surface is available under `/admin` and `/api/admin/*`. `identity.roles` and `identity.user_roles` provide normalized membership; session resolution loads roles on every authenticated request, so revoked access is not embedded in a long-lived client token. HTTP routes require explicit permissions, production permission gates require recent MFA, application services validate commands, PostgreSQL adapters own queries and atomic mutation/audit transactions, and the frontend guard/navigation remain usability aids only.
 
-Current write workflows cover structured products, product status, images, attributes, merchant offers, and affiliate links. Recommendation, category, brand, merchant, user, event, metric, and published editorial inventory views are read-only. Editorial authoring deliberately remains repository-controlled until a revision and approval workflow is implemented; Settings remains an explicit empty state. Product media uses a replaceable storage port; the local adapter is persistent for a single-node deployment, while multi-node production should supply shared object storage.
+Current write workflows cover structured products, product status, images, attributes, merchant offers, and affiliate links. Recommendation, category, brand, merchant, user, event, metric, and published editorial inventory views are read-only. Editorial authoring deliberately remains repository-controlled until a revision and approval workflow is implemented; Settings remains an explicit empty state. Product media uses application-owned storage and scanner ports. Local and private S3-compatible adapters validate magic bytes and size, bind deterministic digest keys to product ownership, and use atomic/conditional creation. Reads revalidate content digest and type. Known deletion failures are durably leased and retried by the worker. Production rejects local storage, insecure S3 transport, and development/disabled scanning; a managed private bucket, inventory reconciliation and reviewed scanner remain deployment requirements.
 
 ### Roles
 
-The role list below is the target capability split. Only `admin` is seeded in the initial implementation; narrower grants should be introduced alongside their first approved staff workflow rather than being security theater with identical permissions.
-
-- `catalog_editor`: drafts products, variants, specifications, and evidence links;
-- `catalog_reviewer`: approves or rejects publishable revisions;
-- `commerce_manager`: manages merchants, offers, destinations, and sponsorship metadata;
-- `analyst`: reads approved aggregate analytics and recommendation diagnostics;
-- `support`: accesses narrowly scoped user-support actions with reason capture;
-- `administrator`: manages staff grants and emergency operations.
+Implemented roles are `catalog_editor`, `evidence_editor`, `evidence_reviewer`, `policy_editor`, `policy_reviewer`, `commerce_operator`, `content_editor`, `analyst`, and `admin` (administrator). Permission keys distinguish read, create, update, delete, approve, activate, and export capabilities. The catalog status route remains administrator-only; evidence and policy transitions use their dedicated editor/reviewer roles and retain repository-enforced separation of duties. Commerce operators receive no policy permissions; analysts receive no mutation permissions.
 
 Permissions are capabilities, not assumptions inferred from UI routes. Production staff accounts require MFA and short privileged-session lifetimes.
 
@@ -834,19 +926,21 @@ Tests should run in layers: fast unit/lint checks on every change, integration a
 
 The current Compose topology remains appropriate:
 
-- `web`: Vite in direct development or production-built Nginx through Compose;
+- `web`: Vite development server; the separately built production target uses Nginx;
 - `api`: Go API;
 - `postgres`: persistent local PostgreSQL;
-- `migrate`: future one-shot profile/service;
-- `worker`: future optional process using the same backend image.
+- `migrate`: one-shot checksum/advisory-locked migration service;
+- `commerce-worker`: lease-based import, conversion, retention, and security cleanup process;
+- `seed`, `backup`, and `restore`: opt-in tool profiles.
 
 ```mermaid
 flowchart TB
     subgraph Compose
-        Web[web :3000]
+        Web[web :5173]
         API[api :8080 internal]
         Migrate[migrate one-shot]
-        Worker[worker future]
+        Worker[commerce worker]
+        Backup[backup / restore tools]
         Postgres[(postgres volume)]
     end
 
@@ -854,6 +948,7 @@ flowchart TB
     API --> Postgres
     Migrate --> Postgres
     Worker --> Postgres
+    Backup --> Postgres
 ```
 
 ### Image rules
@@ -877,14 +972,19 @@ Configuration is typed, validated once at process startup, and injected into con
 
 ```text
 APP_ENV
-HTTP_*                 ports, trusted proxies, timeouts, body limits
-DATABASE_*             URL or discrete connection values, pool limits
-SESSION_*              cookie name/domain/TTL and key references
-SECURITY_*             allowed origins, encryption/signing key references
-JOBS_*                 polling, leases, concurrency
+APP_VERSION             immutable release identity
+PUBLIC_SITE_URL         canonical and trusted browser origin
+HTTP_* / API_PORT       listener, header, handler and shutdown limits
+DATABASE_*              credential URL, pool and session timeouts
+SESSION_*               cookie name, secure mode and TTLs
+EMAIL_* / MFA_*         delivery selection, security keys and challenge TTLs
+RATE_LIMIT_*            adapter, HMAC key and bounded route policies
+MEDIA_*                 storage/scanner adapter selection
+PRODUCT_IMAGE_*         local-development upload bounds and directory
+WORKER_* / COMMERCE_*   polling, leases, retries, freshness and retention
 AI_*                   enabled providers, model IDs, timeouts, budgets
-ANALYTICS_*            consent mode and optional exporter
-OBSERVABILITY_*        log level and telemetry destinations
+ANALYTICS_*             identity cookie, retention and cleanup limits
+ALERT_* / METRICS_*     explicit operational-provider and scrape boundary
 ```
 
 - Sensitive variables have no defaults outside tests and fail startup when required.
@@ -915,15 +1015,35 @@ OBSERVABILITY_*        log level and telemetry destinations
 
 ### Observability
 
-- Structured logs, bounded-cardinality metrics, and traces share request/run/job IDs.
+- Privacy-filtered structured logs and bounded-cardinality metrics use request,
+  import, conversion, and run identifiers. Distributed traces are not yet
+  implemented and require an external provider decision.
 - Recommendation telemetry records duration and candidate counts, not sensitive raw inputs.
 - Alerts focus on user-visible failure, readiness, job backlog, stale offers/evidence, authentication anomalies, and redirect errors.
 - Product analytics is never used as a substitute for operational monitoring.
+- PostgreSQL pool/session timeouts and error classification are platform-owned;
+  repositories receive a pool and do not reconfigure infrastructure policy.
+- Health distinguishes process liveness, critical readiness, and optional
+  degraded dependencies without returning credentials or provider detail.
+- The deployable metrics boundary exposes authenticated bounded OpenMetrics and
+  JSON process snapshots. IDs, raw paths, product/user/provider values, IPs,
+  destinations and secrets are forbidden labels. Cross-replica aggregation,
+  durable retention, dashboards and alerts remain external infrastructure.
+- API readiness compares the database migration ledger with the exact embedded
+  release manifest. A missing, extra, renamed, or checksum-mismatched migration
+  fails readiness; the serving process never applies DDL.
 
 ### Security and privacy
 
 - TLS terminates at trusted infrastructure; secure headers are applied at the edge and API.
 - Input size, content type, rate, and schema are validated before application work.
+- Forwarded client addresses are ignored unless the immediate socket peer is in
+  an explicitly configured trusted-proxy CIDR. Rate-limit identity is therefore
+  derived fail-closed at the HTTP boundary rather than from an untrusted header.
+- Distributed rate decisions use an atomic Redis-compatible adapter with
+  namespaced HMAC-pseudonymous keys and server TTLs. Backend outage fails closed;
+  local mode is restricted to a single development replica. Production requires
+  TLS/authenticated private Redis and tested failover/eviction behavior.
 - Database access is parameterized through repositories.
 - Sensitive-field classification is defined before collecting user profile data.
 - Data export, correction, account deletion, retention, and consent are application use cases, not manual database procedures.
@@ -936,7 +1056,9 @@ OBSERVABILITY_*        log level and telemetry destinations
 - Personalized recommendations and session responses are private and non-cacheable by shared caches.
 - PostgreSQL indexes follow measured query shapes. JSONB and search indexes are not added speculatively.
 - Recommendation runs operate on bounded candidate snapshots and enforce time/candidate limits.
-- Redis is not initially required. It may be introduced behind cache/rate-limit ports only when a single-process or PostgreSQL solution is insufficient.
+- Redis is used only behind the abuse-control port for horizontally scaled
+  deployments. It is not a recommendation, product, session, or commerce source
+  of truth and no general cache dependency is introduced.
 
 ## Evolution sequence
 

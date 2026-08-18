@@ -88,10 +88,20 @@ export function getOffers(slug: string) {
   )
 }
 
-export function getWishlist() {
-  return apiRequest('/account/wishlist', { method: 'GET' }, (value) =>
-    wishlistSchema.parse(value),
-  )
+export async function getWishlist() {
+  const productIDs: string[] = []
+  let page = 1
+  while (true) {
+    const result = await apiRequest(
+      `/account/wishlist?page=${page}&page_size=100`,
+      { method: 'GET' },
+      (value) => wishlistSchema.parse(value),
+    )
+    productIDs.push(...result.product_ids)
+    if (page >= result.total_pages || page >= 10_000) break
+    page += 1
+  }
+  return { product_ids: productIDs }
 }
 
 export function saveWishlistProduct(productID: string) {

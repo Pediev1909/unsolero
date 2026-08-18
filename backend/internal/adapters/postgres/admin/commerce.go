@@ -115,12 +115,14 @@ func (repository *Repository) ListOffers(ctx context.Context, limit, offset int)
 			offers.product_id, products.name, offers.merchant_sku, offers.product_url,
 			offers.price_minor, offers.shipping_minor, offers.currency, offers.availability,
 			offers.condition, offers.is_active, offers.last_checked_at,
+			offers.expires_at, CASE WHEN offers.expires_at IS NULL THEN 'platform_policy'
+				WHEN offers.expires_at <= now() THEN 'expired' ELSE 'fresh' END,
 			(SELECT count(*) FROM commerce.affiliate_links WHERE merchant_offer_id=offers.id),
 			offers.updated_at
 		FROM commerce.merchant_offers AS offers
 		JOIN commerce.merchants AS merchants ON merchants.id=offers.merchant_id
 		JOIN catalog.products AS products ON products.id=offers.product_id
-		ORDER BY offers.updated_at DESC, products.name LIMIT $1 OFFSET $2`, limit, offset)
+		ORDER BY offers.updated_at DESC, products.name, offers.id LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return admin.Page[admin.Offer]{}, fmt.Errorf("list admin offers: %w", err)
 	}
@@ -131,7 +133,8 @@ func (repository *Repository) ListOffers(ctx context.Context, limit, offset int)
 		if err := rows.Scan(&page.Total, &item.ID, &item.MerchantID, &item.MerchantName,
 			&item.ProductID, &item.ProductName, &item.MerchantSKU, &item.ProductURL,
 			&item.PriceMinor, &item.ShippingMinor, &item.Currency, &item.Availability,
-			&item.Condition, &item.IsActive, &item.LastCheckedAt, &item.AffiliateLinks,
+			&item.Condition, &item.IsActive, &item.LastCheckedAt, &item.ExpiresAt,
+			&item.FreshnessStatus, &item.AffiliateLinks,
 			&item.UpdatedAt); err != nil {
 			return admin.Page[admin.Offer]{}, fmt.Errorf("scan admin offer: %w", err)
 		}
@@ -202,6 +205,8 @@ func (repository *Repository) getOffer(ctx context.Context, id string) (admin.Of
 			products.name, offers.merchant_sku, offers.product_url, offers.price_minor,
 			offers.shipping_minor, offers.currency, offers.availability, offers.condition,
 			offers.is_active, offers.last_checked_at,
+			offers.expires_at, CASE WHEN offers.expires_at IS NULL THEN 'platform_policy'
+				WHEN offers.expires_at <= now() THEN 'expired' ELSE 'fresh' END,
 			(SELECT count(*) FROM commerce.affiliate_links WHERE merchant_offer_id=offers.id),
 			offers.updated_at
 		FROM commerce.merchant_offers AS offers
@@ -210,7 +215,8 @@ func (repository *Repository) getOffer(ctx context.Context, id string) (admin.Of
 		WHERE offers.id=$1`, id).Scan(&item.ID, &item.MerchantID, &item.MerchantName,
 		&item.ProductID, &item.ProductName, &item.MerchantSKU, &item.ProductURL,
 		&item.PriceMinor, &item.ShippingMinor, &item.Currency, &item.Availability,
-		&item.Condition, &item.IsActive, &item.LastCheckedAt, &item.AffiliateLinks,
+		&item.Condition, &item.IsActive, &item.LastCheckedAt, &item.ExpiresAt,
+		&item.FreshnessStatus, &item.AffiliateLinks,
 		&item.UpdatedAt)
 	if err = notFound(err); err != nil {
 		return admin.Offer{}, err
@@ -264,7 +270,7 @@ func (repository *Repository) ListAffiliateLinks(ctx context.Context, limit, off
 		JOIN commerce.merchant_offers AS offers ON offers.id=links.merchant_offer_id
 		JOIN catalog.products AS products ON products.id=offers.product_id
 		JOIN commerce.merchants AS merchants ON merchants.id=offers.merchant_id
-		ORDER BY links.updated_at DESC LIMIT $1 OFFSET $2`, limit, offset)
+		ORDER BY links.updated_at DESC, links.id LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return admin.Page[admin.AffiliateLink]{}, fmt.Errorf("list affiliate links: %w", err)
 	}

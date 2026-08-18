@@ -4,6 +4,7 @@ import {
   recommendationResultSchema,
   setupListSchema,
   type RecommendationInput,
+  type SetupList,
 } from './schemas'
 
 export function getDraft() {
@@ -28,10 +29,20 @@ export function generateRecommendation(input: RecommendationInput) {
   )
 }
 
-export function getSetups() {
-  return apiRequest('/account/setups', { method: 'GET' }, (value) =>
-    setupListSchema.parse(value),
-  )
+export async function getSetups() {
+  const setups: SetupList['setups'] = []
+  let page = 1
+  while (true) {
+    const result = await apiRequest(
+      `/account/setups?page=${page}&page_size=100`,
+      { method: 'GET' },
+      (value) => setupListSchema.parse(value),
+    )
+    setups.push(...result.setups)
+    if (page >= result.total_pages || page >= 10_000) break
+    page += 1
+  }
+  return { setups }
 }
 
 export function getSetup(setupID: string) {

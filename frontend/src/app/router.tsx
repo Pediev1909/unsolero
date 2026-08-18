@@ -3,7 +3,6 @@ import { createBrowserRouter } from 'react-router-dom'
 import { HomePage } from '../pages/HomePage'
 import { ProtectedRoute } from '../features/auth/ProtectedRoute'
 import { ProtectedAdminRoute } from '../features/admin/ProtectedAdminRoute'
-import { AdminLayout } from '../features/admin/components/AdminLayout'
 import { RouteShell } from './RouteShell'
 import { RouteLoadingState } from './RouteLoadingState'
 import { RouteErrorPage } from './RouteErrorPage'
@@ -28,6 +27,38 @@ export const router = createBrowserRouter([
         path: '/register',
         lazy: async () => ({
           Component: (await import('../pages/RegisterPage')).RegisterPage,
+        }),
+      },
+      {
+        path: '/check-email',
+        lazy: async () => ({
+          Component: (await import('../pages/CheckEmailPage')).CheckEmailPage,
+        }),
+      },
+      {
+        path: '/verify-email',
+        lazy: async () => ({
+          Component: (await import('../pages/VerifyEmailPage')).VerifyEmailPage,
+        }),
+      },
+      {
+        path: '/forgot-password',
+        lazy: async () => ({
+          Component: (await import('../pages/ForgotPasswordPage'))
+            .ForgotPasswordPage,
+        }),
+      },
+      {
+        path: '/reset-password',
+        lazy: async () => ({
+          Component: (await import('../pages/ResetPasswordPage'))
+            .ResetPasswordPage,
+        }),
+      },
+      {
+        path: '/login/mfa',
+        lazy: async () => ({
+          Component: (await import('../pages/MfaLoginPage')).MfaLoginPage,
         }),
       },
       {
@@ -142,7 +173,11 @@ export const router = createBrowserRouter([
         children: [
           {
             path: '/admin',
-            element: <AdminLayout />,
+            lazy: async () => ({
+              Component: (
+                await import('../features/admin/components/AdminLayout')
+              ).AdminLayout,
+            }),
             children: [
               {
                 index: true,
@@ -217,6 +252,14 @@ export const router = createBrowserRouter([
                 lazy: async () => ({
                   Component: (await import('../pages/admin/AdminOffersPage'))
                     .AdminOffersPage,
+                }),
+              },
+              {
+                path: 'commerce',
+                lazy: async () => ({
+                  Component: (
+                    await import('../pages/admin/AdminCommerceOperationsPage')
+                  ).AdminCommerceOperationsPage,
                 }),
               },
               {

@@ -169,6 +169,10 @@ export const setupListSchema = z.object({
       updated_at: z.string(),
     }),
   ),
+  page: z.number().int().positive(),
+  page_size: z.number().int().positive().max(100),
+  total: z.number().int().nonnegative(),
+  total_pages: z.number().int().nonnegative(),
 })
 
 export type BuilderValues = z.infer<typeof builderValuesSchema>

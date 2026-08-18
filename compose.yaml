@@ -2,7 +2,7 @@ name: rigmark
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
@@ -15,9 +15,105 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis-staging:
+    profiles: ["staging", "validation"]
+    image: redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${STAGING_REDIS_PASSWORD:-replace-for-isolated-staging}"]
+    environment:
+      STAGING_REDIS_PASSWORD: ${STAGING_REDIS_PASSWORD:-replace-for-isolated-staging}
+    ports:
+      - "${STAGING_REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_staging_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      # The official entrypoint starts as root, verifies/chowns the persisted
+      # Redis-owned AOF tree, then drops to the redis user. Redis creates that
+      # tree as 0700, so a restart also needs traversal during this handoff.
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$STAGING_REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio-staging:
+    profiles: ["staging", "validation"]
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${STAGING_MINIO_ROOT_USER:-unsolero-staging}
+      MINIO_ROOT_PASSWORD: ${STAGING_MINIO_ROOT_PASSWORD:-replace-for-isolated-staging-storage}
+    ports:
+      - "${STAGING_MINIO_PORT:-9000}:9000"
+      - "${STAGING_MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_staging_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  media-init:
+    profiles: ["staging"]
+    build:
+      context: ./backend
+      target: media-init
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_VERSION: ${APP_VERSION:-development}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:5173}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      RATE_LIMIT_KEY_SECRET: ${RATE_LIMIT_KEY_SECRET:-}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
+      API_REPLICA_COUNT: ${API_REPLICA_COUNT:-1}
+      RATE_LIMIT_PROVIDER: ${RATE_LIMIT_PROVIDER:-local}
+      RATE_LIMIT_REDIS_URL: ${RATE_LIMIT_REDIS_URL:-}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-disabled}
+      MEDIA_STORAGE_PROVIDER: s3
+      MEDIA_S3_ENDPOINT: ${MEDIA_S3_ENDPOINT:-minio-staging:9000}
+      MEDIA_S3_ACCESS_KEY: ${MEDIA_S3_ACCESS_KEY:-}
+      MEDIA_S3_SECRET_KEY: ${MEDIA_S3_SECRET_KEY:-}
+      MEDIA_S3_BUCKET: ${MEDIA_S3_BUCKET:-unsolero-staging-media}
+      MEDIA_S3_REGION: ${MEDIA_S3_REGION:-}
+      MEDIA_S3_SECURE: ${MEDIA_S3_SECURE:-false}
+      MEDIA_SCAN_PROVIDER: ${MEDIA_SCAN_PROVIDER:-development}
+      DATABASE_URL: postgres://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?sslmode=disable
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-staging:
+        condition: service_healthy
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   migrate:
     build:
       context: ./backend
+      target: migrate
     command: ["/usr/local/bin/migrate"]
     environment:
       APP_ENV: development
@@ -31,6 +127,7 @@ services:
     profiles: ["tools"]
     build:
       context: ./backend
+      target: seed
     command: ["/usr/local/bin/seed"]
     environment:
       APP_ENV: development
@@ -43,6 +140,7 @@ services:
   api:
     build:
       context: ./backend
+      target: api
     environment:
       APP_ENV: development
       APP_VERSION: ${APP_VERSION:-development}
@@ -52,19 +150,79 @@ services:
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       SESSION_TTL: ${SESSION_TTL:-720h}
       SESSION_IDLE_TTL: ${SESSION_IDLE_TTL:-168h}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-development}
+      EMAIL_SENDER_NAME: ${EMAIL_SENDER_NAME:-UNSOLERO Security}
+      EMAIL_SENDER_ADDRESS: ${EMAIL_SENDER_ADDRESS:-}
+      EMAIL_SMTP_ADDRESS: ${EMAIL_SMTP_ADDRESS:-}
+      EMAIL_SMTP_USERNAME: ${EMAIL_SMTP_USERNAME:-}
+      EMAIL_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD:-}
+      EMAIL_SMTP_REQUIRE_TLS: ${EMAIL_SMTP_REQUIRE_TLS:-false}
+      EMAIL_SMTP_TIMEOUT: ${EMAIL_SMTP_TIMEOUT:-10s}
+      EMAIL_VERIFICATION_TTL: ${EMAIL_VERIFICATION_TTL:-24h}
+      PASSWORD_RESET_TTL: ${PASSWORD_RESET_TTL:-1h}
+      MFA_CHALLENGE_TTL: ${MFA_CHALLENGE_TTL:-5m}
+      MFA_STEP_UP_TTL: ${MFA_STEP_UP_TTL:-15m}
+      MFA_ENFORCE_PRIVILEGED: ${MFA_ENFORCE_PRIVILEGED:-false}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
       DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-20}
       DATABASE_MIN_CONNECTIONS: ${DATABASE_MIN_CONNECTIONS:-2}
       DATABASE_MAX_CONNECTION_LIFETIME: ${DATABASE_MAX_CONNECTION_LIFETIME:-30m}
       DATABASE_MAX_CONNECTION_IDLE_TIME: ${DATABASE_MAX_CONNECTION_IDLE_TIME:-5m}
       DATABASE_HEALTH_CHECK_PERIOD: ${DATABASE_HEALTH_CHECK_PERIOD:-1m}
       DATABASE_CONNECT_TIMEOUT: ${DATABASE_CONNECT_TIMEOUT:-10s}
+      DATABASE_STATEMENT_TIMEOUT: ${DATABASE_STATEMENT_TIMEOUT:-15s}
+      DATABASE_LOCK_TIMEOUT: ${DATABASE_LOCK_TIMEOUT:-5s}
+      DATABASE_IDLE_TRANSACTION_TIMEOUT: ${DATABASE_IDLE_TRANSACTION_TIMEOUT:-30s}
+      DATABASE_MIGRATION_TIMEOUT: ${DATABASE_MIGRATION_TIMEOUT:-5m}
+      HTTP_READ_HEADER_TIMEOUT: ${HTTP_READ_HEADER_TIMEOUT:-5s}
+      HTTP_READ_TIMEOUT: ${HTTP_READ_TIMEOUT:-10s}
+      HTTP_WRITE_TIMEOUT: ${HTTP_WRITE_TIMEOUT:-30s}
+      HTTP_IDLE_TIMEOUT: ${HTTP_IDLE_TIMEOUT:-60s}
+      HTTP_HANDLER_TIMEOUT: ${HTTP_HANDLER_TIMEOUT:-20s}
+      HTTP_SHUTDOWN_TIMEOUT: ${HTTP_SHUTDOWN_TIMEOUT:-10s}
+      HTTP_MAX_HEADER_BYTES: ${HTTP_MAX_HEADER_BYTES:-32768}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
+      API_REPLICA_COUNT: ${API_REPLICA_COUNT:-1}
+      RATE_LIMIT_PROVIDER: ${RATE_LIMIT_PROVIDER:-local}
+      RATE_LIMIT_REDIS_URL: ${RATE_LIMIT_REDIS_URL:-}
+      RATE_LIMIT_NAMESPACE: ${RATE_LIMIT_NAMESPACE:-unsolero:rate-limit}
+      RATE_LIMIT_KEY_SECRET: ${RATE_LIMIT_KEY_SECRET:-}
       RATE_LIMIT_AUTH_PER_MINUTE: ${RATE_LIMIT_AUTH_PER_MINUTE:-10}
+      RATE_LIMIT_REGISTRATION_PER_MINUTE: ${RATE_LIMIT_REGISTRATION_PER_MINUTE:-5}
+      RATE_LIMIT_PASSWORD_RESET_PER_MINUTE: ${RATE_LIMIT_PASSWORD_RESET_PER_MINUTE:-5}
       RATE_LIMIT_RECOMMENDATION_PER_MINUTE: ${RATE_LIMIT_RECOMMENDATION_PER_MINUTE:-20}
       RATE_LIMIT_ANALYTICS_PER_MINUTE: ${RATE_LIMIT_ANALYTICS_PER_MINUTE:-120}
       RATE_LIMIT_AFFILIATE_PER_MINUTE: ${RATE_LIMIT_AFFILIATE_PER_MINUTE:-120}
+      RATE_LIMIT_ADMIN_PER_MINUTE: ${RATE_LIMIT_ADMIN_PER_MINUTE:-240}
       RATE_LIMIT_MUTATION_PER_MINUTE: ${RATE_LIMIT_MUTATION_PER_MINUTE:-240}
+      RATE_LIMIT_ROUTE_PER_MINUTE: ${RATE_LIMIT_ROUTE_PER_MINUTE:-600}
       OFFER_MAXIMUM_AGE: ${OFFER_MAXIMUM_AGE:-72h}
+      AFFILIATE_CLICK_RETENTION: ${AFFILIATE_CLICK_RETENTION:-9528h}
+      COMMERCE_WORKER_POLL_INTERVAL: ${COMMERCE_WORKER_POLL_INTERVAL:-15s}
+      WORKER_CYCLE_TIMEOUT: ${WORKER_CYCLE_TIMEOUT:-2m}
+      WORKER_LEASE_TIMEOUT: ${WORKER_LEASE_TIMEOUT:-1h}
+      WORKER_MAX_ITEMS_PER_CYCLE: ${WORKER_MAX_ITEMS_PER_CYCLE:-25}
+      WORKER_FAILURE_ALERT_THRESHOLD: ${WORKER_FAILURE_ALERT_THRESHOLD:-3}
+      ANALYTICS_SUBJECT_COOKIE_NAME: ${ANALYTICS_SUBJECT_COOKIE_NAME:-unsolero_analytics_subject}
+      ANALYTICS_ANONYMOUS_RETENTION: ${ANALYTICS_ANONYMOUS_RETENTION:-2160h}
+      ANALYTICS_AUTHENTICATED_RETENTION: ${ANALYTICS_AUTHENTICATED_RETENTION:-9528h}
+      ANALYTICS_RECEIPT_RETENTION: ${ANALYTICS_RECEIPT_RETENTION:-720h}
+      ANALYTICS_CLEANUP_BATCH_SIZE: ${ANALYTICS_CLEANUP_BATCH_SIZE:-1000}
+      ALERT_PROVIDER: ${ALERT_PROVIDER:-disabled}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_TOKEN: ${ALERT_WEBHOOK_TOKEN:-}
+      ALERT_TIMEOUT: ${ALERT_TIMEOUT:-10s}
+      METRICS_ENABLED: ${METRICS_ENABLED:-false}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
       PRODUCT_IMAGE_UPLOAD_DIR: /app/uploads/products
+      MEDIA_STORAGE_PROVIDER: ${MEDIA_STORAGE_PROVIDER:-local}
+      MEDIA_S3_ENDPOINT: ${MEDIA_S3_ENDPOINT:-}
+      MEDIA_S3_ACCESS_KEY: ${MEDIA_S3_ACCESS_KEY:-}
+      MEDIA_S3_SECRET_KEY: ${MEDIA_S3_SECRET_KEY:-}
+      MEDIA_S3_BUCKET: ${MEDIA_S3_BUCKET:-}
+      MEDIA_S3_REGION: ${MEDIA_S3_REGION:-}
+      MEDIA_S3_SECURE: ${MEDIA_S3_SECURE:-false}
+      MEDIA_SCAN_PROVIDER: ${MEDIA_SCAN_PROVIDER:-development}
       AI_PROVIDER: ${AI_PROVIDER:-disabled}
       AI_MODEL: ${AI_MODEL:-}
       AI_API_KEY: ${AI_API_KEY:-}
@@ -92,6 +250,72 @@ services:
     cap_drop:
       - ALL
 
+  commerce-worker:
+    build:
+      context: ./backend
+      target: worker
+    command: ["/usr/local/bin/worker"]
+    environment:
+      APP_ENV: development
+      APP_VERSION: ${APP_VERSION:-development}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:5173}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-rigmark_session}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      OFFER_MAXIMUM_AGE: ${OFFER_MAXIMUM_AGE:-72h}
+      AFFILIATE_CLICK_RETENTION: ${AFFILIATE_CLICK_RETENTION:-9528h}
+      COMMERCE_WORKER_POLL_INTERVAL: ${COMMERCE_WORKER_POLL_INTERVAL:-15s}
+      WORKER_CYCLE_TIMEOUT: ${WORKER_CYCLE_TIMEOUT:-2m}
+      WORKER_LEASE_TIMEOUT: ${WORKER_LEASE_TIMEOUT:-1h}
+      WORKER_MAX_ITEMS_PER_CYCLE: ${WORKER_MAX_ITEMS_PER_CYCLE:-25}
+      WORKER_FAILURE_ALERT_THRESHOLD: ${WORKER_FAILURE_ALERT_THRESHOLD:-3}
+      ANALYTICS_SUBJECT_COOKIE_NAME: ${ANALYTICS_SUBJECT_COOKIE_NAME:-unsolero_analytics_subject}
+      ANALYTICS_ANONYMOUS_RETENTION: ${ANALYTICS_ANONYMOUS_RETENTION:-2160h}
+      ANALYTICS_AUTHENTICATED_RETENTION: ${ANALYTICS_AUTHENTICATED_RETENTION:-9528h}
+      ANALYTICS_RECEIPT_RETENTION: ${ANALYTICS_RECEIPT_RETENTION:-720h}
+      ANALYTICS_CLEANUP_BATCH_SIZE: ${ANALYTICS_CLEANUP_BATCH_SIZE:-1000}
+      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-20}
+      DATABASE_MIN_CONNECTIONS: ${DATABASE_MIN_CONNECTIONS:-2}
+      DATABASE_MAX_CONNECTION_LIFETIME: ${DATABASE_MAX_CONNECTION_LIFETIME:-30m}
+      DATABASE_MAX_CONNECTION_IDLE_TIME: ${DATABASE_MAX_CONNECTION_IDLE_TIME:-5m}
+      DATABASE_HEALTH_CHECK_PERIOD: ${DATABASE_HEALTH_CHECK_PERIOD:-1m}
+      DATABASE_CONNECT_TIMEOUT: ${DATABASE_CONNECT_TIMEOUT:-10s}
+      DATABASE_STATEMENT_TIMEOUT: ${DATABASE_STATEMENT_TIMEOUT:-15s}
+      DATABASE_LOCK_TIMEOUT: ${DATABASE_LOCK_TIMEOUT:-5s}
+      DATABASE_IDLE_TRANSACTION_TIMEOUT: ${DATABASE_IDLE_TRANSACTION_TIMEOUT:-30s}
+      ALERT_PROVIDER: ${ALERT_PROVIDER:-disabled}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_WEBHOOK_TOKEN: ${ALERT_WEBHOOK_TOKEN:-}
+      ALERT_TIMEOUT: ${ALERT_TIMEOUT:-10s}
+      PRODUCT_IMAGE_UPLOAD_DIR: /app/uploads/products
+      MEDIA_STORAGE_PROVIDER: ${MEDIA_STORAGE_PROVIDER:-local}
+      MEDIA_S3_ENDPOINT: ${MEDIA_S3_ENDPOINT:-}
+      MEDIA_S3_ACCESS_KEY: ${MEDIA_S3_ACCESS_KEY:-}
+      MEDIA_S3_SECRET_KEY: ${MEDIA_S3_SECRET_KEY:-}
+      MEDIA_S3_BUCKET: ${MEDIA_S3_BUCKET:-}
+      MEDIA_S3_REGION: ${MEDIA_S3_REGION:-}
+      MEDIA_S3_SECURE: ${MEDIA_S3_SECURE:-false}
+      AI_PROVIDER: disabled
+      DATABASE_URL: postgres://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?sslmode=disable
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - product_uploads:/app/uploads
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
   web:
     build:
       context: ./frontend
@@ -107,7 +331,154 @@ services:
       api:
         condition: service_healthy
 
+  backup:
+    profiles: ["tools"]
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    user: "${BACKUP_UID:-1000}:${BACKUP_GID:-1000}"
+    entrypoint: ["/scripts/postgres-backup.sh"]
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      PGUSER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      BACKUP_DIRECTORY: /backups
+      BACKUP_NAME: ${BACKUP_NAME:-unsolero-local}
+      RECORD_OPERATIONAL_CHECKPOINTS: ${RECORD_OPERATIONAL_CHECKPOINTS:-false}
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./backups:/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  restore-postgres:
+    profiles: ["restore"]
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    environment:
+      POSTGRES_DB: ${RESTORE_POSTGRES_DB:-rigmark_restore}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - restore_postgres_data:/var/lib/postgresql/data
+
+  restore:
+    profiles: ["restore"]
+    image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+    user: "${BACKUP_UID:-1000}:${BACKUP_GID:-1000}"
+    entrypoint: ["/scripts/postgres-restore.sh"]
+    environment:
+      PGHOST: restore-postgres
+      PGPORT: 5432
+      PGDATABASE: ${RESTORE_POSTGRES_DB:-rigmark_restore}
+      PGUSER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      BACKUP_FILE: /backups/${BACKUP_NAME:-unsolero-local}.dump
+      RECORD_OPERATIONAL_CHECKPOINTS: ${RECORD_OPERATIONAL_CHECKPOINTS:-false}
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./backups:/backups:ro
+    depends_on:
+      restore-postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  media-reconcile:
+    profiles: ["tools"]
+    build:
+      context: ./backend
+      target: media-reconcile
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_VERSION: ${APP_VERSION:-development}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:5173}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      RATE_LIMIT_KEY_SECRET: ${RATE_LIMIT_KEY_SECRET:-}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
+      API_REPLICA_COUNT: ${API_REPLICA_COUNT:-1}
+      RATE_LIMIT_PROVIDER: ${RATE_LIMIT_PROVIDER:-local}
+      RATE_LIMIT_REDIS_URL: ${RATE_LIMIT_REDIS_URL:-}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-disabled}
+      MEDIA_STORAGE_PROVIDER: ${MEDIA_STORAGE_PROVIDER:-local}
+      PRODUCT_IMAGE_UPLOAD_DIR: /app/uploads/products
+      MEDIA_S3_ENDPOINT: ${MEDIA_S3_ENDPOINT:-}
+      MEDIA_S3_ACCESS_KEY: ${MEDIA_S3_ACCESS_KEY:-}
+      MEDIA_S3_SECRET_KEY: ${MEDIA_S3_SECRET_KEY:-}
+      MEDIA_S3_BUCKET: ${MEDIA_S3_BUCKET:-}
+      MEDIA_S3_REGION: ${MEDIA_S3_REGION:-}
+      MEDIA_S3_SECURE: ${MEDIA_S3_SECURE:-false}
+      MEDIA_SCAN_PROVIDER: ${MEDIA_SCAN_PROVIDER:-development}
+      DATABASE_URL: postgres://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?sslmode=disable
+    volumes:
+      - product_uploads:/app/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  backend-test:
+    profiles: ["validation"]
+    build:
+      context: ./backend
+      target: validation
+    working_dir: /src
+    command: ["/bin/sh", "-c", "go test -p 1 -count=1 ./... && go test -race -p 1 -count=1 ./..."]
+    environment:
+      GOCACHE: /tmp/go-build
+      GOTMPDIR: /tmp
+      CGO_ENABLED: "1"
+      TEST_DATABASE_URL: postgres://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?sslmode=disable
+      TEST_REDIS_URL: redis://:${STAGING_REDIS_PASSWORD:-replace-for-isolated-staging}@redis-staging:6379/0
+      TEST_S3_ENDPOINT: minio-staging:9000
+      TEST_S3_ACCESS_KEY: ${STAGING_MINIO_ROOT_USER:-unsolero-staging}
+      TEST_S3_SECRET_KEY: ${STAGING_MINIO_ROOT_PASSWORD:-replace-for-isolated-staging-storage}
+      TEST_S3_SECURE: "false"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-staging:
+        condition: service_healthy
+      minio-staging:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      # go test compiles and executes ephemeral test binaries here. This
+      # exception is scoped to the validation profile; runtime containers keep
+      # their default non-executable temporary filesystems.
+      - /tmp:exec,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
 volumes:
   postgres_data:
   web_node_modules:
   product_uploads:
+  restore_postgres_data:
+  redis_staging_data:
+  minio_staging_data:

@@ -24,9 +24,11 @@ type credentialRequest struct {
 }
 
 type userResponse struct {
-	ID    string   `json:"id"`
-	Email string   `json:"email"`
-	Roles []string `json:"roles"`
+	ID            string   `json:"id"`
+	Email         string   `json:"email"`
+	Roles         []string `json:"roles"`
+	EmailVerified bool     `json:"email_verified"`
+	MFAEnabled    bool     `json:"mfa_enabled"`
 }
 
 type authResponse struct {
@@ -39,6 +41,20 @@ func (h *Handler) register(response http.ResponseWriter, request *http.Request) 
 		return
 	}
 	session, err := h.auth.Register(request.Context(), input.Email, input.Password)
+	if h.security != nil {
+		if err == nil {
+			_ = h.auth.Logout(request.Context(), session.RawToken)
+		}
+		if err != nil && !errors.Is(err, identity.ErrEmailAlreadyUsed) {
+			h.writeAuthError(response, err)
+			return
+		}
+		if _, deliveryErr := h.security.RequestEmailVerification(request.Context(), input.Email); deliveryErr != nil {
+			h.logger.Error("record registration verification intent", "error", deliveryErr)
+		}
+		writeJSON(response, http.StatusAccepted, map[string]any{"recorded": true, "message": "If the address is eligible, an account verification intent has been recorded."}, h.logger)
+		return
+	}
 	if err != nil {
 		h.writeAuthError(response, err)
 		return
@@ -56,6 +72,15 @@ func (h *Handler) login(response http.ResponseWriter, request *http.Request) {
 	session, err := h.auth.Login(request.Context(), input.Email, input.Password)
 	if err != nil {
 		h.writeAuthError(response, err)
+		return
+	}
+	if session.MFARequired {
+		if session.MFAChallengeExpiresAt == nil {
+			h.writeAuthError(response, errors.New("MFA challenge expiration missing"))
+			return
+		}
+		h.setMFACookie(response, session.MFAChallengeToken, *session.MFAChallengeExpiresAt)
+		writeJSON(response, http.StatusAccepted, map[string]any{"mfa_required": true, "expires_at": session.MFAChallengeExpiresAt}, h.logger)
 		return
 	}
 	h.setSessionCookie(response, session.RawToken, session.ExpiresAt)
@@ -99,7 +124,7 @@ func (h *Handler) me(response http.ResponseWriter, request *http.Request) {
 	}
 	response.Header().Set("Cache-Control", "no-store")
 	writeJSON(response, http.StatusOK, authResponse{User: userResponse{
-		ID: string(principal.UserID), Email: principal.Email, Roles: roleStrings(principal.Roles),
+		ID: string(principal.UserID), Email: principal.Email, Roles: roleStrings(principal.Roles), EmailVerified: principal.EmailVerifiedAt != nil, MFAEnabled: principal.MFAEnabled,
 	}}, h.logger)
 }
 
@@ -121,6 +146,32 @@ func (h *Handler) requireAnyRole(roles []domain.Role, next http.Handler) http.Ha
 		}
 		if !allowed {
 			writeAPIError(response, http.StatusForbidden, "permission_denied", "You do not have permission to access this area.", nil, h.logger)
+			return
+		}
+		next.ServeHTTP(response, request)
+	}))
+}
+
+func (h *Handler) requirePermission(permission domain.Permission, next http.Handler) http.Handler {
+	return h.requireAuthentication(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		principal, ok := principalFromContext(request.Context())
+		if !ok || !principal.HasPermission(permission) {
+			if ok && h.security != nil {
+				if err := h.security.RecordAuthorizationFailure(request.Context(), principal, permission); err != nil {
+					h.logger.Error("record authorization failure", "error", err)
+				}
+			}
+			writeAPIError(response, http.StatusForbidden, "permission_denied", "You do not have permission to access this area.", nil, h.logger)
+			return
+		}
+		if h.securityPolicy.EnforcePrivilegedMFA && principal.IsPrivileged() &&
+			principal.EmailVerifiedAt == nil {
+			writeAPIError(response, http.StatusForbidden, "email_verification_required", "A verified email address is required for privileged access.", nil, h.logger)
+			return
+		}
+		if h.securityPolicy.EnforcePrivilegedMFA && principal.IsPrivileged() &&
+			(h.security == nil || !h.security.RecentMFA(principal)) {
+			writeAPIError(response, http.StatusForbidden, "mfa_step_up_required", "Recent multi-factor authentication is required.", nil, h.logger)
 			return
 		}
 		next.ServeHTTP(response, request)
@@ -199,6 +250,34 @@ func (h *Handler) attachAuthentication(next http.Handler) http.Handler {
 			h.logger.Error("optionally authenticate session", "error", err)
 			writeAPIError(response, http.StatusServiceUnavailable, "authentication_unavailable",
 				"Authentication is temporarily unavailable.", nil, h.logger)
+			return
+		}
+		next.ServeHTTP(response, request.WithContext(context.WithValue(
+			request.Context(), principalContextKey{}, principal,
+		)))
+	})
+}
+
+// attachOptionalAuthenticationFailOpen is reserved for outbound merchant
+// navigation. A session lookup outage must not trap a user inside UNSOLERO;
+// the click proceeds anonymously and the failure is logged without identifiers.
+func (h *Handler) attachOptionalAuthenticationFailOpen(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		cookie, err := request.Cookie(h.cookie.Name)
+		if err != nil || strings.TrimSpace(cookie.Value) == "" {
+			next.ServeHTTP(response, request)
+			return
+		}
+		principal, err := h.auth.Authenticate(request.Context(), cookie.Value)
+		if errors.Is(err, identity.ErrUnauthenticated) {
+			h.clearSessionCookie(response)
+			next.ServeHTTP(response, request)
+			return
+		}
+		if err != nil {
+			h.logger.Warn("optional affiliate authentication unavailable; continuing anonymously",
+				"request_id", request.Header.Get("X-Request-ID"))
+			next.ServeHTTP(response, request)
 			return
 		}
 		next.ServeHTTP(response, request.WithContext(context.WithValue(
@@ -312,6 +391,20 @@ func (h *Handler) clearSessionCookie(response http.ResponseWriter) {
 	})
 }
 
+func (h *Handler) mfaCookieName() string { return h.cookie.Name + "_mfa" }
+
+func (h *Handler) setMFACookie(response http.ResponseWriter, token string, expiresAt time.Time) {
+	http.SetCookie(response, &http.Cookie{Name: h.mfaCookieName(), Value: token, Path: "/api/auth/mfa/complete",
+		Expires: expiresAt, MaxAge: int(time.Until(expiresAt).Seconds()), HttpOnly: true,
+		Secure: h.cookie.Secure, SameSite: http.SameSiteStrictMode})
+}
+
+func (h *Handler) clearMFACookie(response http.ResponseWriter) {
+	http.SetCookie(response, &http.Cookie{Name: h.mfaCookieName(), Value: "", Path: "/api/auth/mfa/complete",
+		Expires: time.Unix(1, 0), MaxAge: -1, HttpOnly: true, Secure: h.cookie.Secure,
+		SameSite: http.SameSiteStrictMode})
+}
+
 func userDTO(user domain.User) userResponse {
-	return userResponse{ID: string(user.ID), Email: user.Email, Roles: roleStrings(user.Roles)}
+	return userResponse{ID: string(user.ID), Email: user.Email, Roles: roleStrings(user.Roles), EmailVerified: user.EmailVerifiedAt != nil}
 }

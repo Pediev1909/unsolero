@@ -7,10 +7,14 @@ type Role string
 
 const (
 	RoleAdmin            Role = "admin"
+	RoleCatalogEditor    Role = "catalog_editor"
 	RoleEvidenceEditor   Role = "evidence_editor"
 	RoleEvidenceReviewer Role = "evidence_reviewer"
 	RolePolicyEditor     Role = "policy_editor"
 	RolePolicyReviewer   Role = "policy_reviewer"
+	RoleCommerceOperator Role = "commerce_operator"
+	RoleContentEditor    Role = "content_editor"
+	RoleAnalyst          Role = "analyst"
 )
 
 type UserStatus string
@@ -40,9 +44,13 @@ type PasswordCredential struct {
 }
 
 type Principal struct {
-	UserID UserID
-	Email  string
-	Roles  []Role
+	UserID             UserID
+	Email              string
+	Roles              []Role
+	SessionID          string
+	EmailVerifiedAt    *time.Time
+	MFAAuthenticatedAt *time.Time
+	MFAEnabled         bool
 }
 
 func (principal Principal) HasRole(role Role) bool {
@@ -55,14 +63,16 @@ func (principal Principal) HasRole(role Role) bool {
 }
 
 type Session struct {
-	ID            string
-	UserID        UserID
-	TokenHash     []byte
-	ExpiresAt     time.Time
-	IdleExpiresAt time.Time
-	LastSeenAt    time.Time
-	CreatedAt     time.Time
-	RevokedAt     *time.Time
+	ID                   string
+	UserID               UserID
+	TokenHash            []byte
+	ExpiresAt            time.Time
+	IdleExpiresAt        time.Time
+	LastSeenAt           time.Time
+	CreatedAt            time.Time
+	RevokedAt            *time.Time
+	MFAAuthenticatedAt   *time.Time
+	AuthenticationMethod string
 }
 
 func (user User) CanAuthenticate() bool {

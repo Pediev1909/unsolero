@@ -28,7 +28,7 @@ type recommendationService interface {
 	GetDraft(context.Context, identity.UserID) (recommendationports.Draft, error)
 	SaveDraft(context.Context, identity.UserID, recommendationports.Draft) (recommendationports.Draft, error)
 	DeleteDraft(context.Context, identity.UserID) error
-	ListSetups(context.Context, identity.UserID) ([]recommendationports.SetupSummary, error)
+	ListSetups(context.Context, identity.UserID, int, int) (recommendationports.SetupPage, error)
 	GetSetup(context.Context, identity.UserID, planning.SetupID) (recommendation.Generated, error)
 	RenameSetup(context.Context, identity.UserID, planning.SetupID, string) error
 	DeleteSetup(context.Context, identity.UserID, planning.SetupID) error
@@ -139,7 +139,11 @@ type setupNameRequest struct {
 }
 
 type setupsResponse struct {
-	Setups []setupSummaryResponse `json:"setups"`
+	Setups     []setupSummaryResponse `json:"setups"`
+	Page       int                    `json:"page"`
+	PageSize   int                    `json:"page_size"`
+	Total      int                    `json:"total"`
+	TotalPages int                    `json:"total_pages"`
 }
 type setupSummaryResponse struct {
 	ID                  string        `json:"id"`
@@ -210,20 +214,35 @@ func (h *Handler) deleteRecommendationDraft(response http.ResponseWriter, reques
 }
 
 func (h *Handler) listSetups(response http.ResponseWriter, request *http.Request) {
+	page, err := optionalPositiveInt(request.URL.Query().Get("page"), 1)
+	if err != nil {
+		h.writeRecommendationError(response, recommendation.ErrInvalidSetupPagination)
+		return
+	}
+	pageSize, err := optionalPositiveInt(request.URL.Query().Get("page_size"), 50)
+	if err != nil || page > 10_000 || pageSize > 100 {
+		h.writeRecommendationError(response, recommendation.ErrInvalidSetupPagination)
+		return
+	}
 	principal, _ := principalFromContext(request.Context())
-	setups, err := h.recommendations.ListSetups(request.Context(), principal.UserID)
+	setupPage, err := h.recommendations.ListSetups(request.Context(), principal.UserID, page, pageSize)
 	if err != nil {
 		h.writeRecommendationError(response, err)
 		return
 	}
-	result := make([]setupSummaryResponse, 0, len(setups))
-	for _, setup := range setups {
+	result := make([]setupSummaryResponse, 0, len(setupPage.Setups))
+	for _, setup := range setupPage.Setups {
 		result = append(result, setupSummaryResponse{ID: string(setup.ID), Name: setup.Name,
 			ItemCount: setup.ItemCount, TotalCost: moneyResponse{AmountMinor: setup.TotalCostMinor, Currency: setup.Currency},
 			RecommendationScore: setup.ObjectiveScore, CreatedAt: setup.CreatedAt, UpdatedAt: setup.UpdatedAt})
 	}
+	totalPages := 0
+	if setupPage.Total > 0 {
+		totalPages = (setupPage.Total + pageSize - 1) / pageSize
+	}
 	response.Header().Set("Cache-Control", "no-store")
-	writeJSON(response, http.StatusOK, setupsResponse{Setups: result}, h.logger)
+	writeJSON(response, http.StatusOK, setupsResponse{Setups: result, Page: page, PageSize: pageSize,
+		Total: setupPage.Total, TotalPages: totalPages}, h.logger)
 }
 
 func (h *Handler) getSetup(response http.ResponseWriter, request *http.Request) {
@@ -326,7 +345,8 @@ func draftFromRequest(body draftRequest) recommendationports.Draft {
 
 func draftDTO(draft recommendationports.Draft) draftRequest {
 	result := draftRequest{CurrentStep: draft.CurrentStep, BudgetMinor: draft.BudgetMinor,
-		Currency: draft.Currency, FreeText: draft.FreeText}
+		Currency: draft.Currency, FreeText: draft.FreeText,
+		ExistingEquipment: []equipmentRequest{}, TrainingPreferences: []string{}, Priorities: []string{}}
 	if draft.Goal != nil {
 		value := string(*draft.Goal)
 		result.Goal = &value
@@ -402,7 +422,8 @@ func recommendationInputDTO(input recommendationdomain.Input) recommendationInpu
 			WidthMM: input.AvailableSpace.WidthMM, HeightMM: input.AvailableSpace.HeightMM,
 			AccessWidthMM:   input.AvailableSpace.AccessWidthMM,
 			ApartmentLiving: input.AvailableSpace.ApartmentLiving},
-		FreeText: input.FreeText,
+		FreeText: input.FreeText, ExistingEquipment: []equipmentRequest{},
+		TrainingPreferences: []string{}, Priorities: []string{},
 	}
 	for _, equipment := range input.ExistingEquipment {
 		result.ExistingEquipment = append(result.ExistingEquipment, equipmentRequest{Name: equipment.Name, CategorySlug: equipment.CategorySlug})
@@ -455,6 +476,8 @@ func (h *Handler) decodeRecommendationJSON(response http.ResponseWriter, request
 
 func (h *Handler) writeRecommendationError(response http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, recommendation.ErrInvalidSetupPagination):
+		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_pagination", "Saved setup pagination is invalid.", nil, h.logger)
 	case errors.Is(err, recommendationdomain.ErrInvalidInput), errors.Is(err, recommendation.ErrInvalidDraft), errors.Is(err, recommendation.ErrInvalidSetupName):
 		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_recommendation_input", "Check your answers and try again.", nil, h.logger)
 	case errors.Is(err, recommendationports.ErrNotFound):

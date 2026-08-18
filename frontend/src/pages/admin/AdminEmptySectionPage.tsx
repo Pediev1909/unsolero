@@ -67,6 +67,7 @@ export function AdminContentPage() {
                   <td className={adminTableCell}>
                     <Link
                       className="inline-flex items-center gap-2 font-semibold text-bronze-dark hover:text-ink"
+                      rel="noopener noreferrer"
                       target="_blank"
                       to={entry.path}
                     >

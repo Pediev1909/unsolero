@@ -15,6 +15,7 @@ var (
 )
 
 type Repository interface {
+	MediaDeletionRepository
 	Dashboard(context.Context) (admin.Dashboard, error)
 	References(context.Context) (admin.References, error)
 	ListProducts(context.Context, string, int, int) (admin.ProductPage, error)

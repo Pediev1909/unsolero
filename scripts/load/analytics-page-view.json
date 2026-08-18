@@ -1,0 +1,13 @@
+{
+  "event_id": "{{UUID}}",
+  "name": "page_view",
+  "surface": "phase8_validation",
+  "session_id": "{{UUID}}",
+  "consent_version": "analytics-v1",
+  "properties": {},
+  "context": {
+    "page_path": "/phase8-validation",
+    "traffic_source": "phase8",
+    "traffic_medium": "validation"
+  }
+}

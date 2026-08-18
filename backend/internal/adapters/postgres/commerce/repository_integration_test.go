@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,6 +15,76 @@ import (
 	"rigmark/internal/modules/commerce/domain"
 	"rigmark/internal/modules/commerce/ports"
 )
+
+func TestConcurrentAffiliateClickIdempotencyCreatesOneClickAndEvent(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	repository := New(pool)
+	requestID := fmt.Sprintf("affiliate-concurrent-%d", time.Now().UnixNano())
+	anonymousID := "phase8-" + requestID
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM analytics.events WHERE request_id=$1`, requestID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM commerce.affiliate_clicks WHERE idempotency_key=$1`, requestID)
+	})
+
+	var offerID domain.OfferID
+	if err := pool.QueryRow(ctx, `SELECT offers.id FROM commerce.merchant_offers offers
+		JOIN commerce.affiliate_links links ON links.merchant_offer_id=offers.id
+		JOIN commerce.merchants merchants ON merchants.id=offers.merchant_id
+		WHERE offers.is_active AND links.is_active AND merchants.status='active'
+		AND offers.availability IN ('in_stock','backorder') AND offers.last_checked_at>=now()-interval '72 hours'
+		AND (offers.expires_at IS NULL OR offers.expires_at>now()) ORDER BY offers.id LIMIT 1`).Scan(&offerID); err != nil {
+		t.Fatal(err)
+	}
+	click := domain.AffiliateClick{OfferID: offerID, AnonymousID: &anonymousID, Source: "product_detail", RequestID: &requestID,
+		IdempotencyKey: &requestID, Classification: domain.ClickHuman, IsCountable: true,
+		RetentionExpires: time.Now().Add(24 * time.Hour)}
+	destination, err := repository.ResolveOfferDestination(ctx, click)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const contenders = 12
+	start := make(chan struct{})
+	errorsChannel := make(chan error, contenders)
+	var wait sync.WaitGroup
+	for range contenders {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			errorsChannel <- repository.RecordClick(context.Background(), destination, click)
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(errorsChannel)
+	for recordErr := range errorsChannel {
+		if recordErr != nil {
+			t.Fatalf("concurrent RecordClick() error = %v", recordErr)
+		}
+	}
+
+	var clicks, events int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM commerce.affiliate_clicks WHERE idempotency_key=$1`, requestID).Scan(&clicks); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM analytics.events WHERE request_id=$1 AND event_name='affiliate_clicked'`, requestID).Scan(&events); err != nil {
+		t.Fatal(err)
+	}
+	if clicks != 1 || events != 1 {
+		t.Fatalf("concurrent idempotency clicks=%d events=%d, want 1/1", clicks, events)
+	}
+}
 
 func TestAffiliateClickPersistsAttributionAndAnalyticsEvent(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
@@ -50,12 +122,12 @@ func TestAffiliateClickPersistsAttributionAndAnalyticsEvent(t *testing.T) {
 	}
 	sessionID := "integration-session"
 	campaign := "strength_launch"
-	referrer := "https://rigmark.example/products/demo"
+	referrer := "https://rigmark.example"
 	trafficSource, trafficMedium, referrerHost := "newsletter", "email", "rigmark.example"
 	click := domain.AffiliateClick{OfferID: offerID, UserID: &userID, SessionID: &sessionID,
 		Source: "product_detail", Campaign: &campaign, Referrer: &referrer, RequestID: &requestID,
 		TrafficSource: &trafficSource, TrafficMedium: &trafficMedium, ReferrerHost: &referrerHost}
-	destination, err := New(pool).TrackOfferClick(ctx, click)
+	destination, err := resolveAndRecord(ctx, New(pool), click)
 	if err != nil || destination == "" {
 		t.Fatalf("TrackOfferClick() = %q, %v", destination, err)
 	}
@@ -76,15 +148,20 @@ func TestAffiliateClickPersistsAttributionAndAnalyticsEvent(t *testing.T) {
 			storedSession, storedSource, storedCampaign, storedReferrer, storedTrafficSource,
 			storedTrafficMedium, storedReferrerHost)
 	}
-	var eventName string
-	if err = pool.QueryRow(ctx, `SELECT event_name FROM analytics.events
-		WHERE user_id = $1 AND event_name = 'affiliate_clicked' ORDER BY received_at DESC LIMIT 1`, userID).Scan(&eventName); err != nil {
+	var eventName, eventProperties string
+	if err = pool.QueryRow(ctx, `SELECT event_name,properties::text FROM analytics.events
+		WHERE user_id = $1 AND event_name = 'affiliate_clicked' ORDER BY received_at DESC LIMIT 1`, userID).Scan(&eventName, &eventProperties); err != nil {
 		t.Fatalf("load affiliate analytics event: %v", err)
+	}
+	for _, forbidden := range []string{"https://", "user_agent", "commission", "destination", "referrer"} {
+		if strings.Contains(eventProperties, forbidden) {
+			t.Fatalf("affiliate analytics leaked %q in %s", forbidden, eventProperties)
+		}
 	}
 
 	missing := click
 	missing.OfferID = "00000000-0000-4000-8000-000000000000"
-	if _, err = New(pool).TrackOfferClick(ctx, missing); err != ports.ErrAffiliateDestinationNotFound {
+	if _, err = resolveAndRecord(ctx, New(pool), missing); err != ports.ErrAffiliateDestinationNotFound {
 		t.Fatalf("missing offer error = %v, want ErrAffiliateDestinationNotFound", err)
 	}
 }
@@ -163,20 +240,61 @@ func TestAffiliateClickRequiresOwnedRecommendationAndFreshOffer(t *testing.T) {
 	source := "recommendation"
 	owned := domain.AffiliateClick{OfferID: offerID, UserID: &ownerID, Source: source,
 		RecommendationID: &recommendationID, RequestID: &ownedRequestID}
-	if destination, trackErr := New(pool).TrackOfferClick(ctx, owned); trackErr != nil || destination == "" {
+	if destination, trackErr := resolveAndRecord(ctx, New(pool), owned); trackErr != nil || destination == "" {
 		t.Fatalf("owned recommendation click = %q, %v", destination, trackErr)
 	}
 
 	unowned := owned
 	unowned.UserID = &otherUserID
 	unowned.RequestID = &deniedRequestID
-	if _, trackErr := New(pool).TrackOfferClick(ctx, unowned); !errors.Is(trackErr, ports.ErrAffiliateDestinationNotFound) {
+	if _, trackErr := resolveAndRecord(ctx, New(pool), unowned); !errors.Is(trackErr, ports.ErrAffiliateDestinationNotFound) {
 		t.Fatalf("unowned recommendation click error = %v, want ErrAffiliateDestinationNotFound", trackErr)
 	}
 
 	stale := domain.AffiliateClick{OfferID: offerID, UserID: &ownerID, Source: "product_detail",
 		RequestID: &staleRequestID}
-	if _, trackErr := New(pool, time.Nanosecond).TrackOfferClick(ctx, stale); !errors.Is(trackErr, ports.ErrAffiliateDestinationNotFound) {
+	if _, trackErr := resolveAndRecord(ctx, New(pool, time.Nanosecond), stale); !errors.Is(trackErr, ports.ErrAffiliateDestinationNotFound) {
 		t.Fatalf("stale offer click error = %v, want ErrAffiliateDestinationNotFound", trackErr)
 	}
+	var originalLastChecked time.Time
+	var originalProviderObserved *time.Time
+	var originalExpiresAt *time.Time
+	if err = pool.QueryRow(ctx, `SELECT last_checked_at, provider_observed_at, expires_at
+		FROM commerce.merchant_offers WHERE id=$1`, offerID).Scan(
+		&originalLastChecked, &originalProviderObserved, &originalExpiresAt,
+	); err != nil {
+		t.Fatalf("read offer freshness: %v", err)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE commerce.merchant_offers
+		SET last_checked_at=now()-interval '2 minutes',
+		    provider_observed_at=now()-interval '2 minutes',
+		    expires_at=now()-interval '1 minute'
+		WHERE id=$1`, offerID); err != nil {
+		t.Fatalf("expire offer: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `UPDATE commerce.merchant_offers
+			SET last_checked_at=$2, provider_observed_at=$3, expires_at=$4 WHERE id=$1`,
+			offerID, originalLastChecked, originalProviderObserved, originalExpiresAt)
+	})
+	expired := stale
+	expired.RequestID = nil
+	if _, trackErr := New(pool).ResolveOfferDestination(ctx, expired); !errors.Is(trackErr, ports.ErrAffiliateDestinationNotFound) {
+		t.Fatalf("expired offer click error = %v, want ErrAffiliateDestinationNotFound", trackErr)
+	}
+}
+
+func resolveAndRecord(ctx context.Context, repository *Repository, click domain.AffiliateClick) (string, error) {
+	destination, err := repository.ResolveOfferDestination(ctx, click)
+	if err != nil {
+		return "", err
+	}
+	click.Classification = domain.ClickHuman
+	click.IsCountable = true
+	click.RetentionExpires = time.Now().Add(24 * time.Hour)
+	click.IdempotencyKey = click.RequestID
+	if err := repository.RecordClick(ctx, destination, click); err != nil {
+		return "", err
+	}
+	return destination.DestinationURL, nil
 }

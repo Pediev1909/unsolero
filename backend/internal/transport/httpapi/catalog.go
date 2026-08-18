@@ -11,6 +11,7 @@ import (
 	"rigmark/internal/modules/catalog/domain"
 	"rigmark/internal/modules/catalog/ports"
 	commercedomain "rigmark/internal/modules/commerce/domain"
+	planning "rigmark/internal/modules/planning/application"
 	planningports "rigmark/internal/modules/planning/ports"
 )
 
@@ -425,6 +426,9 @@ type offerResponse struct {
 	Availability     string                `json:"availability"`
 	Condition        string                `json:"condition"`
 	LastCheckedAt    string                `json:"last_checked_at"`
+	ObservedAt       *string               `json:"observed_at"`
+	ExpiresAt        *string               `json:"expires_at"`
+	FreshnessStatus  string                `json:"freshness_status"`
 	PurchasePath     *string               `json:"purchase_path"`
 	DisclosureLabel  *string               `json:"disclosure_label"`
 }
@@ -464,6 +468,16 @@ func offerDTO(offer commercedomain.Offer) offerResponse {
 		purchasePath = &path
 		disclosure = &offer.AffiliateLinks[0].DisclosureLabel
 	}
+	var observedAt *string
+	if offer.ProviderObservedAt != nil {
+		value := offer.ProviderObservedAt.UTC().Format(time.RFC3339)
+		observedAt = &value
+	}
+	var expiresAt *string
+	if offer.ExpiresAt != nil {
+		value := offer.ExpiresAt.UTC().Format(time.RFC3339)
+		expiresAt = &value
+	}
 	return offerResponse{
 		ID: string(offer.ID), Merchant: offerMerchantResponse{
 			Name: offer.Merchant.Name, Slug: offer.Merchant.Slug,
@@ -472,27 +486,47 @@ func offerDTO(offer commercedomain.Offer) offerResponse {
 		ShippingMinor: offer.ShippingMinor, LandedPriceMinor: offer.LandedPriceMinor(),
 		Availability: offer.Availability, Condition: offer.Condition,
 		LastCheckedAt: offer.LastCheckedAt.UTC().Format("2006-01-02T15:04:05Z"),
-		PurchasePath:  purchasePath, DisclosureLabel: disclosure,
+		ObservedAt:    observedAt, ExpiresAt: expiresAt, FreshnessStatus: "fresh",
+		PurchasePath: purchasePath, DisclosureLabel: disclosure,
 	}
 }
 
 type wishlistResponse struct {
 	ProductIDs []string `json:"product_ids"`
+	Page       int      `json:"page"`
+	PageSize   int      `json:"page_size"`
+	Total      int      `json:"total"`
+	TotalPages int      `json:"total_pages"`
 }
 
 func (h *Handler) listWishlist(response http.ResponseWriter, request *http.Request) {
+	page, err := optionalPositiveInt(request.URL.Query().Get("page"), 1)
+	if err != nil {
+		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_pagination", "Wishlist pagination is invalid.", nil, h.logger)
+		return
+	}
+	pageSize, err := optionalPositiveInt(request.URL.Query().Get("page_size"), 50)
+	if err != nil || page > 10_000 || pageSize > 100 {
+		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_pagination", "Wishlist pagination is invalid.", nil, h.logger)
+		return
+	}
 	principal, _ := principalFromContext(request.Context())
-	productIDs, err := h.wishlist.List(request.Context(), principal.UserID)
+	wishlistPage, err := h.wishlist.List(request.Context(), principal.UserID, page, pageSize)
 	if err != nil {
 		h.writeWishlistError(response, err)
 		return
 	}
-	result := make([]string, 0, len(productIDs))
-	for _, productID := range productIDs {
+	result := make([]string, 0, len(wishlistPage.ProductIDs))
+	for _, productID := range wishlistPage.ProductIDs {
 		result = append(result, string(productID))
 	}
+	totalPages := 0
+	if wishlistPage.Total > 0 {
+		totalPages = (wishlistPage.Total + pageSize - 1) / pageSize
+	}
 	response.Header().Set("Cache-Control", "no-store")
-	writeJSON(response, http.StatusOK, wishlistResponse{ProductIDs: result}, h.logger)
+	writeJSON(response, http.StatusOK, wishlistResponse{ProductIDs: result, Page: page, PageSize: pageSize,
+		Total: wishlistPage.Total, TotalPages: totalPages}, h.logger)
 }
 
 func (h *Handler) saveWishlist(response http.ResponseWriter, request *http.Request) {
@@ -526,6 +560,10 @@ func (h *Handler) deleteWishlist(response http.ResponseWriter, request *http.Req
 }
 
 func (h *Handler) writeWishlistError(response http.ResponseWriter, err error) {
+	if errors.Is(err, planning.ErrInvalidPagination) {
+		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_pagination", "Wishlist pagination is invalid.", nil, h.logger)
+		return
+	}
 	if errors.Is(err, planningports.ErrProductNotFound) {
 		writeAPIError(response, http.StatusNotFound, "product_not_found", "This product is not available.", nil, h.logger)
 		return

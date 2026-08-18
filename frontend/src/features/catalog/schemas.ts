@@ -129,6 +129,9 @@ export const offerSchema = z.object({
   availability: z.enum(['in_stock', 'backorder']),
   condition: z.enum(['new', 'refurbished', 'used']),
   last_checked_at: z.string(),
+  observed_at: z.string().nullable(),
+  expires_at: z.string().nullable(),
+  freshness_status: z.literal('fresh'),
   purchase_path: z.string().nullable(),
   disclosure_label: z.string().nullable(),
 })
@@ -136,7 +139,12 @@ export const offerSchema = z.object({
 export const productSelectionSchema = z.object({
   product_ids: z.array(z.string()),
 })
-export const wishlistSchema = productSelectionSchema
+export const wishlistSchema = productSelectionSchema.extend({
+  page: z.number().int().positive(),
+  page_size: z.number().int().positive().max(100),
+  total: z.number().int().nonnegative(),
+  total_pages: z.number().int().nonnegative(),
+})
 
 export type ProductSummary = z.infer<typeof productSummarySchema>
 export type ProductPage = z.infer<typeof productPageSchema>

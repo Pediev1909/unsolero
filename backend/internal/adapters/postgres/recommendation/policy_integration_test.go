@@ -99,6 +99,9 @@ func TestPolicyApprovalActivationImmutabilityAndRetirement(t *testing.T) {
 	if err = pool.QueryRow(ctx, `SELECT workflow_status FROM recommendation.policy_versions WHERE version=$1`, version).Scan(&status); err != nil || status != "active" {
 		t.Fatalf("activated status = %q, %v", status, err)
 	}
+	if _, err = pool.Exec(ctx, `UPDATE recommendation.policy_versions SET workflow_status='draft' WHERE version=$1`, version); err == nil {
+		t.Fatal("active policy lifecycle could be downgraded outside governance")
+	}
 	if _, err = pool.Exec(ctx, `UPDATE recommendation.product_goal_support SET match_score=91
 		WHERE policy_version=$1 AND product_id=$2`, version, productID); err == nil {
 		t.Fatal("active policy behavior was mutable")

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 
@@ -13,6 +14,8 @@ import (
 	catalog "rigmark/internal/modules/catalog/domain"
 	identity "rigmark/internal/modules/identity/domain"
 )
+
+const productMediaPathPrefix = "/api/media/products/"
 
 const adminProductColumns = `
 	products.id, products.category_id, categories.name, categories.slug,
@@ -38,7 +41,7 @@ func (repository *Repository) ListProducts(ctx context.Context, search string, l
 		WHERE $1 = '' OR products.name ILIKE '%' || $1 || '%'
 			OR products.slug ILIKE '%' || $1 || '%'
 			OR brands.name ILIKE '%' || $1 || '%'
-		ORDER BY products.updated_at DESC, products.name
+		ORDER BY products.updated_at DESC, products.name, products.id
 		LIMIT $2 OFFSET $3`, search, limit, offset)
 	if err != nil {
 		return admin.ProductPage{}, fmt.Errorf("list admin products: %w", err)
@@ -311,6 +314,20 @@ func (repository *Repository) DeleteImage(ctx context.Context, actor identity.Us
 	}
 	if err == nil {
 		err = audit(ctx, tx, actor, "product.image.delete", "product", string(productID), map[string]string{"image_id": imageID})
+	}
+	if err == nil && strings.HasPrefix(imageURL, productMediaPathPrefix) {
+		var stillReferenced bool
+		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM catalog.product_images WHERE url=$1)`, imageURL).Scan(&stillReferenced)
+		if err == nil && !stillReferenced {
+			_, err = tx.Exec(ctx, `INSERT INTO admin.media_deletion_jobs (product_id,object_name)
+				VALUES ($1,$2) ON CONFLICT (object_name) DO UPDATE SET status='pending',attempt_count=0,
+				next_attempt_at=now(),last_error_code=NULL,updated_at=now(),completed_at=NULL`,
+				productID, strings.TrimPrefix(imageURL, productMediaPathPrefix))
+		} else if err == nil {
+			imageURL = ""
+		}
+	} else if err == nil {
+		imageURL = ""
 	}
 	if err := finishMutation(ctx, tx, err); err != nil {
 		return "", err

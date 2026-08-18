@@ -10,6 +10,7 @@ import { ButtonLink } from '../components/ui/ButtonLink'
 import { ErrorState } from '../components/ui/ErrorState'
 import { Skeleton } from '../components/ui/Skeleton'
 import { useCurrentUser, useLogout } from '../features/auth/queries'
+import { SecuritySettings } from '../features/auth/components/SecuritySettings'
 import { useSetups } from '../features/recommendation/queries'
 import { formatMinorCurrency } from '../lib/money/format'
 
@@ -48,7 +49,7 @@ export function AccountPage() {
               Signed in as
             </p>
             <p className="mt-3 text-lg">{account.data?.email}</p>
-            {account.data?.roles.includes('admin') && (
+            {account.data && account.data.roles.length > 0 && (
               <ButtonLink className="mt-5" size="sm" to="/admin">
                 Open administration <ArrowRight aria-hidden="true" size={15} />
               </ButtonLink>
@@ -142,6 +143,8 @@ export function AccountPage() {
               </div>
             )}
           </section>
+
+          {account.data && <SecuritySettings user={account.data} />}
 
           {logout.isError && (
             <div

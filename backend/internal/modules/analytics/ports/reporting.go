@@ -7,5 +7,5 @@ import (
 )
 
 type ReportingRepository interface {
-	Report(context.Context, int) (domain.Report, error)
+	Report(context.Context, domain.ReportQuery) (domain.Report, error)
 }

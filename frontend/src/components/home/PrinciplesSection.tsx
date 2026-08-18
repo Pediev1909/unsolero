@@ -55,7 +55,7 @@ export function PrinciplesSection() {
               key={number}
             >
               <div className="flex items-center justify-between sm:block">
-                <span className="text-xs font-semibold tracking-[0.14em] text-bronze">
+                <span className="text-xs font-semibold tracking-[0.14em] text-bronze-soft">
                   {number}
                 </span>
                 <Icon

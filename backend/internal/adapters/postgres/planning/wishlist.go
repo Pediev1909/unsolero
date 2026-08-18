@@ -22,30 +22,40 @@ func NewWishlistRepository(pool *pgxpool.Pool) *WishlistRepository {
 func (repository *WishlistRepository) ListProductIDs(
 	ctx context.Context,
 	userID identity.UserID,
-) ([]catalog.ProductID, error) {
+	limit int,
+	offset int,
+) (ports.WishlistPage, error) {
 	rows, err := repository.pool.Query(ctx, `
-		SELECT wishlists.product_id
+		SELECT count(*) OVER(), wishlists.product_id
 		FROM planning.wishlists AS wishlists
 		JOIN catalog.products AS products ON products.id = wishlists.product_id
 		WHERE wishlists.user_id = $1 AND products.status = 'published'
-		ORDER BY wishlists.created_at DESC`, userID)
+		ORDER BY wishlists.created_at DESC, wishlists.product_id DESC
+		LIMIT $2 OFFSET $3`, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("list wishlist: %w", err)
+		return ports.WishlistPage{}, fmt.Errorf("list wishlist: %w", err)
 	}
 	defer rows.Close()
 
-	productIDs := make([]catalog.ProductID, 0)
+	page := ports.WishlistPage{ProductIDs: make([]catalog.ProductID, 0)}
 	for rows.Next() {
 		var productID catalog.ProductID
-		if err := rows.Scan(&productID); err != nil {
-			return nil, fmt.Errorf("scan wishlist product: %w", err)
+		if err := rows.Scan(&page.Total, &productID); err != nil {
+			return ports.WishlistPage{}, fmt.Errorf("scan wishlist product: %w", err)
 		}
-		productIDs = append(productIDs, productID)
+		page.ProductIDs = append(page.ProductIDs, productID)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("read wishlist: %w", err)
+		return ports.WishlistPage{}, fmt.Errorf("read wishlist: %w", err)
 	}
-	return productIDs, nil
+	if len(page.ProductIDs) == 0 && offset > 0 {
+		if err := repository.pool.QueryRow(ctx, `SELECT count(*) FROM planning.wishlists wishlists
+			JOIN catalog.products products ON products.id=wishlists.product_id
+			WHERE wishlists.user_id=$1 AND products.status='published'`, userID).Scan(&page.Total); err != nil {
+			return ports.WishlistPage{}, fmt.Errorf("count wishlist: %w", err)
+		}
+	}
+	return page, nil
 }
 
 func (repository *WishlistRepository) Save(

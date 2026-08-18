@@ -7,7 +7,6 @@ import (
 	"net/mail"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"rigmark/internal/modules/identity/domain"
 	"rigmark/internal/modules/identity/ports"
@@ -55,9 +54,21 @@ func (systemClock) Now() time.Time {
 }
 
 type AuthenticatedSession struct {
-	User      domain.User
-	RawToken  string
-	ExpiresAt time.Time
+	User                  domain.User
+	RawToken              string
+	ExpiresAt             time.Time
+	MFARequired           bool
+	MFAChallengeToken     string
+	MFAChallengeExpiresAt *time.Time
+}
+
+type LoginMFA interface {
+	RequiresMFA(context.Context, domain.User) (bool, error)
+	BeginLoginMFA(context.Context, domain.User) (LoginChallenge, error)
+}
+
+type SecurityAuditor interface {
+	RecordSecurityEvent(context.Context, domain.SecurityEvent) error
 }
 
 type Service struct {
@@ -68,6 +79,24 @@ type Service struct {
 	sessionTTL     time.Duration
 	sessionIdleTTL time.Duration
 	dummyHash      string
+	mfa            LoginMFA
+	auditor        SecurityAuditor
+}
+
+func NewServiceWithMFA(
+	repository ports.AuthenticationRepository,
+	passwords PasswordHasher,
+	tokens SessionTokens,
+	mfa LoginMFA,
+	sessionTTL time.Duration,
+	sessionIdleTTL time.Duration,
+) (*Service, error) {
+	service, err := newService(repository, passwords, tokens, systemClock{}, sessionTTL, sessionIdleTTL)
+	if err != nil {
+		return nil, err
+	}
+	service.mfa = mfa
+	return service, nil
 }
 
 func NewService(
@@ -95,7 +124,7 @@ func newService(
 	if err != nil {
 		return nil, fmt.Errorf("create login timing hash: %w", err)
 	}
-	return &Service{
+	service := &Service{
 		repository:     repository,
 		passwords:      passwords,
 		tokens:         tokens,
@@ -103,7 +132,11 @@ func newService(
 		sessionTTL:     sessionTTL,
 		sessionIdleTTL: sessionIdleTTL,
 		dummyHash:      dummyHash,
-	}, nil
+	}
+	if auditor, ok := repository.(SecurityAuditor); ok {
+		service.auditor = auditor
+	}
+	return service, nil
 }
 
 func (service *Service) Register(
@@ -130,6 +163,9 @@ func (service *Service) Register(
 	if err != nil {
 		return AuthenticatedSession{}, fmt.Errorf("register account: %w", err)
 	}
+	if err := service.audit(ctx, &user.ID, nil, "account.register", "success"); err != nil {
+		return AuthenticatedSession{}, err
+	}
 	return AuthenticatedSession{User: user, RawToken: rawToken, ExpiresAt: session.ExpiresAt}, nil
 }
 
@@ -144,6 +180,9 @@ func (service *Service) Login(
 		if _, verifyErr := service.passwords.Verify(service.dummyHash, password); verifyErr != nil {
 			return AuthenticatedSession{}, fmt.Errorf("verify timing hash: %w", verifyErr)
 		}
+		if auditErr := service.audit(ctx, nil, nil, "login", "failure"); auditErr != nil {
+			return AuthenticatedSession{}, auditErr
+		}
 		return AuthenticatedSession{}, ErrInvalidCredentials
 	}
 	if err != nil {
@@ -154,7 +193,24 @@ func (service *Service) Login(
 		return AuthenticatedSession{}, fmt.Errorf("verify password: %w", err)
 	}
 	if !valid || !credential.User.CanAuthenticate() {
+		if auditErr := service.audit(ctx, &credential.User.ID, nil, "login", "failure"); auditErr != nil {
+			return AuthenticatedSession{}, auditErr
+		}
 		return AuthenticatedSession{}, ErrInvalidCredentials
+	}
+	if service.mfa != nil {
+		required, err := service.mfa.RequiresMFA(ctx, credential.User)
+		if err != nil {
+			return AuthenticatedSession{}, fmt.Errorf("resolve MFA requirement: %w", err)
+		}
+		if required {
+			challenge, err := service.mfa.BeginLoginMFA(ctx, credential.User)
+			if err != nil {
+				return AuthenticatedSession{}, fmt.Errorf("begin MFA login: %w", err)
+			}
+			return AuthenticatedSession{User: credential.User, MFARequired: true,
+				MFAChallengeToken: challenge.RawToken, MFAChallengeExpiresAt: &challenge.ExpiresAt}, nil
+		}
 	}
 
 	var replacementHash *string
@@ -179,6 +235,9 @@ func (service *Service) Login(
 			return AuthenticatedSession{}, ErrInvalidCredentials
 		}
 		return AuthenticatedSession{}, fmt.Errorf("create login session: %w", err)
+	}
+	if err := service.audit(ctx, &credential.User.ID, nil, "login", "success"); err != nil {
+		return AuthenticatedSession{}, err
 	}
 	return AuthenticatedSession{
 		User:      credential.User,
@@ -216,6 +275,22 @@ func (service *Service) Logout(ctx context.Context, rawToken string) error {
 	if err := service.repository.RevokeSession(ctx, tokenHash, service.clock.Now()); err != nil {
 		return fmt.Errorf("revoke authenticated session: %w", err)
 	}
+	return service.audit(ctx, nil, nil, "logout", "success")
+}
+
+func (service *Service) audit(ctx context.Context, userID *domain.UserID, sessionID *string, eventType, outcome string) error {
+	if service.auditor == nil {
+		return nil
+	}
+	request, _ := ctx.Value(securityRequestContextKey{}).(SecurityRequest)
+	if request.Surface == "" {
+		request.Surface = "api"
+	}
+	if err := service.auditor.RecordSecurityEvent(ctx, domain.SecurityEvent{UserID: userID, SessionID: sessionID,
+		Type: eventType, Outcome: outcome, RequestID: request.RequestID, Surface: request.Surface,
+		OccurredAt: service.clock.Now()}); err != nil {
+		return fmt.Errorf("record authentication security event: %w", err)
+	}
 	return nil
 }
 
@@ -247,11 +322,8 @@ func validateCredentials(email, password string) (string, *ValidationError) {
 	if err != nil || parsed.Address != normalizedEmail || len(normalizedEmail) > maximumEmailBytes {
 		fields["email"] = "Enter a valid email address."
 	}
-	passwordCharacters := utf8.RuneCountInString(password)
-	if passwordCharacters < minimumPasswordCharacters {
-		fields["password"] = "Use at least 12 characters."
-	} else if len(password) > maximumPasswordBytes {
-		fields["password"] = "Use no more than 128 bytes."
+	if message := validatePassword(password); message != "" {
+		fields["password"] = message
 	}
 	if len(fields) > 0 {
 		return "", &ValidationError{Fields: fields}

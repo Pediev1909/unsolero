@@ -23,7 +23,7 @@ func (repository *Repository) ListRecommendations(ctx context.Context, limit, of
 		FROM recommendation.recommendations AS recommendations
 		JOIN recommendation.recommendation_sessions AS sessions ON sessions.id=recommendations.session_id
 		LEFT JOIN identity.users AS users ON users.id=sessions.user_id
-		ORDER BY recommendations.created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
+		ORDER BY recommendations.created_at DESC, recommendations.id LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return admin.Page[admin.Recommendation]{}, fmt.Errorf("list admin recommendations: %w", err)
 	}
@@ -145,7 +145,7 @@ func (repository *Repository) ListUsers(ctx context.Context, limit, offset int) 
 		SELECT count(*) OVER(), users.id, users.email, users.status,
 			ARRAY(SELECT role_key FROM identity.user_roles WHERE user_id=users.id ORDER BY role_key),
 			users.last_login_at, users.created_at
-		FROM identity.users AS users ORDER BY users.created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
+		FROM identity.users AS users ORDER BY users.created_at DESC, users.id LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		return admin.Page[admin.User]{}, fmt.Errorf("list admin users: %w", err)
 	}
@@ -172,8 +172,8 @@ func (repository *Repository) ListEvents(ctx context.Context, name string, limit
 		SELECT count(*) OVER(), id, event_name, user_id, anonymous_id, session_id,
 			surface, properties, page_path, traffic_source, traffic_medium, campaign,
 			referrer_host, consent_state, occurred_at
-		FROM analytics.events WHERE $1='' OR event_name=$1
-		ORDER BY occurred_at DESC LIMIT $2 OFFSET $3`, name, limit, offset)
+		FROM analytics.events WHERE is_reportable AND ($1='' OR event_name=$1)
+		ORDER BY occurred_at DESC, id LIMIT $2 OFFSET $3`, name, limit, offset)
 	if err != nil {
 		return admin.Page[admin.Event]{}, fmt.Errorf("list admin events: %w", err)
 	}

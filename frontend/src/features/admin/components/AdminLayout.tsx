@@ -10,6 +10,7 @@ import {
   PackageSearch,
   Settings,
   ShoppingBag,
+  RefreshCcw,
   Tags,
   Users,
 } from 'lucide-react'
@@ -18,39 +19,124 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { BrandMark } from '../../../components/layout/BrandMark'
 import { SkipLink } from '../../../components/ui/SkipLink'
 import { cn } from '../../../lib/styles/cn'
+import { useCurrentUser } from '../../auth/queries'
+
+const catalogReaders = [
+  'catalog_editor',
+  'evidence_editor',
+  'evidence_reviewer',
+  'analyst',
+]
+const evidenceReaders = [
+  'catalog_editor',
+  'evidence_editor',
+  'evidence_reviewer',
+]
+const commerceReaders = ['commerce_operator', 'analyst']
 
 const items = [
-  { to: '/admin', label: 'Dashboard', icon: Gauge, end: true },
-  { to: '/admin/products', label: 'Products', icon: Boxes, end: false },
-  { to: '/admin/evidence', label: 'Evidence', icon: FileCheck2, end: false },
+  { to: '/admin', label: 'Dashboard', icon: Gauge, end: true, roles: [] },
+  {
+    to: '/admin/products',
+    label: 'Products',
+    icon: Boxes,
+    end: false,
+    roles: catalogReaders,
+  },
+  {
+    to: '/admin/evidence',
+    label: 'Evidence',
+    icon: FileCheck2,
+    end: false,
+    roles: evidenceReaders,
+  },
   {
     to: '/admin/categories',
     label: 'Categories',
     icon: FolderTree,
     end: false,
+    roles: catalogReaders,
   },
-  { to: '/admin/brands', label: 'Brands', icon: Tags, end: false },
-  { to: '/admin/merchants', label: 'Merchants', icon: Building2, end: false },
-  { to: '/admin/offers', label: 'Offers', icon: ShoppingBag, end: false },
+  {
+    to: '/admin/brands',
+    label: 'Brands',
+    icon: Tags,
+    end: false,
+    roles: catalogReaders,
+  },
+  {
+    to: '/admin/merchants',
+    label: 'Merchants',
+    icon: Building2,
+    end: false,
+    roles: commerceReaders,
+  },
+  {
+    to: '/admin/offers',
+    label: 'Offers',
+    icon: ShoppingBag,
+    end: false,
+    roles: ['commerce_operator'],
+  },
+  {
+    to: '/admin/commerce',
+    label: 'Commerce Ops',
+    icon: RefreshCcw,
+    end: false,
+    roles: ['commerce_operator'],
+  },
   {
     to: '/admin/affiliate-links',
     label: 'Affiliate Links',
     icon: Link2,
     end: false,
+    roles: ['commerce_operator'],
   },
   {
     to: '/admin/recommendations',
     label: 'Recommendations',
     icon: PackageSearch,
     end: false,
+    roles: ['analyst'],
   },
-  { to: '/admin/users', label: 'Users', icon: Users, end: false },
-  { to: '/admin/events', label: 'Events', icon: BarChart3, end: false },
-  { to: '/admin/content', label: 'Content', icon: ClipboardList, end: false },
-  { to: '/admin/settings', label: 'Settings', icon: Settings, end: false },
+  {
+    to: '/admin/users',
+    label: 'Users',
+    icon: Users,
+    end: false,
+    roles: ['admin'],
+  },
+  {
+    to: '/admin/events',
+    label: 'Events',
+    icon: BarChart3,
+    end: false,
+    roles: ['admin'],
+  },
+  {
+    to: '/admin/content',
+    label: 'Content',
+    icon: ClipboardList,
+    end: false,
+    roles: ['content_editor'],
+  },
+  {
+    to: '/admin/settings',
+    label: 'Settings',
+    icon: Settings,
+    end: false,
+    roles: ['admin', 'policy_editor', 'policy_reviewer'],
+  },
 ] as const
 
 export function AdminLayout() {
+  const account = useCurrentUser()
+  const visibleItems = items.filter(
+    (item) =>
+      account.data?.roles.includes('admin') ||
+      item.roles.length === 0 ||
+      item.roles.some((role) => account.data?.roles.includes(role)),
+  )
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <SkipLink />
@@ -60,7 +146,7 @@ export function AdminLayout() {
           Administration
         </p>
         <nav aria-label="Admin" className="mt-9 flex flex-1 flex-col gap-1">
-          {items.map(({ to, label, icon: Icon, end }) => (
+          {visibleItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               className={({ isActive }) =>
                 cn(
@@ -99,7 +185,7 @@ export function AdminLayout() {
             aria-label="Admin"
             className="-mx-4 mt-3 flex gap-1 overflow-x-auto px-4 pb-1"
           >
-            {items.map(({ to, label, end }) => (
+            {visibleItems.map(({ to, label, end }) => (
               <NavLink
                 className={({ isActive }) =>
                   cn(

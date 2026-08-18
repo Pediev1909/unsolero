@@ -308,7 +308,8 @@ func (repository *Repository) searchProducts(
 			CASE WHEN $8 = 'quality_desc' THEN products.quality_score END DESC,
 			CASE WHEN $8 = 'value_desc' THEN products.value_score END DESC,
 			CASE WHEN $8 = 'featured' THEN products.quality_score + products.value_score END DESC,
-			products.name ASC
+			products.name ASC,
+			products.id ASC
 		LIMIT $9 OFFSET $10`,
 		filter.CategorySlug,
 		filter.BrandSlug,

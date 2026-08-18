@@ -32,6 +32,12 @@ func TestNormalizeQueryRejectsDuplicateProductIDs(t *testing.T) {
 	}
 }
 
+func TestNormalizeQueryRejectsExcessivePage(t *testing.T) {
+	if _, err := normalizeQuery(Query{Page: maximumPage + 1, PageSize: 48}); err != ErrInvalidQuery {
+		t.Fatalf("normalizeQuery() error = %v, want %v", err, ErrInvalidQuery)
+	}
+}
+
 func TestValidSlug(t *testing.T) {
 	for _, value := range []string{"adjustable-dumbbells", "demo-product-20"} {
 		if !validSlug(value) {

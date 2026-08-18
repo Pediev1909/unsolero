@@ -43,6 +43,7 @@ export const analyticsReportSchema = z.object({
     recommendation_completion_rate: z.number().nonnegative().nullable(),
     product_views: z.number().int().nonnegative(),
     affiliate_clicks: z.number().int().nonnegative(),
+    affiliate_clicks_raw: z.number().int().nonnegative(),
     affiliate_ctr: z.number().nonnegative().nullable(),
   }),
   most_recommended_products: z.array(rankedEntitySchema),
@@ -56,6 +57,24 @@ export const analyticsReportSchema = z.object({
       count: z.number().int().nonnegative(),
     }),
   ),
+  window: z.object({
+    from: timestamp,
+    to: timestamp,
+    reportable_from: timestamp,
+    complete_through: timestamp,
+    coverage: z.enum(['partial', 'complete']),
+    data_state: z.enum(['no_data', 'insufficient_data', 'available']),
+    layer: z.literal('validated_filtered'),
+    minimum_sample_size: z.number().int().positive(),
+  }),
+  ingestion: z.object({
+    received: z.number().int().nonnegative(),
+    accepted: z.number().int().nonnegative(),
+    rejected: z.number().int().nonnegative(),
+    privacy_filtered: z.number().int().nonnegative(),
+    bot_filtered: z.number().int().nonnegative(),
+    deduplicated: z.number().int().nonnegative(),
+  }),
 })
 
 export const categorySchema = z.object({
@@ -156,6 +175,8 @@ export const offerSchema = z.object({
   condition: z.string(),
   is_active: z.boolean(),
   last_checked_at: timestamp,
+  expires_at: timestamp.nullable(),
+  freshness_status: z.enum(['fresh', 'expired', 'platform_policy']),
   affiliate_links: z.number().int().nonnegative(),
   updated_at: timestamp,
 })
@@ -187,6 +208,237 @@ export const affiliateLinkSchema = z.object({
 export const affiliatePageSchema = z.object({
   items: z.array(affiliateLinkSchema),
   ...pageFields,
+})
+
+export const commerceProviderSchema = z.object({
+  id: z.string().uuid(),
+  merchant_id: z.string().uuid(),
+  merchant_name: z.string(),
+  provider_key: z.string(),
+  adapter_key: z.string(),
+  external_merchant_id: z.string(),
+  credential_reference: nullableString,
+  lifecycle_status: z.enum([
+    'disabled',
+    'configured',
+    'active',
+    'degraded',
+    'suspended',
+  ]),
+  configuration_verified_at: timestamp.nullable(),
+  schedule_interval_minutes: z.number().int().positive(),
+  freshness_ttl_minutes: z.number().int().positive(),
+  cursor: nullableString,
+  next_import_at: timestamp.nullable(),
+  last_import_started_at: timestamp.nullable(),
+  last_import_succeeded_at: timestamp.nullable(),
+  last_import_failed_at: timestamp.nullable(),
+  consecutive_failures: z.number().int().nonnegative(),
+  last_error_code: nullableString,
+  conversion_cursor: nullableString,
+  next_conversion_import_at: timestamp.nullable(),
+  last_conversion_import_succeeded_at: timestamp.nullable(),
+  last_conversion_import_failed_at: timestamp.nullable(),
+  conversion_consecutive_failures: z.number().int().nonnegative(),
+  last_conversion_error_code: nullableString,
+  conversion_ingestion_enabled: z.boolean(),
+  conversion_configuration_verified_at: timestamp.nullable(),
+  created_at: timestamp,
+  updated_at: timestamp,
+})
+
+export const commerceProvidersSchema = z.object({
+  items: z.array(commerceProviderSchema),
+})
+
+export const commerceImportSchema = z.object({
+  id: z.string().uuid(),
+  provider_configuration: commerceProviderSchema,
+  trigger: z.enum(['scheduled', 'manual', 'retry']),
+  status: z.enum([
+    'queued',
+    'running',
+    'retry_wait',
+    'succeeded',
+    'partial',
+    'failed',
+    'cancelled',
+  ]),
+  idempotency_key: z.string(),
+  requested_by: nullableString,
+  cursor_before: nullableString,
+  cursor_after: nullableString,
+  attempt_count: z.number().int().nonnegative(),
+  max_attempts: z.number().int().positive(),
+  records_received: z.number().int().nonnegative(),
+  records_applied: z.number().int().nonnegative(),
+  records_rejected: z.number().int().nonnegative(),
+  offers_deactivated: z.number().int().nonnegative(),
+  error_code: nullableString,
+  error_message: nullableString,
+  next_retry_at: timestamp.nullable(),
+  started_at: timestamp.nullable(),
+  completed_at: timestamp.nullable(),
+  created_at: timestamp,
+  updated_at: timestamp,
+})
+
+export const commerceImportsSchema = z.object({
+  items: z.array(commerceImportSchema),
+  ...pageFields,
+})
+
+export const commerceImportFailureSchema = z.object({
+  id: z.string().uuid(),
+  import_run_id: z.string().uuid(),
+  external_record_id: nullableString,
+  error_code: z.string(),
+  error_message: z.string(),
+  record_fingerprint: nullableString,
+  created_at: timestamp,
+})
+
+export const commerceImportFailuresSchema = z.object({
+  items: z.array(commerceImportFailureSchema),
+  ...pageFields,
+})
+
+const conversionOrderStatus = z.enum([
+  'pending',
+  'confirmed',
+  'cancelled',
+  'reversed',
+  'rejected',
+])
+const commissionStatus = z.enum([
+  'pending',
+  'approved',
+  'reversed',
+  'rejected',
+  'paid',
+])
+const metricStatus = z.enum(['available', 'no_data', 'insufficient_data'])
+
+export const verifiedConversionSchema = z.object({
+  id: z.string().uuid(),
+  provider_configuration_id: z.string().uuid(),
+  provider: z.string(),
+  merchant_id: z.string().uuid(),
+  merchant_name: z.string(),
+  external_conversion_id: z.string(),
+  order_reference: nullableString,
+  order_status: conversionOrderStatus,
+  order_value_minor: z.number().int().nonnegative().nullable(),
+  order_currency: nullableString,
+  commission_amount_minor: z.number().int().nonnegative().nullable(),
+  commission_currency: nullableString,
+  commission_status: commissionStatus.nullable(),
+  attribution_status: z.enum(['attributed', 'unattributed']),
+  click_id: nullableString,
+  recommendation_id: nullableString,
+  source: nullableString,
+  campaign: nullableString,
+  verification_state: z.literal('verified'),
+  event_timestamp: timestamp,
+  received_at: timestamp,
+  updated_at: timestamp,
+  reconciliation_status: z
+    .enum(['matched', 'missing', 'conflicting', 'stale', 'unresolved'])
+    .nullable(),
+})
+
+export const verifiedConversionsSchema = z.object({
+  items: z.array(verifiedConversionSchema),
+  ...pageFields,
+})
+
+export const conversionImportSchema = z.object({
+  id: z.string().uuid(),
+  provider_configuration: commerceProviderSchema,
+  trigger: z.enum(['scheduled', 'manual', 'retry']),
+  status: z.enum([
+    'queued',
+    'running',
+    'retry_wait',
+    'succeeded',
+    'partial',
+    'failed',
+    'cancelled',
+  ]),
+  attempt_count: z.number().int().nonnegative(),
+  max_attempts: z.number().int().positive(),
+  records_received: z.number().int().nonnegative(),
+  records_applied: z.number().int().nonnegative(),
+  records_rejected: z.number().int().nonnegative(),
+  cursor_before: nullableString,
+  cursor_after: nullableString,
+  coverage_start: timestamp.nullable(),
+  coverage_end: timestamp.nullable(),
+  error_code: nullableString,
+  error_message: nullableString,
+  created_at: timestamp,
+  started_at: timestamp.nullable(),
+  completed_at: timestamp.nullable(),
+})
+
+export const conversionImportsSchema = z.object({
+  items: z.array(conversionImportSchema),
+  ...pageFields,
+})
+
+export const reconciliationSchema = z.object({
+  id: z.string().uuid(),
+  provider_configuration: commerceProviderSchema,
+  status: z.enum(['running', 'succeeded', 'partial', 'failed']),
+  coverage_start: timestamp,
+  coverage_end: timestamp,
+  matched: z.number().int().nonnegative(),
+  missing: z.number().int().nonnegative(),
+  conflicting: z.number().int().nonnegative(),
+  stale: z.number().int().nonnegative(),
+  unresolved: z.number().int().nonnegative(),
+  error_code: nullableString,
+  started_at: timestamp,
+  completed_at: timestamp.nullable(),
+})
+
+export const reconciliationsSchema = z.object({
+  items: z.array(reconciliationSchema),
+  ...pageFields,
+})
+
+const ratioMetricSchema = z.object({
+  status: metricStatus,
+  value: z.number().nullable(),
+  numerator: z.number().int().nonnegative(),
+  denominator: z.number().int().nonnegative(),
+  definition: z.string(),
+})
+const currencyMetricGroupSchema = z.object({
+  status: metricStatus,
+  values: z.array(
+    z.object({
+      currency: z.string(),
+      amount_minor: z.number().int(),
+      denominator: z.number().int().nonnegative(),
+      value_minor: z.number().nullable(),
+    }),
+  ),
+  definition: z.string(),
+})
+
+export const monetizationReportSchema = z.object({
+  window_start: timestamp,
+  window_end: timestamp,
+  fresh_through: timestamp.nullable(),
+  affiliate_conversion_rate: ratioMetricSchema,
+  earnings_per_click: currencyMetricGroupSchema,
+  revenue_per_visitor: currencyMetricGroupSchema,
+  revenue_per_recommendation: currencyMetricGroupSchema,
+  commission: currencyMetricGroupSchema,
+  reversal_rate: ratioMetricSchema,
+  repeat_user_rate: ratioMetricSchema,
+  currency_policy: z.string(),
 })
 
 export const recommendationSchema = z.object({
@@ -363,6 +615,12 @@ export type AnalyticsReportData = z.infer<typeof analyticsReportSchema>
 export type AdminProduct = z.infer<typeof productSchema>
 export type AdminOffer = z.infer<typeof offerSchema>
 export type AdminAffiliateLink = z.infer<typeof affiliateLinkSchema>
+export type CommerceProvider = z.infer<typeof commerceProviderSchema>
+export type CommerceImport = z.infer<typeof commerceImportSchema>
+export type VerifiedConversion = z.infer<typeof verifiedConversionSchema>
+export type ConversionImport = z.infer<typeof conversionImportSchema>
+export type Reconciliation = z.infer<typeof reconciliationSchema>
+export type MonetizationReport = z.infer<typeof monetizationReportSchema>
 export type AdminRecommendation = z.infer<typeof recommendationSchema>
 export type AdminReferences = z.infer<typeof referencesSchema>
 export type ProductGovernance = z.infer<typeof productGovernanceSchema>

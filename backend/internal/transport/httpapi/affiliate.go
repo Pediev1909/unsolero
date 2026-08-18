@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"net/http"
@@ -24,8 +25,8 @@ func (h *Handler) affiliateClickRedirect(response http.ResponseWriter, request *
 		return
 	}
 	click.OfferID = commercedomain.OfferID(offerID)
-	destination, err := h.commerce.TrackOfferClick(request.Context(), click)
-	h.finishAffiliateRedirect(response, request, destination, err)
+	result, err := h.commerce.TrackOfferClick(request.Context(), click)
+	h.finishAffiliateRedirect(response, request, result, err)
 }
 
 // outboundRedirect preserves previously issued tracked URLs while new offer
@@ -41,8 +42,8 @@ func (h *Handler) outboundRedirect(response http.ResponseWriter, request *http.R
 		return
 	}
 	click.LinkID = commercedomain.AffiliateLinkID(linkID)
-	destination, err := h.commerce.TrackLegacyLinkClick(request.Context(), click)
-	h.finishAffiliateRedirect(response, request, destination, err)
+	result, err := h.commerce.TrackLegacyLinkClick(request.Context(), click)
+	h.finishAffiliateRedirect(response, request, result, err)
 }
 
 func (h *Handler) affiliateAttribution(response http.ResponseWriter, request *http.Request) (commercedomain.AffiliateClick, bool) {
@@ -95,6 +96,15 @@ func (h *Handler) affiliateAttribution(response http.ResponseWriter, request *ht
 	}
 	if requestID := strings.TrimSpace(request.Header.Get("X-Request-ID")); requestID != "" && len(requestID) <= 128 {
 		click.RequestID = &requestID
+		click.IdempotencyKey = &requestID
+	}
+	click.Classification = commercedomain.ClassifyClick(request.UserAgent(), request.Header.Get("Purpose"),
+		request.Header.Get("Sec-Purpose"), request.Header.Get("X-Moz"))
+	click.IsCountable = click.Classification == commercedomain.ClickHuman
+	if userAgent := strings.TrimSpace(request.UserAgent()); userAgent != "" {
+		hash := sha256.Sum256([]byte(userAgent))
+		value := hex.EncodeToString(hash[:])
+		click.UserAgentHash = &value
 	}
 	return click, true
 }
@@ -107,19 +117,25 @@ func normalizedReferrerHost(raw string) string {
 	return strings.ToLower(parsed.Hostname())
 }
 
-func (h *Handler) finishAffiliateRedirect(response http.ResponseWriter, request *http.Request, destination string, err error) {
+func (h *Handler) finishAffiliateRedirect(response http.ResponseWriter, request *http.Request, result commercedomain.AffiliateRedirectResult, err error) {
 	if errors.Is(err, commerceports.ErrAffiliateDestinationNotFound) || errors.Is(err, commerce.ErrInvalidAttribution) {
 		h.writeAffiliateNotFound(response)
 		return
 	}
 	if err != nil {
-		h.logger.Error("track affiliate click", "error", err)
+		h.logger.Error("resolve affiliate destination", "error", err)
 		writeAPIError(response, http.StatusServiceUnavailable, "redirect_unavailable", "We could not open this merchant right now.", nil, h.logger)
 		return
 	}
+	if result.TrackingError != nil {
+		// The merchant navigation is the primary user action. Attribution and
+		// analytics are best-effort after a safe destination has been resolved.
+		h.logger.Warn("affiliate tracking unavailable; redirecting", "error", result.TrackingError,
+			"request_id", request.Header.Get("X-Request-ID"))
+	}
 	response.Header().Set("Cache-Control", "no-store")
 	response.Header().Set("Referrer-Policy", "no-referrer")
-	http.Redirect(response, request, destination, http.StatusFound)
+	http.Redirect(response, request, result.DestinationURL, http.StatusFound)
 }
 
 func (h *Handler) writeAffiliateNotFound(response http.ResponseWriter) {
@@ -131,11 +147,7 @@ func normalizedReferrer(raw string) string {
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
 		return ""
 	}
-	value := parsed.Scheme + "://" + parsed.Host + parsed.EscapedPath()
-	if len(value) > 500 {
-		return parsed.Scheme + "://" + parsed.Host
-	}
-	return value
+	return strings.ToLower(parsed.Scheme) + "://" + strings.ToLower(parsed.Host)
 }
 
 func randomUUID() (string, error) {

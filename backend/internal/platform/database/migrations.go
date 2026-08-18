@@ -43,6 +43,9 @@ func LoadMigrations(source fs.FS) ([]Migration, error) {
 		if entry.IsDir() {
 			continue
 		}
+		if entry.Name() == "embed.go" {
+			continue
+		}
 
 		matches := migrationFilename.FindStringSubmatch(entry.Name())
 		if matches == nil {
@@ -84,6 +87,52 @@ func LoadMigrations(source fs.FS) ([]Migration, error) {
 	})
 
 	return migrations, nil
+}
+
+// SchemaChecker verifies that the connected database exactly matches the
+// migration manifest embedded in the running release. It never applies DDL.
+type SchemaChecker struct {
+	pool        *pgxpool.Pool
+	expected    []Migration
+	manifestErr error
+}
+
+func NewSchemaChecker(pool *pgxpool.Pool, source fs.FS) *SchemaChecker {
+	expected, err := LoadMigrations(source)
+	return &SchemaChecker{pool: pool, expected: expected, manifestErr: err}
+}
+
+func (checker *SchemaChecker) Ready(ctx context.Context) error {
+	if checker.manifestErr != nil {
+		return fmt.Errorf("load release migration manifest: %w", checker.manifestErr)
+	}
+	rows, err := checker.pool.Query(ctx, `SELECT version,name,checksum FROM platform.schema_migrations ORDER BY version`)
+	if err != nil {
+		return fmt.Errorf("read schema migration state: %w", err)
+	}
+	defer rows.Close()
+	applied := make(map[int64]appliedMigration)
+	for rows.Next() {
+		var version int64
+		var item appliedMigration
+		if err := rows.Scan(&version, &item.name, &item.checksum); err != nil {
+			return fmt.Errorf("scan schema migration state: %w", err)
+		}
+		applied[version] = item
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate schema migration state: %w", err)
+	}
+	if len(applied) != len(checker.expected) {
+		return fmt.Errorf("schema migration count %d does not match release manifest %d", len(applied), len(checker.expected))
+	}
+	for _, migration := range checker.expected {
+		item, exists := applied[migration.Version]
+		if !exists || item.name != migration.Name || item.checksum != migration.Checksum {
+			return fmt.Errorf("schema migration %06d does not match the running release", migration.Version)
+		}
+	}
+	return nil
 }
 
 func ApplyMigrations(ctx context.Context, pool *pgxpool.Pool, source fs.FS) error {

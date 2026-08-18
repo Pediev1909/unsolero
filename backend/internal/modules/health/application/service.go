@@ -9,6 +9,16 @@ type Pinger interface {
 	Ping(context.Context) error
 }
 
+type ReadinessChecker interface {
+	Ready(context.Context) error
+}
+
+type Dependency struct {
+	Name     string
+	Critical bool
+	Checker  ReadinessChecker
+}
+
 type Report struct {
 	Status  string            `json:"status"`
 	Service string            `json:"service"`
@@ -17,16 +27,22 @@ type Report struct {
 }
 
 type Service struct {
-	database Pinger
-	version  string
-	timeout  time.Duration
+	database     Pinger
+	version      string
+	timeout      time.Duration
+	dependencies []Dependency
 }
 
 func NewService(database Pinger, version string) *Service {
+	return NewServiceWithDependencies(database, version, nil)
+}
+
+func NewServiceWithDependencies(database Pinger, version string, dependencies []Dependency) *Service {
 	return &Service{
-		database: database,
-		version:  version,
-		timeout:  2 * time.Second,
+		database:     database,
+		version:      version,
+		timeout:      2 * time.Second,
+		dependencies: dependencies,
 	}
 }
 
@@ -46,9 +62,27 @@ func (s *Service) Check(ctx context.Context) (Report, error) {
 	defer cancel()
 
 	if err := s.database.Ping(checkCtx); err != nil {
-		report.Status = "degraded"
+		report.Status = "unavailable"
 		report.Checks["database"] = "unavailable"
 		return report, err
+	}
+	for _, dependency := range s.dependencies {
+		if dependency.Checker == nil {
+			continue
+		}
+		dependencyCtx, cancelDependency := context.WithTimeout(ctx, s.timeout)
+		err := dependency.Checker.Ready(dependencyCtx)
+		cancelDependency()
+		if err == nil {
+			report.Checks[dependency.Name] = "ok"
+			continue
+		}
+		report.Checks[dependency.Name] = "unavailable"
+		if dependency.Critical {
+			report.Status = "unavailable"
+			return report, err
+		}
+		report.Status = "degraded"
 	}
 
 	return report, nil

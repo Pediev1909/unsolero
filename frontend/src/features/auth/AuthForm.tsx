@@ -70,6 +70,16 @@ export function AuthForm({ mode }: AuthFormProps) {
           {isLogin ? 'Create an account' : 'Sign in'}
         </Link>
       </p>
+      {isLogin && (
+        <p className="text-center text-sm">
+          <Link
+            className="font-semibold text-ink underline decoration-ink/25 underline-offset-4"
+            to="/forgot-password"
+          >
+            Forgot your password?
+          </Link>
+        </p>
+      )}
     </form>
   )
 }

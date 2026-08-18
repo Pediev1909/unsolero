@@ -32,7 +32,18 @@ export function ProtectedAdminRoute() {
   if (!account.data) {
     return <Navigate replace state={{ from: location.pathname }} to="/login" />
   }
-  if (!account.data.roles.includes('admin')) {
+  const privilegedRoles = new Set([
+    'admin',
+    'catalog_editor',
+    'evidence_editor',
+    'evidence_reviewer',
+    'policy_editor',
+    'policy_reviewer',
+    'commerce_operator',
+    'content_editor',
+    'analyst',
+  ])
+  if (!account.data.roles.some((role) => privilegedRoles.has(role))) {
     return <Navigate replace to="/account" />
   }
   return <Outlet />
