@@ -80,7 +80,7 @@ func TestCommercialDataCannotChangeRecommendationOutput(t *testing.T) {
 		Goal: planning.GoalBuildMuscle, Experience: planning.ExperienceBeginner,
 		Budget:         catalog.Money{AmountMinor: 250000, Currency: "USD"},
 		AvailableSpace: recommendation.AvailableSpace{LengthMM: 3000, WidthMM: 3000, HeightMM: 2500},
-		Priorities:     []recommendation.Priority{recommendation.PriorityBudget},
+		Priorities:     []recommendation.Priority{recommendation.Priority("budget")},
 	}
 	before, err := engine.Recommend(input, candidateSnapshots(t, policy, products))
 	if err != nil {

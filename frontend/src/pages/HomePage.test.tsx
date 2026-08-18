@@ -15,7 +15,7 @@ describe('HomePage', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /build your perfect home gym/i,
+        name: /build the right software stack/i,
       }),
     ).toBeInTheDocument()
     expect(
@@ -25,7 +25,7 @@ describe('HomePage', () => {
       screen.getAllByRole('link', { name: /build my setup/i })[0],
     ).toHaveAttribute('href', '/build')
     expect(
-      screen.getAllByRole('link', { name: /explore equipment/i })[0],
+      screen.getAllByRole('link', { name: /explore categories/i })[0],
     ).toHaveAttribute('href', '/#categories')
     expect(
       screen.getAllByRole('link', { name: 'How it works' })[0],
@@ -34,13 +34,13 @@ describe('HomePage', () => {
     expect(document.getElementById('categories')).toBeInTheDocument()
     expect(document.getElementById('trust')).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: /^Adjustable dumbbells/i }),
-    ).toHaveAttribute('href', '/categories/adjustable-dumbbells')
+      screen.getByRole('link', { name: /^CRM/i }),
+    ).toHaveAttribute('href', '/categories/crm')
     expect(
       screen.getByRole('link', {
-        name: /view details for demo civic select 16 dumbbell pair/i,
+        name: /view details for demo northwind crm/i,
       }),
-    ).toHaveAttribute('href', '/products/demo-civic-select-16-pair')
+    ).toHaveAttribute('href', '/products/saas-northwind-crm')
   })
 
   it('labels illustrative catalog content and exposes comparison context', () => {
@@ -55,7 +55,7 @@ describe('HomePage', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByRole('table', {
-        name: /comparison of three fictional demo adjustable dumbbell pairs/i,
+        name: /comparison of three fictional demo business tools/i,
       }),
     ).toBeInTheDocument()
     expect(screen.queryByText(/testimonial/i)).not.toBeInTheDocument()

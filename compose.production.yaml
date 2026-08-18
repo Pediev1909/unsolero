@@ -1,0 +1,310 @@
+# Single-box production overlay.
+#
+# Runs the whole stack on one small VPS instead of managed cloud services. This
+# is the deployment shape for a launch with no infrastructure budget; it is not
+# the shape described in PHASE_13_INFRASTRUCTURE_PLAN.md, which assumes managed
+# databases with standbys and separate operator roles.
+#
+# What this trades away, explicitly:
+#   - no standby, no automatic failover, no point-in-time recovery
+#   - a host outage is a full outage, and recovery is restore-from-backup
+#   - Phase 13 gates G15 to G19 remain uncovered
+#
+# What it does not trade away: every production configuration check stays on.
+# In-network PostgreSQL and Valkey run with real TLS rather than the checks
+# being relaxed. Run scripts/generate-internal-tls.sh before the first deploy.
+#
+# Usage:
+#   docker compose -f compose.yaml -f compose.production.yaml --profile production up -d
+#
+# Caddy terminates TLS on the public interface and is the only published port.
+# The API, metrics endpoint, database and Valkey are reachable only inside the
+# Compose network.
+
+# Anchored here rather than on a service so migrate, the API and the worker all
+# share one definition. migrate performs the same full configuration validation
+# as the API, so giving it a partial environment fails startup for reasons that
+# have nothing to do with migrations.
+x-production-environment: &production-application-environment
+  APP_ENV: production
+  APP_VERSION: ${APP_VERSION:?Set APP_VERSION}
+  PUBLIC_SITE_URL: https://${PUBLIC_HOSTNAME:?Set PUBLIC_HOSTNAME}
+  RECOMMENDATION_VERTICAL: ${RECOMMENDATION_VERTICAL:-saas}
+
+  # sslmode=require encrypts without verifying the server certificate, which is
+  # what allows a self-signed PostgreSQL certificate here. The database is not
+  # reachable outside the Compose network.
+  DATABASE_URL: postgres://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}?sslmode=require
+
+  SESSION_COOKIE_SECURE: "true"
+  SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-rigmark_session}
+  MFA_ENFORCE_PRIVILEGED: "true"
+  MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a 32-byte raw-base64 key}
+
+  # The Redis client verifies the certificate chain, so the API trusts a bundle
+  # containing the public roots plus the internal CA.
+  SSL_CERT_FILE: /etc/ssl/unsolero/trust-bundle.pem
+  RATE_LIMIT_PROVIDER: redis
+  RATE_LIMIT_REDIS_URL: rediss://:${VALKEY_PASSWORD:?Set VALKEY_PASSWORD}@valkey:6379/0
+  RATE_LIMIT_KEY_SECRET: ${RATE_LIMIT_KEY_SECRET:?Set a 32-byte raw-base64 key}
+  API_REPLICA_COUNT: ${API_REPLICA_COUNT:-1}
+  TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-172.16.0.0/12}
+
+  MEDIA_STORAGE_PROVIDER: s3
+  MEDIA_S3_ENDPOINT: ${MEDIA_S3_ENDPOINT:?Set MEDIA_S3_ENDPOINT}
+  MEDIA_S3_ACCESS_KEY: ${MEDIA_S3_ACCESS_KEY:?Set MEDIA_S3_ACCESS_KEY}
+  MEDIA_S3_SECRET_KEY: ${MEDIA_S3_SECRET_KEY:?Set MEDIA_S3_SECRET_KEY}
+  MEDIA_S3_BUCKET: ${MEDIA_S3_BUCKET:?Set MEDIA_S3_BUCKET}
+  MEDIA_S3_REGION: ${MEDIA_S3_REGION:-auto}
+  MEDIA_S3_SECURE: "true"
+  MEDIA_SCAN_PROVIDER: external
+  MEDIA_SCAN_ENDPOINT: ${MEDIA_SCAN_ENDPOINT:-clamav:3310}
+
+  EMAIL_PROVIDER: smtp
+  EMAIL_SENDER_NAME: ${EMAIL_SENDER_NAME:-UNSOLERO}
+  EMAIL_SENDER_ADDRESS: ${EMAIL_SENDER_ADDRESS:?Set EMAIL_SENDER_ADDRESS}
+  EMAIL_SMTP_ADDRESS: ${EMAIL_SMTP_ADDRESS:?Set EMAIL_SMTP_ADDRESS}
+  EMAIL_SMTP_USERNAME: ${EMAIL_SMTP_USERNAME:?Set EMAIL_SMTP_USERNAME}
+  EMAIL_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD:?Set EMAIL_SMTP_PASSWORD}
+  EMAIL_SMTP_REQUIRE_TLS: "true"
+
+  ALERT_PROVIDER: webhook
+  ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:?Set ALERT_WEBHOOK_URL}
+  ALERT_WEBHOOK_TOKEN: ${ALERT_WEBHOOK_TOKEN:-}
+  METRICS_ENABLED: "true"
+  METRICS_TOKEN: ${METRICS_TOKEN:?Set METRICS_TOKEN}
+  AI_PROVIDER: disabled
+
+services:
+  # A bind mount keeps the host's ownership, and both PostgreSQL and Valkey
+  # refuse to read a private key they do not own. Rather than requiring sudo on
+  # the host to chown the generated files, this copies them into volumes with
+  # the ownership each container expects. It runs as root inside the container
+  # only, and exits before anything else starts.
+  tls-init:
+    profiles: ["production"]
+    image: alpine:3.22
+    user: "0:0"
+    command:
+      - /bin/sh
+      - -euc
+      - |
+        install -o 70  -g 70   -m 600 /source/postgres.key   /postgres-tls/postgres.key
+        install -o 70  -g 70   -m 644 /source/postgres.crt   /postgres-tls/postgres.crt
+        install -o 999 -g 1000 -m 600 /source/valkey.key     /valkey-tls/valkey.key
+        install -o 999 -g 1000 -m 644 /source/valkey.crt     /valkey-tls/valkey.crt
+        install -o 999 -g 1000 -m 644 /source/internal-ca.crt /valkey-tls/internal-ca.crt
+        echo "TLS material staged"
+    volumes:
+      - ./secrets/tls:/source:ro
+      - postgres_tls:/postgres-tls
+      - valkey_tls:/valkey-tls
+
+  postgres:
+    restart: unless-stopped
+    depends_on:
+      tls-init:
+        condition: service_completed_successfully
+    # ssl_min_protocol_version rejects the downgrade attempts that make an
+    # encrypted-but-old connection worthless.
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgres-tls/postgres.crt
+      - -c
+      - ssl_key_file=/etc/postgres-tls/postgres.key
+      - -c
+      - ssl_min_protocol_version=TLSv1.2
+      - -c
+      - max_connections=${POSTGRES_MAX_CONNECTIONS:-60}
+      - -c
+      - shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_tls:/etc/postgres-tls:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1G
+
+  valkey:
+    profiles: ["production"]
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    depends_on:
+      tls-init:
+        condition: service_completed_successfully
+    # Port 6379 is disabled so an accidental plaintext client fails loudly
+    # instead of silently sending credentials in the clear.
+    command:
+      - valkey-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${VALKEY_PASSWORD:?Set VALKEY_PASSWORD}
+      - --port
+      - "0"
+      - --tls-port
+      - "6379"
+      - --tls-cert-file
+      - /etc/valkey-tls/valkey.crt
+      - --tls-key-file
+      - /etc/valkey-tls/valkey.key
+      - --tls-ca-cert-file
+      - /etc/valkey-tls/internal-ca.crt
+      - --tls-auth-clients
+      - "no"
+      - --maxmemory
+      - ${VALKEY_MAXMEMORY:-192mb}
+      - --maxmemory-policy
+      - allkeys-lru
+    volumes:
+      - valkey_data:/data
+      - valkey_tls:/etc/valkey-tls:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - valkey-cli --tls --cacert /etc/valkey-tls/internal-ca.crt -a "$$VALKEY_PASSWORD" ping | grep -q PONG
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?Set VALKEY_PASSWORD}
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+  clamav:
+    profiles: ["production"]
+    image: clamav/clamav:1.4
+    restart: unless-stopped
+    # The signature database is the reason this container is the heaviest
+    # tenant on the box. Production configuration requires an external scanner
+    # and the API checks it at startup, so it cannot simply be omitted; if the
+    # memory matters more than image uploads, size the host up rather than
+    # turning scanning off.
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      # The first start downloads signatures, which takes minutes on a small
+      # host; a short retry budget would mark it failed while it is working.
+      retries: 20
+      start_period: 300s
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 1536M
+
+  caddy:
+    profiles: ["production"]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?Set PUBLIC_HOSTNAME}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+    depends_on:
+      web:
+        condition: service_started
+      api:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+  migrate:
+    environment: *production-application-environment
+    volumes:
+      - ./secrets/tls/trust-bundle.pem:/etc/ssl/unsolero/trust-bundle.pem:ro
+
+  api:
+    restart: unless-stopped
+    environment: *production-application-environment
+    volumes:
+      - ./secrets/tls/trust-bundle.pem:/etc/ssl/unsolero/trust-bundle.pem:ro
+    ports: !reset []
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+
+  commerce-worker:
+    restart: unless-stopped
+    environment: *production-application-environment
+    volumes:
+      - ./secrets/tls/trust-bundle.pem:/etc/ssl/unsolero/trust-bundle.pem:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+  web:
+    build:
+      context: ./frontend
+      target: production
+    restart: unless-stopped
+    environment: !reset {}
+    volumes: !reset []
+    ports: !reset []
+    depends_on: !reset []
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+volumes:
+  postgres_tls:
+  valkey_tls:
+  valkey_data:
+  clamav_data:
+  caddy_data:
+  caddy_config:

@@ -4,7 +4,7 @@ import { AuthForm } from '../features/auth/AuthForm'
 export function RegisterPage() {
   return (
     <AuthLayout
-      description="Create a private account for future saved setups and recommendations. Your equipment decisions stay grounded in your goals—not commission."
+      description="Create a private account for future saved setups and recommendations. Your software decisions stay grounded in your goals—not commission."
       eyebrow="Start with trust"
       title="Build with confidence."
     >

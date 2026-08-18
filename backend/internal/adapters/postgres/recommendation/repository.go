@@ -18,9 +18,28 @@ import (
 
 type Repository struct {
 	pool *pgxpool.Pool
+	// vertical selects which policy this deployment serves. The schema allows
+	// one active policy per vertical, so the value is what makes a pivot a
+	// configuration change rather than a code change.
+	vertical string
 }
 
-func New(pool *pgxpool.Pool) *Repository { return &Repository{pool: pool} }
+// DefaultVertical is used when no vertical is configured.
+const DefaultVertical = "fitness"
+
+func New(pool *pgxpool.Pool) *Repository {
+	return &Repository{pool: pool, vertical: DefaultVertical}
+}
+
+// NewForVertical builds a repository serving the named vertical's active
+// policy. An empty name falls back to DefaultVertical rather than matching no
+// policy at all, which would fail every recommendation at runtime.
+func NewForVertical(pool *pgxpool.Pool, vertical string) *Repository {
+	if vertical == "" {
+		vertical = DefaultVertical
+	}
+	return &Repository{pool: pool, vertical: vertical}
+}
 
 func (repository *Repository) GetDraft(ctx context.Context, userID identity.UserID) (ports.Draft, error) {
 	var draft ports.Draft

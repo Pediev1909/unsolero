@@ -10,9 +10,9 @@ import { exampleSetup } from './homeData'
 
 const profileItems = [
   ['Goal', exampleSetup.profile.goal],
-  ['Space', exampleSetup.profile.space],
+  ['Team', exampleSetup.profile.teamSize],
   ['Experience', exampleSetup.profile.experience],
-  ['Already owned', exampleSetup.profile.owned],
+  ['Already running', exampleSetup.profile.owned],
 ] as const
 
 export function ExampleSetupSection() {

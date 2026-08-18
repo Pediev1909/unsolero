@@ -18,9 +18,9 @@ export function ComparePage() {
     selection.isPending ||
     (selection.productIDs.length > 0 && products.isPending)
   usePageMetadata({
-    title: 'Compare Equipment | UNSOLERO',
+    title: 'Compare Software | UNSOLERO',
     description:
-      'Compare structured home gym product specifications side by side.',
+      'Compare structured software product facts side by side.',
     robots: 'noindex, follow',
   })
   return (
@@ -30,7 +30,7 @@ export function ComparePage() {
         <Container className="py-14 sm:py-20">
           <p className="eyebrow">Decision workspace</p>
           <Heading className="mt-5" level={1} size="display">
-            Compare equipment.
+            Compare tools.
           </Heading>
           <p className="mt-5 max-w-2xl text-ink/60">
             Select two to four products. On small screens, swipe the table
@@ -53,7 +53,7 @@ export function ComparePage() {
               selection.productIDs.length < 2 && (
                 <EmptyState
                   action={
-                    <ButtonLink to="/products">Explore equipment</ButtonLink>
+                    <ButtonLink to="/products">Explore tools</ButtonLink>
                   }
                   description="Choose at least two products from the catalog. Your selection stays in this browser, or syncs to your account when signed in."
                   title={

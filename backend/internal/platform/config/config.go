@@ -16,6 +16,11 @@ import (
 var cookieNamePattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 var providerNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,49}$`)
 
+// verticalKeyPattern matches recommendation.policy_versions.vertical_key so a
+// misconfigured vertical fails at startup instead of silently matching no
+// active policy and failing every recommendation at request time.
+var verticalKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
 const (
 	defaultReadHeaderTimeout = 5 * time.Second
 	defaultReadTimeout       = 10 * time.Second
@@ -42,6 +47,15 @@ type Config struct {
 	Analytics                 Analytics
 	Security                  Security
 	Operations                Operations
+	Recommendation            Recommendation
+}
+
+// Recommendation selects which vertical this deployment serves. The schema
+// permits one active recommendation policy per vertical, so changing this
+// value repoints the product at a different catalog and policy without a code
+// change.
+type Recommendation struct {
+	Vertical string
 }
 
 type Operations struct {
@@ -110,6 +124,10 @@ type Assets struct {
 	S3Bucket              string
 	S3Region              string
 	S3Secure              bool
+	// ScanEndpoint and ScanTimeout configure the external malware scanner.
+	// They are only read when ScanProvider is "external".
+	ScanEndpoint string
+	ScanTimeout  time.Duration
 }
 
 type Auth struct {
@@ -384,6 +402,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	mediaScanTimeout, err := durationValue("MEDIA_SCAN_TIMEOUT", 20*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
 	allowInsecureLocalStaging, err := boolValue("ALLOW_INSECURE_LOCAL_STAGING", false)
 	if err != nil {
 		return Config{}, err
@@ -467,6 +489,8 @@ func Load() (Config, error) {
 			ProductImageDirectory: valueOrDefault("PRODUCT_IMAGE_UPLOAD_DIR", "./uploads/products"),
 			StorageProvider:       valueOrDefault("MEDIA_STORAGE_PROVIDER", "local"),
 			ScanProvider:          valueOrDefault("MEDIA_SCAN_PROVIDER", "development"),
+			ScanEndpoint:          os.Getenv("MEDIA_SCAN_ENDPOINT"),
+			ScanTimeout:           mediaScanTimeout,
 			S3Endpoint:            os.Getenv("MEDIA_S3_ENDPOINT"),
 			S3AccessKey:           os.Getenv("MEDIA_S3_ACCESS_KEY"),
 			S3SecretKey:           os.Getenv("MEDIA_S3_SECRET_KEY"),
@@ -474,7 +498,8 @@ func Load() (Config, error) {
 			S3Region:              os.Getenv("MEDIA_S3_REGION"),
 			S3Secure:              s3Secure,
 		},
-		Site: Site{PublicURL: strings.TrimRight(valueOrDefault("PUBLIC_SITE_URL", "http://localhost:5173"), "/")},
+		Site:           Site{PublicURL: strings.TrimRight(valueOrDefault("PUBLIC_SITE_URL", "http://localhost:5173"), "/")},
+		Recommendation: Recommendation{Vertical: valueOrDefault("RECOMMENDATION_VERTICAL", "fitness")},
 		AI: AI{
 			Provider:         valueOrDefault("AI_PROVIDER", "disabled"),
 			Model:            os.Getenv("AI_MODEL"),
@@ -651,8 +676,23 @@ func Load() (Config, error) {
 			return Config{}, errors.New("MEDIA_S3_ENDPOINT must not target a loopback service in production")
 		}
 	}
+	if cfg.Assets.ScanProvider == "external" {
+		if strings.TrimSpace(cfg.Assets.ScanEndpoint) == "" {
+			return Config{}, errors.New("MEDIA_SCAN_ENDPOINT is required when MEDIA_SCAN_PROVIDER is external")
+		}
+		scanURL, scanErr := url.Parse("//" + cfg.Assets.ScanEndpoint)
+		if scanErr != nil || scanURL.Hostname() == "" || scanURL.Port() == "" {
+			return Config{}, errors.New("MEDIA_SCAN_ENDPOINT must be a host and port")
+		}
+		if cfg.Assets.ScanTimeout < time.Second || cfg.Assets.ScanTimeout > time.Minute {
+			return Config{}, errors.New("MEDIA_SCAN_TIMEOUT must be between 1s and 1m")
+		}
+	}
 	if strictDeployedEnvironment && cfg.Assets.ScanProvider != "external" {
 		return Config{}, errors.New("hosted staging and production require an external media scanning adapter")
+	}
+	if !verticalKeyPattern.MatchString(cfg.Recommendation.Vertical) {
+		return Config{}, errors.New("RECOMMENDATION_VERTICAL must be a lowercase key such as fitness or saas")
 	}
 	if !providerNamePattern.MatchString(cfg.AI.Provider) || cfg.AI.Timeout <= 0 ||
 		cfg.AI.MaxResponseBytes < 1_024 || cfg.AI.MaxResponseBytes > 1_048_576 {

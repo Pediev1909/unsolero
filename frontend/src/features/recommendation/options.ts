@@ -1,138 +1,115 @@
 import type { BuilderValues } from './schemas'
 
+// Every value below must exist in the active recommendation policy. The engine
+// validates membership rather than shape, so an option that drifts out of the
+// policy is rejected at submission instead of quietly scoring as no match.
+
 export const goalOptions = [
   {
-    value: 'build_muscle',
-    label: 'Build muscle',
-    description: 'A balanced hypertrophy setup for progressive resistance.',
+    value: 'client_services',
+    label: 'Run a client services business',
+    description: 'Win work, deliver it, and get paid without losing track.',
   },
   {
-    value: 'strength',
-    label: 'Get stronger',
-    description: 'Prioritize load, stability and long-term progression.',
+    value: 'sell_products_online',
+    label: 'Sell products online',
+    description: 'A storefront, payments, and a way to reach buyers again.',
   },
   {
-    value: 'general_fitness',
-    label: 'General fitness',
-    description: 'A versatile setup for strength, movement and conditioning.',
+    value: 'creator_business',
+    label: 'Run a creator business',
+    description: 'An audience you own, and something worth selling them.',
   },
   {
-    value: 'weight_loss',
-    label: 'Improve conditioning',
-    description: 'Efficient equipment for consistent, repeatable training.',
+    value: 'software_product',
+    label: 'Run a software product',
+    description: 'Measure what users do, support them, and ship changes.',
   },
   {
-    value: 'mobility',
-    label: 'Move better',
-    description: 'Low-impact tools for mobility, control and resilience.',
+    value: 'solo_consulting',
+    label: 'Work solo as a consultant',
+    description: 'Few clients, tight admin, no time for tool maintenance.',
   },
 ] as const
 
 export const experienceOptions = [
   {
     value: 'beginner',
-    label: 'Beginner',
-    description: 'I am building consistency and learning the fundamentals.',
+    label: 'No dedicated admin',
+    description: 'Nobody is paid to configure or maintain tools.',
   },
   {
     value: 'intermediate',
-    label: 'Intermediate',
-    description: 'I train regularly and know the movements I prefer.',
+    label: 'Someone owns the tooling',
+    description: 'One person keeps the stack tidy alongside other work.',
   },
   {
     value: 'advanced',
-    label: 'Advanced',
-    description: 'I need equipment that supports serious progression.',
+    label: 'Comfortable with technical setup',
+    description: 'APIs, automations, and migrations are not a barrier.',
   },
 ] as const
 
-export const spacePresetOptions = [
-  {
-    value: 'small_apartment',
-    label: 'Small apartment',
-    description: 'A compact training zone with close neighbors.',
-  },
-  {
-    value: 'spare_room',
-    label: 'Spare room',
-    description: 'A dedicated room with moderate floor space.',
-  },
-  {
-    value: 'half_garage',
-    label: 'Half garage',
-    description: 'Room for larger equipment while sharing the space.',
-  },
-  {
-    value: 'full_garage',
-    label: 'Full garage',
-    description: 'A dedicated footprint with generous clearance.',
-  },
-] as const
-
-export const equipmentOptions = [
-  { name: 'Pull-up bar', category_slug: 'pull-up-bars' },
-  { name: 'Adjustable dumbbells', category_slug: 'adjustable-dumbbells' },
-  { name: 'Training bench', category_slug: 'benches' },
-  { name: 'Resistance bands', category_slug: 'resistance-bands' },
-  { name: 'Kettlebell', category_slug: 'kettlebells' },
-  { name: 'Barbell', category_slug: 'barbells' },
+export const existingToolOptions = [
+  { name: 'Team chat', category_slug: 'team-communication' },
+  { name: 'CRM', category_slug: 'crm' },
+  { name: 'Project management', category_slug: 'project-management' },
+  { name: 'Invoicing or accounting', category_slug: 'accounting-invoicing' },
+  { name: 'Email marketing', category_slug: 'email-marketing' },
+  { name: 'Website builder', category_slug: 'website-builder' },
 ] as const
 
 export const preferenceOptions = [
-  { value: 'dumbbells', label: 'Dumbbells' },
-  { value: 'barbell', label: 'Barbell training' },
-  { value: 'kettlebell', label: 'Kettlebells' },
-  { value: 'resistance_bands', label: 'Resistance bands' },
-  { value: 'bodyweight', label: 'Bodyweight' },
-  { value: 'cardio', label: 'Cardio' },
-  { value: 'low_impact', label: 'Low impact' },
+  { value: 'all_in_one', label: 'One suite over many tools' },
+  { value: 'best_of_breed', label: 'The strongest tool per job' },
+  { value: 'open_source', label: 'Open source' },
+  { value: 'no_code', label: 'No-code' },
+  { value: 'api_first', label: 'API-first' },
+  { value: 'privacy_focused', label: 'Privacy-focused vendors' },
+  { value: 'eu_hosted', label: 'EU-hosted data' },
 ] as const
 
 export const priorityOptions = [
   { value: 'budget', label: 'Best value' },
-  { value: 'compact', label: 'Compact footprint' },
-  { value: 'quality', label: 'Build quality' },
-  { value: 'durability', label: 'Long-term durability' },
-  { value: 'quiet', label: 'Quiet training' },
-  { value: 'portability', label: 'Easy to move' },
+  { value: 'ease_of_use', label: 'Easy to adopt' },
+  { value: 'integrations', label: 'Connects to my stack' },
+  { value: 'reliability', label: 'Reliability' },
+  { value: 'vendor_stability', label: 'Vendor stability' },
+  { value: 'data_portability', label: 'Data portability' },
 ] as const
 
+// Seven steps. A software stack has no room to measure, so the physical space
+// question that the equipment vertical asks does not exist here.
 export const steps = [
   {
     label: 'Goal',
-    title: 'What do you want your training to achieve?',
+    title: 'What does your business do?',
     supporting:
-      'We use this to decide which capabilities your setup must cover.',
+      'We use this to decide which jobs your stack has to cover.',
   },
   {
-    label: 'Experience',
-    title: 'Where are you in your training journey?',
+    label: 'Team',
+    title: 'Who will look after these tools?',
     supporting:
-      'The right equipment should support your current skill without limiting your next step.',
-  },
-  {
-    label: 'Space',
-    title: 'Where will you train?',
-    supporting:
-      'Choose the closest match. We apply real product dimensions and apartment suitability.',
+      'A tool nobody is paid to maintain gets abandoned. We weigh setup cost accordingly.',
   },
   {
     label: 'Budget',
-    title: 'What is your complete setup budget?',
+    title: 'What can you spend per month?',
     supporting:
       'We will stay inside this amount—not treat it as a target to spend.',
   },
   {
-    label: 'Owned',
-    title: 'What do you already own?',
+    label: 'Current stack',
+    title: 'What do you already run?',
     supporting:
-      'We will avoid redundant equipment and account for useful compatibility.',
+      'We avoid tools that duplicate these, and favour ones that connect to them.',
   },
   {
-    label: 'Training',
-    title: 'How do you like to train?',
+    label: 'Preferences',
+    title: 'How do you prefer to buy software?',
     supporting:
-      'Choose at least one. Your preferences refine the ranking after hard constraints.',
+      'Choose at least one. Preferences refine the ranking after hard constraints.',
   },
   {
     label: 'Priorities',
@@ -150,4 +127,3 @@ export const steps = [
 
 export type GoalValue = Exclude<BuilderValues['goal'], ''>
 export type ExperienceValue = Exclude<BuilderValues['experience'], ''>
-export type SpacePresetValue = Exclude<BuilderValues['space_preset'], ''>

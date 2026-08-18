@@ -131,17 +131,21 @@ func (attribute Attribute) Validate() error {
 }
 
 type Product struct {
-	ID               ProductID
-	CategoryID       CategoryID
-	CategoryName     string
-	CategorySlug     string
-	BrandID          BrandID
-	BrandName        string
-	BrandSlug        string
-	Name             string
-	Slug             string
-	Description      string
-	Price            Money
+	ID           ProductID
+	CategoryID   CategoryID
+	CategoryName string
+	CategorySlug string
+	BrandID      BrandID
+	BrandName    string
+	BrandSlug    string
+	Name         string
+	Slug         string
+	Description  string
+	Price        Money
+	// IsPhysical mirrors the product category. A non-physical product (for
+	// example a software subscription) carries no dimensions, weight or
+	// material, and those fields stay at their zero value.
+	IsPhysical       bool
 	Dimensions       Dimensions
 	WeightGrams      int64
 	MaxCapacityGrams *int64
@@ -250,17 +254,27 @@ func (product Product) Validate() error {
 	if err := product.Price.Validate(); err != nil {
 		return fmt.Errorf("price: %w", err)
 	}
-	if err := product.Dimensions.Validate(); err != nil {
-		return fmt.Errorf("dimensions: %w", err)
+	if product.IsPhysical {
+		if err := product.Dimensions.Validate(); err != nil {
+			return fmt.Errorf("dimensions: %w", err)
+		}
+		if product.WeightGrams <= 0 {
+			return errors.New("product weight must be positive")
+		}
+		if product.MaxCapacityGrams != nil && *product.MaxCapacityGrams <= 0 {
+			return errors.New("maximum capacity must be positive when supplied")
+		}
+		if strings.TrimSpace(product.Material) == "" {
+			return errors.New("material is required")
+		}
+	} else if product.Dimensions != (Dimensions{}) || product.WeightGrams != 0 ||
+		product.MaxCapacityGrams != nil || strings.TrimSpace(product.Material) != "" {
+		// Rejected rather than ignored: a stray footprint on a software
+		// product would be scored as a real measurement by the engine.
+		return errors.New("a non-physical product must not carry physical attributes")
 	}
-	if product.WeightGrams <= 0 {
-		return errors.New("product weight must be positive")
-	}
-	if product.MaxCapacityGrams != nil && *product.MaxCapacityGrams <= 0 {
-		return errors.New("maximum capacity must be positive when supplied")
-	}
-	if strings.TrimSpace(product.Material) == "" || product.WarrantyMonths < 0 {
-		return errors.New("material is required and warranty cannot be negative")
+	if product.WarrantyMonths < 0 {
+		return errors.New("warranty cannot be negative")
 	}
 	if err := product.Scores.Validate(); err != nil {
 		return err

@@ -104,7 +104,7 @@ export function InteractionShowcase() {
           }
           onOpenChange={setModalOpen}
           open={modalOpen}
-          title="Confirm equipment choice"
+          title="Confirm tool choice"
         >
           <p className="text-sm leading-6 text-ink/65">
             Product decisions should remain understandable before the user
@@ -120,7 +120,7 @@ export function InteractionShowcase() {
           }
           onOpenChange={setDrawerOpen}
           open={drawerOpen}
-          title="Refine equipment"
+          title="Refine selection"
         >
           <div className="space-y-6 text-sm leading-6 text-ink/65">
             <p>
@@ -137,7 +137,7 @@ export function InteractionShowcase() {
         title="Loading and outcomes"
       >
         <div className="grid gap-4 xl:grid-cols-3">
-          <LoadingState compact title="Comparing equipment" />
+          <LoadingState compact title="Comparing tools" />
           <ErrorState
             compact
             onRetry={() =>
@@ -151,7 +151,7 @@ export function InteractionShowcase() {
           <EmptyState
             compact
             title="No saved setups"
-            description="Saved equipment plans will appear here."
+            description="Saved stack plans will appear here."
           />
         </div>
         <div

@@ -20,7 +20,7 @@ export function MobileNavigation({
 
   return (
     <Drawer
-      description="Equipment decisions grounded in your space, goals, and budget."
+      description="Software decisions grounded in your goals, budget, and current stack."
       onOpenChange={onOpenChange}
       open={open}
       title="Navigate"

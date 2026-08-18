@@ -1,4 +1,4 @@
-import { Boxes, House, WalletCards } from 'lucide-react'
+import { Boxes, Plug, WalletCards } from 'lucide-react'
 
 import { Container } from '../ui/Container'
 import { Heading } from '../ui/Heading'
@@ -6,19 +6,19 @@ import { Section } from '../ui/Section'
 
 const reasons = [
   {
-    icon: House,
-    title: 'Your space changes the answer',
-    copy: 'Ceiling height, floor area, storage, neighbors, and shared rooms can rule out otherwise excellent equipment.',
+    icon: Plug,
+    title: 'What you already run changes the answer',
+    copy: 'A tool that does not connect to your stack costs somebody an afternoon a week, which is more than either subscription.',
   },
   {
     icon: WalletCards,
     title: 'Your budget needs a sequence',
-    copy: 'A good plan protects room for the essentials and identifies the upgrades that can genuinely wait.',
+    copy: 'A good plan covers what stops work or stops payment first, and names the tools that can genuinely wait.',
   },
   {
     icon: Boxes,
-    title: 'Your existing gear has value',
-    copy: 'What you already own should reduce redundancy and change which movement patterns need equipment next.',
+    title: 'Overlap is money you already spend',
+    copy: 'Suites grow into each other. What you own should remove options, not sit unnoticed beside a second tool doing the same job.',
   },
 ]
 
@@ -30,7 +30,7 @@ export function PersonalizationSection() {
           <div>
             <p className="eyebrow">Why personalized</p>
             <Heading className="mt-5 max-w-xl" level={2} size="section">
-              There is no universal best home gym.
+              There is no universal best stack.
             </Heading>
           </div>
           <div className="border-t border-ink/15">

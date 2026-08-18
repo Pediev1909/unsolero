@@ -6,12 +6,11 @@ import { Textarea } from '../../../components/ui/Textarea'
 import { formatMinorCurrency } from '../../../lib/money/format'
 import type { BuilderValues } from '../schemas'
 import {
-  equipmentOptions,
+  existingToolOptions,
   experienceOptions,
   goalOptions,
   preferenceOptions,
   priorityOptions,
-  spacePresetOptions,
 } from '../options'
 import { ChoiceCard } from './ChoiceCard'
 
@@ -63,25 +62,6 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
   }
   if (step === 2) {
     return (
-      <div className="grid gap-3 md:grid-cols-2">
-        {spacePresetOptions.map((option) => (
-          <ChoiceCard
-            checked={values.space_preset === option.value}
-            description={option.description}
-            key={option.value}
-            label={option.label}
-            name="space"
-            onChange={() =>
-              form.setValue('space_preset', option.value, { shouldDirty: true })
-            }
-            value={option.value}
-          />
-        ))}
-      </div>
-    )
-  }
-  if (step === 3) {
-    return (
       <div className="max-w-2xl space-y-8 border border-ink/15 bg-surface p-5 sm:p-8">
         <Controller
           control={form.control}
@@ -118,11 +98,11 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
       </div>
     )
   }
-  if (step === 4) {
+  if (step === 3) {
     return (
       <div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {equipmentOptions.map((option) => {
+          {existingToolOptions.map((option) => {
             const checked = values.existing_equipment.some(
               (item) => item.category_slug === option.category_slug,
             )
@@ -153,7 +133,7 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
       </div>
     )
   }
-  if (step === 5) {
+  if (step === 4) {
     return (
       <MultiChoice
         options={preferenceOptions}
@@ -164,7 +144,7 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
       />
     )
   }
-  if (step === 6) {
+  if (step === 5) {
     return (
       <MultiChoice
         options={priorityOptions}

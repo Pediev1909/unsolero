@@ -10,131 +10,135 @@ export interface ComparisonProduct {
   name: string
   shortName: string
   priceMinor: number
-  maximumWeight: string
-  beginnerScore: number
-  apartmentScore: number
+  /** Which tier the price refers to. Software is tiered, so a bare price is
+   *  ambiguous without saying what it buys. */
+  planLabel: string
+  easeScore: number
+  /** How well the tool connects to the rest of a stack. This is the dimension
+   *  that separates a coherent stack from a pile of subscriptions. */
+  integrationScore: number
   verdict: string
   recommended?: boolean
 }
 
 export const exampleSetup = {
   profile: {
-    goal: 'Build muscle',
-    space: 'Small apartment',
-    experience: 'Beginner',
-    budgetMinor: 70000,
-    owned: 'Pull-up bar',
+    goal: 'Run a client services business',
+    teamSize: '4 people',
+    experience: 'No dedicated admin',
+    budgetMinor: 12000,
+    owned: 'Team chat',
   },
   items: [
     {
-      name: 'Demo Civic Select 16 Dumbbell Pair',
-      reason: 'Broad exercise range without taking over the room.',
-      priceMinor: 19900,
+      name: 'Demo Pocket CRM',
+      reason: 'Shared client records without a setup project.',
+      priceMinor: 900,
     },
     {
-      name: 'Demo Oak & Iron Foldaway Flat Bench',
-      reason: 'Adds supported pressing and folds away after training.',
-      priceMinor: 14900,
+      name: 'Demo Loop Projects',
+      reason: 'Delivery tracking that connects to the client record.',
+      priceMinor: 1900,
     },
     {
-      name: 'Demo Kinetic House Starter Band Set',
-      reason: 'Low-cost accessory work, warm-ups, and progression.',
-      priceMinor: 3900,
+      name: 'Demo Ledgerly Books',
+      reason: 'Invoices generated from what was actually agreed.',
+      priceMinor: 1500,
     },
   ] satisfies SetupItem[],
-  totalMinor: 38700,
-  remainingMinor: 31300,
+  totalMinor: 4300,
+  remainingMinor: 7700,
   rejected:
-    'A rack, barbell, and plates were left out: they duplicate useful movement patterns at this stage and consume most of the available space and budget.',
+    'A help desk and an analytics tool were left out: at four people they duplicate work the inbox and the project tool already cover, and neither stops work or stops payment.',
   upgrade:
-    'Add a heavier adjustable kettlebell when the dumbbells stop challenging lower-body movements.',
+    'Add scheduling once client booking becomes the bottleneck rather than a convenience.',
 }
 
 export const comparisonProducts: ComparisonProduct[] = [
   {
-    name: 'Demo Civic Select 16 Dumbbell Pair',
-    shortName: 'Civic Select 16',
-    priceMinor: 19900,
-    maximumWeight: '16 kg / hand',
-    beginnerScore: 97,
-    apartmentScore: 96,
+    name: 'Demo Pocket CRM',
+    shortName: 'Pocket CRM',
+    priceMinor: 900,
+    planLabel: 'Entry plan, monthly',
+    easeScore: 90,
+    integrationScore: 74,
     verdict: 'Best fit for this brief',
     recommended: true,
   },
   {
-    name: 'Demo QuietForm Dial 20 Dumbbell Pair',
-    shortName: 'QuietForm Dial 20',
-    priceMinor: 27900,
-    maximumWeight: '20 kg / hand',
-    beginnerScore: 93,
-    apartmentScore: 95,
-    verdict: 'More range, higher cost',
+    name: 'Demo Northwind CRM',
+    shortName: 'Northwind CRM',
+    priceMinor: 2900,
+    planLabel: 'Entry plan, monthly',
+    easeScore: 78,
+    integrationScore: 92,
+    verdict: 'Connects to more, costs more',
   },
   {
-    name: 'Demo Northline Nest 24 Dumbbell Pair',
-    shortName: 'Northline Nest 24',
-    priceMinor: 32900,
-    maximumWeight: '24 kg / hand',
-    beginnerScore: 91,
-    apartmentScore: 91,
-    verdict: 'Better long-term headroom',
+    name: 'Demo Metricly Insights',
+    shortName: 'Metricly Insights',
+    priceMinor: 2600,
+    planLabel: 'Entry plan, monthly',
+    easeScore: 64,
+    integrationScore: 80,
+    verdict: 'Useful later, not at this size',
   },
 ]
 
 export const featuredProducts: ProductCardData[] = [
   {
-    id: 'demo-civic-select-16-pair',
-    href: '/products/demo-civic-select-16-pair',
-    name: 'Demo Civic Select 16 Dumbbell Pair',
-    brand: 'Demo Civic Strength',
-    category: 'Adjustable dumbbells',
-    priceMinor: 19900,
+    id: 'saas-northwind-crm',
+    href: '/products/saas-northwind-crm',
+    name: 'Demo Northwind CRM',
+    brand: 'Demo Northwind Software',
+    category: 'CRM',
+    priceMinor: 2900,
     currency: 'USD',
     image: {
-      src: '/images/demo-adjustable-dumbbells.webp',
-      alt: 'Illustrative studio image of a fictional adjustable dumbbell pair',
+      src: '/images/saas-crm.webp',
+      alt: 'Illustrative interface image for a fictional CRM product',
     },
     badge: { label: 'Demo product', variant: 'neutral' },
   },
   {
-    id: 'demo-oak-iron-foldaway-flat-bench',
-    href: '/products/demo-oak-iron-foldaway-flat-bench',
-    name: 'Demo Oak & Iron Foldaway Flat Bench',
-    brand: 'Demo Oak & Iron',
-    category: 'Benches',
-    priceMinor: 14900,
+    id: 'saas-loop-projects',
+    href: '/products/saas-loop-projects',
+    name: 'Demo Loop Projects',
+    brand: 'Demo Looplane',
+    category: 'Project management',
+    priceMinor: 1900,
     currency: 'USD',
     image: {
-      src: '/images/demo-foldaway-bench.webp',
-      alt: 'Illustrative studio image of a fictional flat workout bench',
+      src: '/images/saas-project-management.webp',
+      alt: 'Illustrative interface image for a fictional project management product',
     },
     badge: { label: 'Demo product', variant: 'neutral' },
   },
   {
-    id: 'demo-range-lab-adjustable-20-kettlebell',
-    href: '/products/demo-range-lab-adjustable-20-kettlebell',
-    name: 'Demo Range Lab Adjustable 20 Kettlebell',
-    brand: 'Demo Range Lab',
-    category: 'Kettlebells',
-    priceMinor: 15900,
+    id: 'saas-ledgerly-books',
+    href: '/products/saas-ledgerly-books',
+    name: 'Demo Ledgerly Books',
+    brand: 'Demo Ledgerly',
+    category: 'Accounting and invoicing',
+    priceMinor: 1500,
     currency: 'USD',
     image: {
-      src: '/images/demo-adjustable-kettlebell.webp',
-      alt: 'Illustrative studio image of a fictional adjustable kettlebell',
+      src: '/images/saas-invoicing.webp',
+      alt: 'Illustrative interface image for a fictional invoicing product',
     },
     badge: { label: 'Demo product', variant: 'neutral' },
   },
   {
-    id: 'demo-kinetic-house-starter-band-set',
-    href: '/products/demo-kinetic-house-starter-band-set',
-    name: 'Demo Kinetic House Starter Band Set',
-    brand: 'Demo Kinetic House',
-    category: 'Resistance bands',
-    priceMinor: 3900,
+    id: 'saas-beacon-mail',
+    href: '/products/saas-beacon-mail',
+    name: 'Demo Beacon Mail',
+    brand: 'Demo Beacon',
+    category: 'Email marketing',
+    priceMinor: 2400,
     currency: 'USD',
     image: {
-      src: '/images/demo-resistance-bands.webp',
-      alt: 'Illustrative studio image of a fictional resistance band set',
+      src: '/images/saas-email-marketing.webp',
+      alt: 'Illustrative interface image for a fictional email marketing product',
     },
     badge: { label: 'Demo product', variant: 'neutral' },
   },

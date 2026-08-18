@@ -44,7 +44,7 @@ metrics or reconciliation inputs can enter recommendation scoring.
 
 ## 0. Architectural position
 
-UNSOLERO is a trusted fitness-equipment decision engine, not a generic chatbot, advertising directory, or merchant storefront. Its core responsibility is to produce reproducible, evidence-backed equipment decisions from a user's goals and constraints.
+UNSOLERO is a trusted decision engine, not a generic chatbot, advertising directory, or merchant storefront. Its core responsibility is to produce reproducible, evidence-backed product decisions from a user's goals and constraints. The product domain is selected per deployment; the engine holds no vertical-specific vocabulary.
 
 The initial system will be a **modular monolith**:
 

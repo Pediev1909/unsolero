@@ -36,12 +36,16 @@ type ProductPage struct {
 }
 
 type ProductInput struct {
-	CategoryID       catalog.CategoryID
-	BrandID          catalog.BrandID
-	Name             string
-	Slug             string
-	Description      string
-	Price            catalog.Money
+	CategoryID  catalog.CategoryID
+	BrandID     catalog.BrandID
+	Name        string
+	Slug        string
+	Description string
+	Price       catalog.Money
+	// IsPhysical mirrors the target category. A non-physical product leaves
+	// the physical attributes below at their zero value and they are stored
+	// as nulls.
+	IsPhysical       bool
 	Dimensions       catalog.Dimensions
 	WeightGrams      int64
 	MaxCapacityGrams *int64

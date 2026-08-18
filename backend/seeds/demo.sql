@@ -665,6 +665,46 @@ WHERE products.id = facts.product_id
 -- Data-driven recommendation policy fixture. This is intentionally limited to
 -- the fictional development catalog; new categories/products remain excluded
 -- until explicitly configured and reviewed.
+-- Preference and priority vocabulary for the fictional fitness policy. These
+-- moved out of Go constants into policy data, and the fitness vertical is demo
+-- data, so its vocabulary belongs here rather than in a migration. The draft
+-- guard matches every other policy insert below: an activated policy is
+-- immutable and must not be edited in place.
+INSERT INTO recommendation.policy_preference_tags (policy_version, tag_key, label)
+SELECT 'fitness-v2', tags.tag_key, tags.label
+FROM (VALUES
+ ('dumbbells','Dumbbells'), ('barbell','Barbell'), ('kettlebell','Kettlebell'),
+ ('resistance_bands','Resistance bands'), ('bodyweight','Bodyweight'),
+ ('cardio','Cardio'), ('low_impact','Low impact')
+) AS tags(tag_key, label)
+WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO recommendation.policy_priorities
+ (policy_version, priority_key, label, reason_code, reason_message, reason_dimension, reason_threshold, sort_order)
+SELECT 'fitness-v2', priorities.priority_key, priorities.label, priorities.reason_code,
+       priorities.reason_message, priorities.reason_dimension, priorities.reason_threshold, priorities.sort_order
+FROM (VALUES
+ ('budget','Budget','priority.value','Strong value for the available budget','value',85,0),
+ ('compact','Compact','priority.compact','Uses your available space efficiently','space_match',85,1),
+ ('quality','Quality','priority.quality','Strong structured quality score','quality',85,2),
+ ('durability','Durability','priority.durability','Strong structured durability score','durability',85,3),
+ ('quiet','Quiet','priority.quiet','Well suited to quieter training','noise',85,4),
+ ('portability','Portability','priority.portable','Easy to move or store','portability',85,5)
+) AS priorities(priority_key, label, reason_code, reason_message, reason_dimension, reason_threshold, sort_order)
+WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO recommendation.policy_priority_dimensions (policy_version, priority_key, dimension)
+SELECT 'fitness-v2', dimensions.priority_key, dimensions.dimension
+FROM (VALUES
+ ('budget','budget_match'), ('budget','value'), ('compact','space_match'),
+ ('quality','quality'), ('durability','durability'), ('quiet','noise'),
+ ('portability','portability')
+) AS dimensions(priority_key, dimension)
+WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='fitness-v2' AND workflow_status='draft')
+ON CONFLICT DO NOTHING;
+
 INSERT INTO recommendation.category_policies (policy_version,category_id,support_status)
 SELECT 'fitness-v2', id, 'supported' FROM catalog.categories
 WHERE slug IN ('adjustable-dumbbells','benches','power-racks','barbells','weight-plates','kettlebells','resistance-bands','cardio-machines')

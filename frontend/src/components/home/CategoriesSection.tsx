@@ -1,13 +1,13 @@
 import {
   ArrowUpRight,
-  Bike,
-  Blocks,
-  CircleDot,
-  Dumbbell,
-  Gauge,
-  Layers3,
-  StretchHorizontal,
-  Weight,
+  BarChart3,
+  CalendarClock,
+  Contact,
+  CreditCard,
+  FileText,
+  LifeBuoy,
+  Mail,
+  Workflow,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -17,54 +17,54 @@ import { Section } from '../ui/Section'
 
 const categories = [
   {
-    name: 'Adjustable dumbbells',
-    slug: 'adjustable-dumbbells',
-    note: 'Strength with a small footprint',
-    icon: Dumbbell,
+    name: 'CRM',
+    slug: 'crm',
+    note: 'One shared record of every client',
+    icon: Contact,
   },
   {
-    name: 'Benches',
-    slug: 'benches',
-    note: 'Flat, incline, and folding',
-    icon: Layers3,
+    name: 'Project management',
+    slug: 'project-management',
+    note: 'Who is doing what, and what is late',
+    icon: Workflow,
   },
   {
-    name: 'Power racks',
-    slug: 'power-racks',
-    note: 'Barbell training foundations',
-    icon: Blocks,
+    name: 'Accounting and invoicing',
+    slug: 'accounting-invoicing',
+    note: 'Bill from what was agreed',
+    icon: FileText,
   },
   {
-    name: 'Barbells',
-    slug: 'barbells',
-    note: 'Technique and general-purpose bars',
-    icon: StretchHorizontal,
+    name: 'Email marketing',
+    slug: 'email-marketing',
+    note: 'Reach an audience you own',
+    icon: Mail,
   },
   {
-    name: 'Weight plates',
-    slug: 'weight-plates',
-    note: 'Iron, bumper, and coated sets',
-    icon: CircleDot,
+    name: 'Help desk',
+    slug: 'help-desk',
+    note: 'Shared inbox and ticketing',
+    icon: LifeBuoy,
   },
   {
-    name: 'Kettlebells',
-    slug: 'kettlebells',
-    note: 'Fixed and adjustable loads',
-    icon: Weight,
+    name: 'Analytics',
+    slug: 'analytics',
+    note: 'Measure what actually happened',
+    icon: BarChart3,
   },
   {
-    name: 'Resistance bands',
-    slug: 'resistance-bands',
-    note: 'Portable, versatile resistance',
-    icon: Gauge,
+    name: 'Scheduling',
+    slug: 'scheduling',
+    note: 'Let clients book without email',
+    icon: CalendarClock,
   },
   {
-    name: 'Cardio machines',
-    slug: 'cardio-machines',
-    note: 'Home-oriented conditioning',
-    icon: Bike,
+    name: 'Payments',
+    slug: 'payments',
+    note: 'Take money without friction',
+    icon: CreditCard,
   },
-]
+] as const
 
 export function CategoriesSection() {
   return (
@@ -72,7 +72,7 @@ export function CategoriesSection() {
       <Container>
         <div className="grid gap-7 lg:grid-cols-[0.85fr_1.15fr] lg:items-end lg:gap-24">
           <div>
-            <p className="eyebrow">Explore equipment</p>
+            <p className="eyebrow">Explore categories</p>
             <Heading className="mt-5 max-w-xl" level={2} size="section">
               Start with the role, not the product.
             </Heading>

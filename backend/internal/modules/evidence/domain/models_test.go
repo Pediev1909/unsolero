@@ -35,6 +35,7 @@ func validRevisionInput() RevisionInput {
 	product := catalog.Product{ID: "product", CategoryID: "category", BrandID: "brand",
 		Name: "Product", Slug: "product", Description: "Description",
 		Price:       catalog.Money{AmountMinor: 100, Currency: "USD"},
+		IsPhysical:  true,
 		Dimensions:  catalog.Dimensions{LengthMM: 1, WidthMM: 1, HeightMM: 1},
 		WeightGrams: 1, Material: "Steel", WarrantyMonths: 0,
 		Scores: catalog.Scores{Quality: 80, Value: 80, Durability: 80, Beginner: 80,
@@ -50,4 +51,43 @@ func validRevisionInput() RevisionInput {
 			ObservationID: "observation", Rationale: "Evidence-backed rationale"})
 	}
 	return input
+}
+
+func TestNonPhysicalRevisionDoesNotRequirePhysicalProvenance(t *testing.T) {
+	input := validRevisionInput()
+	input.Product.IsPhysical = false
+	input.Product.Dimensions = catalog.Dimensions{}
+	input.Product.WeightGrams = 0
+	input.Product.Material = ""
+	input.Product.MaxCapacityGrams = nil
+
+	links := make([]FactLink, 0, len(input.FactLinks))
+	for _, link := range input.FactLinks {
+		switch link.FactKey {
+		case "dimensions", "weight", "material", "max_capacity":
+			continue
+		}
+		links = append(links, link)
+	}
+	input.FactLinks = links
+
+	if err := input.Validate(); err != nil {
+		t.Fatalf("Validate() demanded physical provenance for a non-physical product: %v", err)
+	}
+}
+
+func TestPhysicalRevisionStillRequiresPhysicalProvenance(t *testing.T) {
+	input := validRevisionInput()
+	links := make([]FactLink, 0, len(input.FactLinks))
+	for _, link := range input.FactLinks {
+		if link.FactKey == "dimensions" {
+			continue
+		}
+		links = append(links, link)
+	}
+	input.FactLinks = links
+
+	if err := input.Validate(); err == nil {
+		t.Fatal("Validate() accepted a physical product without dimension provenance")
+	}
 }

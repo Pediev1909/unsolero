@@ -72,7 +72,7 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
     >
       <table className="w-full min-w-[44rem] border-collapse text-left text-sm">
         <caption className="sr-only">
-          Structured equipment facts for the selected products
+          Structured product facts for the selected tools
         </caption>
         <thead>
           <tr>

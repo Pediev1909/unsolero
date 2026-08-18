@@ -1,4 +1,4 @@
-import { ArrowRight, Dumbbell, LogOut } from 'lucide-react'
+import { ArrowRight, Layers3, LogOut } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { SiteFooter } from '../components/layout/SiteFooter'
@@ -96,7 +96,7 @@ export function AccountPage() {
             )}
             {setups.data?.setups.length === 0 && (
               <div className="mt-6 border border-ink/15 bg-surface p-6 sm:p-8">
-                <Dumbbell
+                <Layers3
                   aria-hidden="true"
                   className="text-bronze"
                   size={24}

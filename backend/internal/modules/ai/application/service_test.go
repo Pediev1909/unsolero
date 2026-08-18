@@ -136,9 +136,9 @@ func newFixture() fixture {
 		Goal: &goal, Experience: &experience,
 		Budget:              &catalog.Money{AmountMinor: 70_000, Currency: "USD"},
 		AvailableSpace:      &recommendation.AvailableSpace{LengthMM: 2400, WidthMM: 1800, HeightMM: 2400, ApartmentLiving: true},
-		ExistingEquipment:   []recommendation.ExistingEquipment{{Name: "pull-up bar", CategorySlug: "pull-up-bars", Capabilities: []recommendation.Capability{recommendation.CapabilityPullUp}}},
-		TrainingPreferences: []recommendation.TrainingPreference{recommendation.PreferenceDumbbells},
-		Priorities:          []recommendation.Priority{recommendation.PriorityCompact},
+		ExistingEquipment:   []recommendation.ExistingEquipment{{Name: "pull-up bar", CategorySlug: "pull-up-bars", Capabilities: []recommendation.Capability{recommendation.Capability("pull_up")}}},
+		TrainingPreferences: []recommendation.TrainingPreference{recommendation.TrainingPreference("dumbbells")},
+		Priorities:          []recommendation.Priority{recommendation.Priority("compact")},
 	}
 	first := product("product-1", "Demo Adjustable Dumbbells", 29_900)
 	second := product("product-2", "Demo Folding Bench", 19_900)

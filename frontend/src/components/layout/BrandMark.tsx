@@ -1,4 +1,4 @@
-import { Dumbbell } from 'lucide-react'
+import { Layers3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { cn } from '../../lib/styles/cn'
@@ -26,7 +26,7 @@ export function BrandMark({
           inverse ? 'bg-canvas text-ink' : 'bg-ink text-canvas',
         )}
       >
-        <Dumbbell aria-hidden="true" size={17} strokeWidth={1.75} />
+        <Layers3 aria-hidden="true" size={17} strokeWidth={1.75} />
       </span>
       {!compact && (
         <span className="text-lg font-semibold tracking-[-0.03em]">

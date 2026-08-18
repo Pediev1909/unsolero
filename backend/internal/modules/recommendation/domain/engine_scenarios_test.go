@@ -114,7 +114,7 @@ func TestLargeGarageBuildsCompatibleBarbellSetup(t *testing.T) {
 
 func TestLowBudgetSelectsAffordableCompleteOption(t *testing.T) {
 	input := testInput(planning.GoalBuildMuscle, planning.ExperienceBeginner, 10000)
-	input.Priorities = []Priority{PriorityBudget}
+	input.Priorities = []Priority{Priority("budget")}
 	bandScores := balancedScores()
 	bandScores.Value = 95
 	bandScores.Beginner = 96
@@ -145,7 +145,7 @@ func TestPremiumBudgetPrefersHigherQualityProductAndKeepsCheaperAlternative(t *t
 	cheap := testCandidate("cheap-dumbbells", "adjustable-dumbbells", 15000, cheapScores)
 	premium := testCandidate("premium-dumbbells", "adjustable-dumbbells", 55000, premiumScores)
 	input := testInput(planning.GoalBuildMuscle, planning.ExperienceIntermediate, 100000)
-	input.Priorities = []Priority{PriorityQuality, PriorityDurability}
+	input.Priorities = []Priority{Priority("quality"), Priority("durability")}
 
 	result, err := testEngine(t).Recommend(input, []CandidateSnapshot{cheap, premium})
 	if err != nil {
@@ -197,7 +197,7 @@ func TestTrainingPreferenceBreaksOtherwiseComparableProducts(t *testing.T) {
 	dumbbells := testCandidate("dumbbells", "adjustable-dumbbells", 20000, balancedScores())
 	kettlebell := testCandidate("kettlebell", "kettlebells", 20000, balancedScores())
 	input := testInput(planning.GoalGeneralFitness, planning.ExperienceIntermediate, 30000)
-	input.TrainingPreferences = []TrainingPreference{PreferenceKettlebell}
+	input.TrainingPreferences = []TrainingPreference{TrainingPreference("kettlebell")}
 
 	result, err := testEngine(t).Recommend(input, []CandidateSnapshot{dumbbells, kettlebell})
 	if err != nil {

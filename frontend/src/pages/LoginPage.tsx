@@ -4,7 +4,7 @@ import { AuthLayout } from '../components/layout/AuthLayout'
 export function LoginPage() {
   return (
     <AuthLayout
-      description="Return to your saved equipment decisions and build your gym with a clear record of every trade-off."
+      description="Return to your saved decisions and build your stack with a clear record of every trade-off."
       eyebrow="Your account"
       title="Welcome back."
     >

@@ -14,18 +14,33 @@ import (
 
 type Repository struct {
 	pool *pgxpool.Pool
+	// vertical scopes every public query. Migrations create each vertical's
+	// categories in the same database, so without this a SaaS deployment
+	// would list gym equipment categories alongside software ones.
+	vertical string
 }
 
+// DefaultVertical is used when no vertical is configured.
+const DefaultVertical = "fitness"
+
 func New(pool *pgxpool.Pool) *Repository {
-	return &Repository{pool: pool}
+	return &Repository{pool: pool, vertical: DefaultVertical}
+}
+
+// NewForVertical builds a repository scoped to one vertical's catalog.
+func NewForVertical(pool *pgxpool.Pool, vertical string) *Repository {
+	if vertical == "" {
+		vertical = DefaultVertical
+	}
+	return &Repository{pool: pool, vertical: vertical}
 }
 
 func (repository *Repository) ListActiveCategories(ctx context.Context) ([]domain.Category, error) {
 	rows, err := repository.pool.Query(ctx, `
 		SELECT id, parent_id, name, slug, description, sort_order, is_active
 		FROM catalog.categories
-		WHERE is_active = true
-		ORDER BY sort_order, name`)
+		WHERE is_active = true AND vertical_key = $1
+		ORDER BY sort_order, name`, repository.vertical)
 	if err != nil {
 		return nil, fmt.Errorf("list active categories: %w", err)
 	}
@@ -64,7 +79,7 @@ func (repository *Repository) GetActiveCategoryBySlug(ctx context.Context, slug 
 	err := repository.pool.QueryRow(ctx, `
 		SELECT id, parent_id, name, slug, description, sort_order, is_active
 		FROM catalog.categories
-		WHERE slug = $1 AND is_active = true`, slug).Scan(
+		WHERE slug = $1 AND is_active = true AND vertical_key = $2`, slug, repository.vertical).Scan(
 		&category.ID,
 		&parentID,
 		&category.Name,
@@ -235,6 +250,7 @@ func (repository *Repository) searchProducts(
 			products.description,
 			products.price_minor,
 			products.currency,
+			categories.is_physical,
 			products.length_mm,
 			products.width_mm,
 			products.height_mm,
@@ -300,6 +316,7 @@ func (repository *Repository) searchProducts(
 			AND ($6 = '' OR products.slug = $6)
 			AND ($7 = '' OR products.slug <> $7)
 			AND ($11::uuid[] IS NULL OR products.id = ANY($11::uuid[]))
+			AND categories.vertical_key = $13
 		ORDER BY
 			CASE WHEN $11::uuid[] IS NOT NULL THEN array_position($11::uuid[], products.id) END ASC,
 			CASE WHEN $8 = 'price_asc' THEN products.price_minor END ASC,
@@ -323,6 +340,7 @@ func (repository *Repository) searchProducts(
 		filter.Offset,
 		productIDs(filter.ProductIDs),
 		publishedOnly,
+		repository.vertical,
 	)
 	if err != nil {
 		return ports.ProductPage{}, fmt.Errorf("list published products: %w", err)
@@ -336,6 +354,10 @@ func (repository *Repository) searchProducts(
 		var product domain.Product
 		var maxCapacity sql.NullInt64
 		var factRevisionID, scoreRevisionID sql.NullString
+		// Physical columns are null for a non-physical category, so they are
+		// scanned through nullable holders and left at their zero value.
+		var lengthMM, widthMM, heightMM, weightGrams sql.NullInt64
+		var material sql.NullString
 		if err := rows.Scan(
 			&total,
 			&product.ID,
@@ -350,12 +372,13 @@ func (repository *Repository) searchProducts(
 			&product.Description,
 			&product.Price.AmountMinor,
 			&product.Price.Currency,
-			&product.Dimensions.LengthMM,
-			&product.Dimensions.WidthMM,
-			&product.Dimensions.HeightMM,
-			&product.WeightGrams,
+			&product.IsPhysical,
+			&lengthMM,
+			&widthMM,
+			&heightMM,
+			&weightGrams,
 			&maxCapacity,
-			&product.Material,
+			&material,
 			&product.WarrantyMonths,
 			&product.Scores.Quality,
 			&product.Scores.Value,
@@ -373,6 +396,11 @@ func (repository *Repository) searchProducts(
 		); err != nil {
 			return ports.ProductPage{}, fmt.Errorf("scan product: %w", err)
 		}
+		product.Dimensions = domain.Dimensions{
+			LengthMM: lengthMM.Int64, WidthMM: widthMM.Int64, HeightMM: heightMM.Int64,
+		}
+		product.WeightGrams = weightGrams.Int64
+		product.Material = material.String
 		if maxCapacity.Valid {
 			product.MaxCapacityGrams = &maxCapacity.Int64
 		}

@@ -54,7 +54,7 @@ export function ProductDetailPage() {
       product.data?.description ??
       'Structured equipment specifications, suitability, alternatives, and merchant offers.',
     imagePath:
-      product.data?.primary_image?.url ?? '/images/rigmark-home-gym-hero.webp',
+      product.data?.primary_image?.url ?? '/images/unsolero-saas-hero.webp',
     robots:
       product.data?.is_demo === false ? 'index, follow' : 'noindex, follow',
     type: 'product',

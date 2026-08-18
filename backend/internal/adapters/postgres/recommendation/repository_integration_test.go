@@ -72,8 +72,8 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 		BudgetMinor: &budget, Currency: stringPointer("USD"),
 		AvailableSpace:      &recommendation.AvailableSpace{LengthMM: 2400, WidthMM: 1800, HeightMM: 2400, ApartmentLiving: true},
 		ExistingEquipment:   []recommendation.ExistingEquipment{{Name: "Pull-up bar", CategorySlug: "pull-up-bars"}},
-		TrainingPreferences: []recommendation.TrainingPreference{recommendation.PreferenceBodyweight},
-		Priorities:          []recommendation.Priority{recommendation.PriorityCompact},
+		TrainingPreferences: []recommendation.TrainingPreference{recommendation.TrainingPreference("bodyweight")},
+		Priorities:          []recommendation.Priority{recommendation.Priority("compact")},
 	})
 	if err != nil || draft.UpdatedAt.IsZero() {
 		t.Fatalf("SaveDraft() = %#v, %v", draft, err)
@@ -89,7 +89,7 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 		AvailableSpace: *draft.AvailableSpace,
 		ExistingEquipment: []recommendation.ExistingEquipment{{
 			Name: "Pull-up bar", CategorySlug: "pull-up-bars",
-			Capabilities:     []recommendation.Capability{recommendation.CapabilityPullUp, recommendation.CapabilityAnchorPoint},
+			Capabilities:     []recommendation.Capability{recommendation.Capability("pull_up"), recommendation.Capability("anchor_point")},
 			RedundancyGroups: []string{"pull_up_station"},
 		}},
 		TrainingPreferences: loadedDraft.TrainingPreferences,

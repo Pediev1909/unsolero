@@ -25,10 +25,10 @@ func (engine *DeterministicRecommendationEngine) Recommend(
 	input Input,
 	candidates []CandidateSnapshot,
 ) (Result, error) {
-	if err := validateInput(input); err != nil {
+	if err := validateInput(input, engine.config); err != nil {
 		return Result{}, err
 	}
-	if err := validateCandidates(candidates); err != nil {
+	if err := validateCandidates(candidates, engine.config); err != nil {
 		return Result{}, err
 	}
 	for _, candidate := range candidates {
@@ -43,7 +43,7 @@ func (engine *DeterministicRecommendationEngine) Recommend(
 	if err != nil {
 		return Result{}, err
 	}
-	eligible, hardRejected := filterEligible(input, normalizedCandidates, existing)
+	eligible, hardRejected := filterEligible(input, normalizedCandidates, existing, engine.config)
 	ranked := scoreCandidates(input, eligible, engine.config)
 	selection := engine.optimizer.Optimize(optimizationInput{
 		Goal: input.Goal, Budget: input.Budget.AmountMinor,
@@ -76,6 +76,7 @@ func (engine *DeterministicRecommendationEngine) Recommend(
 		selection,
 		result.Alternatives,
 		existing,
+		engine.config,
 	)
 	return result, nil
 }
@@ -123,6 +124,7 @@ func completeRejections(
 	selection setupSelection,
 	alternatives []Alternative,
 	existing []ExistingEquipment,
+	config Config,
 ) []RejectedProduct {
 	result := append([]RejectedProduct(nil), hardRejected...)
 	selectedIDs := make(map[catalog.ProductID]bool, len(selection.Products))
@@ -154,7 +156,7 @@ func completeRejections(
 		case !compatibleWithSelection(candidate, selection.Products, existingCapabilities):
 			rejection.Code = "setup.incompatible"
 			rejection.Message = "It is incompatible with the selected setup"
-		case !fitsWithinTotalFloorArea(appendCandidate(selection.Products, product), input.AvailableSpace):
+		case !fitsWithinFloorArea(appendCandidate(selection.Products, product), input.AvailableSpace, config):
 			rejection.Code = "setup.space_limit"
 			rejection.Message = "Adding it would exceed your available floor space"
 		default:

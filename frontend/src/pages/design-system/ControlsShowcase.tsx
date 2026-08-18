@@ -23,8 +23,8 @@ export function ControlsShowcase() {
         <div className="grid gap-6 md:grid-cols-2">
           <Input
             leadingIcon={<Search size={17} />}
-            label="Search equipment"
-            placeholder="Adjustable dumbbells"
+            label="Search software"
+            placeholder="CRM"
             required
           />
           <Select
@@ -51,19 +51,19 @@ export function ControlsShowcase() {
           <Textarea
             hint="Do not include sensitive personal information."
             label="Space notes"
-            placeholder="Shared living room; equipment must store against a wall."
+            placeholder="Small agency; everything has to connect to our invoicing."
           />
         </div>
         <div className="mt-8 grid gap-8 border-t border-ink/15 pt-8 md:grid-cols-2">
           <div className="space-y-4">
             <Checkbox
               defaultChecked
-              description="Exclude equipment that duplicates this capability."
+              description="Exclude tools that duplicate this capability."
               label="I already own a pull-up bar"
             />
             <Checkbox
               description="Prioritize quiet operation and floor protection."
-              label="Apartment living"
+              label="Prefer EU-hosted data"
             />
           </div>
           <fieldset className="space-y-4">

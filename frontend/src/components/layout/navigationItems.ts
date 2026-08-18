@@ -6,7 +6,7 @@ export interface NavigationItem {
 export const primaryNavigation: NavigationItem[] = [
   { label: 'Build my setup', to: '/build' },
   { label: 'How it works', to: '/#method' },
-  { label: 'Equipment', to: '/products' },
+  { label: 'Software', to: '/products' },
   { label: 'Compare', to: '/compare' },
   { label: 'Wishlist', to: '/wishlist' },
 ]

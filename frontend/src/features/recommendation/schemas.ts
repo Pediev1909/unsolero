@@ -2,36 +2,33 @@ import { z } from 'zod'
 
 import { productSummarySchema } from '../catalog/schemas'
 
+// These must match the vocabulary the active recommendation policy declares.
+// The engine rejects any value it has not declared, so a mismatch here shows
+// up as a rejected brief rather than as a silently ignored field.
 export const goals = [
-  'build_muscle',
-  'strength',
-  'general_fitness',
-  'weight_loss',
-  'mobility',
+  'client_services',
+  'sell_products_online',
+  'creator_business',
+  'software_product',
+  'solo_consulting',
 ] as const
 export const experiences = ['beginner', 'intermediate', 'advanced'] as const
-export const spacePresets = [
-  'small_apartment',
-  'spare_room',
-  'half_garage',
-  'full_garage',
-] as const
 export const trainingPreferences = [
-  'dumbbells',
-  'barbell',
-  'kettlebell',
-  'resistance_bands',
-  'bodyweight',
-  'cardio',
-  'low_impact',
+  'all_in_one',
+  'best_of_breed',
+  'open_source',
+  'no_code',
+  'api_first',
+  'privacy_focused',
+  'eu_hosted',
 ] as const
 export const priorities = [
   'budget',
-  'compact',
-  'quality',
-  'durability',
-  'quiet',
-  'portability',
+  'ease_of_use',
+  'integrations',
+  'reliability',
+  'vendor_stability',
+  'data_portability',
 ] as const
 
 const equipmentSchema = z.object({
@@ -42,7 +39,6 @@ const equipmentSchema = z.object({
 export const builderValuesSchema = z.object({
   goal: z.enum(goals).or(z.literal('')),
   experience: z.enum(experiences).or(z.literal('')),
-  space_preset: z.enum(spacePresets).or(z.literal('')),
   budget_minor: z.number().int().min(10_000).max(2_000_000),
   existing_equipment: z.array(equipmentSchema),
   training_preferences: z.array(z.enum(trainingPreferences)),
@@ -50,20 +46,11 @@ export const builderValuesSchema = z.object({
   free_text: z.string().max(1000),
 })
 
-const spaceSchema = z.object({
-  length_mm: z.number().int().positive(),
-  width_mm: z.number().int().positive(),
-  height_mm: z.number().int().positive(),
-  access_width_mm: z.number().int().positive().optional(),
-  apartment_living: z.boolean(),
-})
-
 export const recommendationInputSchema = z.object({
   goal: z.enum(goals),
   experience: z.enum(experiences),
   budget_minor: z.number().int().positive(),
   currency: z.literal('USD'),
-  available_space: spaceSchema,
   existing_equipment: z.array(equipmentSchema),
   training_preferences: z.array(z.enum(trainingPreferences)).min(1),
   priorities: z.array(z.enum(priorities)).min(1),
@@ -71,12 +58,14 @@ export const recommendationInputSchema = z.object({
 })
 
 export const draftSchema = z.object({
-  current_step: z.number().int().min(1).max(8),
+  current_step: z.number().int().min(1).max(7),
   goal: z.enum(goals).nullable(),
   experience: z.enum(experiences).nullable(),
   budget_minor: z.number().int().positive().nullable(),
   currency: z.literal('USD').nullable(),
-  available_space: spaceSchema.nullable(),
+  // The API still returns this field for verticals that use it. A
+  // non-spatial deployment neither sends nor reads it.
+  available_space: z.unknown().nullable().optional(),
   existing_equipment: z
     .array(equipmentSchema)
     .nullable()

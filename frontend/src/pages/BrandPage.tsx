@@ -19,7 +19,7 @@ export function BrandPage() {
     <CatalogListing
       brandSlug={brand.data.slug}
       description={brand.data.description}
-      eyebrow="Equipment brand"
+      eyebrow="Software vendor"
       noindex={false}
       title={brand.data.name}
     />

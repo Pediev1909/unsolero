@@ -19,3 +19,7 @@ frontend/playwright-report/
 # Editors
 .idea/
 .vscode/
+
+# TLS material for the single-box deployment. internal-ca.key can mint
+# certificates that the running services trust, so nothing here is committable.
+secrets/

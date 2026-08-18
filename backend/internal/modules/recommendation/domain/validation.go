@@ -37,7 +37,8 @@ func validateConfig(config Config) error {
 	}
 	seenGoals := make(map[planning.Goal]bool, len(config.Goals))
 	for _, goal := range config.Goals {
-		if !validGoal(goal.Goal) || seenGoals[goal.Goal] || len(goal.Roles) == 0 {
+		if !validCode(string(goal.Goal)) || strings.TrimSpace(goal.Label) == "" ||
+			seenGoals[goal.Goal] || len(goal.Roles) == 0 {
 			return ErrInvalidConfig
 		}
 		seenGoals[goal.Goal] = true
@@ -50,34 +51,84 @@ func validateConfig(config Config) error {
 			seenRoles[role.Key] = true
 		}
 	}
+	if err := validatePriorityPolicies(config.Priorities); err != nil {
+		return err
+	}
+	return validatePreferenceVocabulary(config.PreferenceTags)
+}
+
+// validatePriorityPolicies rejects a policy whose priorities are malformed or
+// point at dimensions the engine does not score. A priority that boosts an
+// unknown dimension would silently do nothing, which would look like a
+// scoring bug rather than a policy error.
+func validatePriorityPolicies(priorities []PriorityPolicy) error {
+	seen := make(map[Priority]bool, len(priorities))
+	for _, priority := range priorities {
+		if !validCode(string(priority.Key)) || seen[priority.Key] {
+			return ErrInvalidConfig
+		}
+		seen[priority.Key] = true
+		if len(priority.BoostDimensions) == 0 {
+			return ErrInvalidConfig
+		}
+		seenDimensions := make(map[Dimension]bool, len(priority.BoostDimensions))
+		for _, dimension := range priority.BoostDimensions {
+			if !validDimension(dimension) || seenDimensions[dimension] {
+				return ErrInvalidConfig
+			}
+			seenDimensions[dimension] = true
+		}
+		if !validCode(strings.ReplaceAll(priority.ReasonCode, ".", "_")) ||
+			strings.TrimSpace(priority.ReasonMessage) == "" ||
+			!validDimension(priority.ReasonDimension) ||
+			priority.ReasonThreshold < 0 || priority.ReasonThreshold > 100 {
+			return ErrInvalidConfig
+		}
+	}
 	return nil
 }
 
-func validateInput(input Input) error {
-	if !validGoal(input.Goal) || !validExperience(input.Experience) {
+func validatePreferenceVocabulary(tags []TrainingPreference) error {
+	seen := make(map[TrainingPreference]bool, len(tags))
+	for _, tag := range tags {
+		if !validCode(string(tag)) || seen[tag] {
+			return ErrInvalidConfig
+		}
+		seen[tag] = true
+	}
+	return nil
+}
+
+func validateInput(input Input, config Config) error {
+	if !declaresGoal(config.Goals, input.Goal) || !validExperience(input.Experience) {
 		return fmt.Errorf("%w: unsupported goal or experience", ErrInvalidInput)
 	}
 	if !validMoney(input.Budget) || input.Budget.AmountMinor <= 0 ||
 		input.Budget.AmountMinor > maxMoneyMinor {
 		return fmt.Errorf("%w: budget must be positive with an uppercase currency", ErrInvalidInput)
 	}
-	space := input.AvailableSpace
-	if space.LengthMM <= 0 || space.WidthMM <= 0 || space.HeightMM <= 0 ||
-		space.LengthMM > maxDimensionMM || space.WidthMM > maxDimensionMM ||
-		space.HeightMM > maxDimensionMM {
-		return fmt.Errorf("%w: available space dimensions are invalid", ErrInvalidInput)
-	}
-	if space.AccessWidthMM != nil && (*space.AccessWidthMM <= 0 || *space.AccessWidthMM > maxDimensionMM) {
-		return fmt.Errorf("%w: available access width is invalid", ErrInvalidInput)
+	// Space is only meaningful for a vertical with physical products. A
+	// non-spatial vertical never reads these fields, so requiring them would
+	// force callers to invent a fake room.
+	if config.SpatialConstraints {
+		space := input.AvailableSpace
+		if space.LengthMM <= 0 || space.WidthMM <= 0 || space.HeightMM <= 0 ||
+			space.LengthMM > maxDimensionMM || space.WidthMM > maxDimensionMM ||
+			space.HeightMM > maxDimensionMM {
+			return fmt.Errorf("%w: available space dimensions are invalid", ErrInvalidInput)
+		}
+		if space.AccessWidthMM != nil && (*space.AccessWidthMM <= 0 || *space.AccessWidthMM > maxDimensionMM) {
+			return fmt.Errorf("%w: available access width is invalid", ErrInvalidInput)
+		}
 	}
 	if len(input.FreeText) > maxFreeText || len(input.ExistingEquipment) > maxInputItems ||
 		len(input.TrainingPreferences) > 20 || len(input.Priorities) > 20 {
 		return fmt.Errorf("%w: input exceeds supported limits", ErrInvalidInput)
 	}
-	if err := validatePreferences(input.TrainingPreferences); err != nil {
+	if err := validatePreferences(input.TrainingPreferences, config.PreferenceTags); err != nil {
 		return err
 	}
-	if err := validatePriorities(input.Priorities); err != nil {
+	if err := validatePriorities(input.Priorities, config.Priorities); err != nil {
 		return err
 	}
 	for _, equipment := range input.ExistingEquipment {
@@ -92,7 +143,7 @@ func validateInput(input Input) error {
 	return nil
 }
 
-func validateCandidates(candidates []CandidateSnapshot) error {
+func validateCandidates(candidates []CandidateSnapshot, config Config) error {
 	if len(candidates) > maxInputItems {
 		return fmt.Errorf("%w: too many candidates", ErrInvalidCandidate)
 	}
@@ -110,13 +161,13 @@ func validateCandidates(candidates []CandidateSnapshot) error {
 			candidate.Price.AmountMinor > maxMoneyMinor {
 			return fmt.Errorf("%w: product %q price", ErrInvalidCandidate, candidate.ProductID)
 		}
-		if !validDimensions(candidate.Dimensions) {
+		if config.SpatialConstraints && !validDimensions(candidate.Dimensions) {
 			return fmt.Errorf("%w: product %q dimensions", ErrInvalidCandidate, candidate.ProductID)
 		}
 		if !validScores(candidate.Scores) {
 			return fmt.Errorf("%w: product %q scores", ErrInvalidCandidate, candidate.ProductID)
 		}
-		if err := validateSpaceProfile(candidate.Space); err != nil {
+		if err := validateSpaceProfile(candidate.Space, config); err != nil {
 			return fmt.Errorf("%w: product %q space profile: %v", ErrInvalidCandidate, candidate.ProductID, err)
 		}
 		if len(candidate.GoalSupport) == 0 {
@@ -124,12 +175,12 @@ func validateCandidates(candidates []CandidateSnapshot) error {
 		}
 		seenGoals := make(map[planning.Goal]bool, len(candidate.GoalSupport))
 		for _, support := range candidate.GoalSupport {
-			if !validGoal(support.Goal) || support.Score < 0 || support.Score > 100 || seenGoals[support.Goal] {
+			if !declaresGoal(config.Goals, support.Goal) || support.Score < 0 || support.Score > 100 || seenGoals[support.Goal] {
 				return fmt.Errorf("%w: product %q goal support", ErrInvalidCandidate, candidate.ProductID)
 			}
 			seenGoals[support.Goal] = true
 		}
-		if err := validatePreferences(candidate.PreferenceTags); err != nil {
+		if err := validatePreferences(candidate.PreferenceTags, config.PreferenceTags); err != nil {
 			return fmt.Errorf("%w: product %q preference tags", ErrInvalidCandidate, candidate.ProductID)
 		}
 		if err := validateCodes(candidate.RedundancyGroups); err != nil {
@@ -147,15 +198,20 @@ func validateCandidates(candidates []CandidateSnapshot) error {
 	return nil
 }
 
-func validatePreferences(preferences []TrainingPreference) error {
-	valid := map[TrainingPreference]bool{
-		PreferenceDumbbells: true, PreferenceBarbell: true,
-		PreferenceKettlebell: true, PreferenceResistanceBand: true,
-		PreferenceBodyweight: true, PreferenceCardio: true, PreferenceLowImpact: true,
-	}
+// validatePreferences accepts only tags the active policy declares. The
+// vocabulary is per-vertical data, but membership is still mandatory: an
+// undeclared tag is rejected rather than silently scoring as no match.
+func validatePreferences(preferences []TrainingPreference, declared []TrainingPreference) error {
 	seen := make(map[TrainingPreference]bool, len(preferences))
 	for _, preference := range preferences {
-		if !valid[preference] || seen[preference] {
+		known := false
+		for _, candidate := range declared {
+			if candidate == preference {
+				known = true
+				break
+			}
+		}
+		if !known || seen[preference] {
 			return fmt.Errorf("%w: unsupported or duplicate training preference", ErrInvalidInput)
 		}
 		seen[preference] = true
@@ -163,14 +219,17 @@ func validatePreferences(preferences []TrainingPreference) error {
 	return nil
 }
 
-func validatePriorities(priorities []Priority) error {
-	valid := map[Priority]bool{
-		PriorityBudget: true, PriorityCompact: true, PriorityQuality: true,
-		PriorityDurability: true, PriorityQuiet: true, PriorityPortability: true,
-	}
+func validatePriorities(priorities []Priority, declared []PriorityPolicy) error {
 	seen := make(map[Priority]bool, len(priorities))
 	for _, priority := range priorities {
-		if !valid[priority] || seen[priority] {
+		known := false
+		for _, candidate := range declared {
+			if candidate.Key == priority {
+				known = true
+				break
+			}
+		}
+		if !known || seen[priority] {
 			return fmt.Errorf("%w: unsupported or duplicate priority", ErrInvalidInput)
 		}
 		seen[priority] = true
@@ -200,7 +259,16 @@ func validateCodes(codes []string) error {
 	return nil
 }
 
-func validateSpaceProfile(profile SpaceProfile) error {
+func validateSpaceProfile(profile SpaceProfile, config Config) error {
+	// A non-spatial vertical carries no footprint at all; only the overlap
+	// group stays meaningful because the optimizer still uses it to stop two
+	// mutually exclusive items being selected together.
+	if !config.SpatialConstraints {
+		if profile.OverlapGroup != "" && !validCode(profile.OverlapGroup) {
+			return ErrInvalidCandidate
+		}
+		return nil
+	}
 	if !validEnvelope(profile.Footprint) ||
 		(profile.StorageFootprint != nil && !validEnvelope(*profile.StorageFootprint)) ||
 		(profile.OperatingClearance != nil && !validClearance(*profile.OperatingClearance)) ||
@@ -235,14 +303,16 @@ func validSlug(value string) bool {
 	return normalizedSlug.MatchString(value)
 }
 
-func validGoal(goal planning.Goal) bool {
-	switch goal {
-	case planning.GoalBuildMuscle, planning.GoalStrength, planning.GoalGeneralFitness,
-		planning.GoalWeightLoss, planning.GoalMobility:
-		return true
-	default:
-		return false
+// declaresGoal reports whether the active policy defines this goal. Goals are
+// per-vertical policy data, so membership replaces what used to be a fixed
+// fitness enumeration.
+func declaresGoal(goals []GoalPolicy, goal planning.Goal) bool {
+	for _, declared := range goals {
+		if declared.Goal == goal {
+			return true
+		}
 	}
+	return false
 }
 
 func validExperience(experience planning.ExperienceLevel) bool {

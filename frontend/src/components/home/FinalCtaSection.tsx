@@ -12,7 +12,7 @@ export function FinalCtaSection() {
         <div className="border-y border-ink/15 py-14 text-center sm:py-20 lg:py-28">
           <p className="eyebrow">Start with what matters</p>
           <Heading className="mx-auto mt-5 max-w-5xl" level={2} size="display">
-            Build a gym around your life—not the other way around.
+            Build a stack around your business—not the other way around.
           </Heading>
           <p className="mx-auto mt-7 max-w-xl text-base leading-7 text-ink/65 sm:text-lg">
             Start your brief now. Sign in when you want to save it across
@@ -26,7 +26,7 @@ export function FinalCtaSection() {
             </ButtonLink>
             <ButtonLink to="/#categories" variant="secondary">
               <Search aria-hidden="true" size={16} />
-              Explore Equipment
+              Explore Categories
             </ButtonLink>
           </div>
         </div>

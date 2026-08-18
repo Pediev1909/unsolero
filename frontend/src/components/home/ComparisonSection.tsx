@@ -22,8 +22,9 @@ export function ComparisonSection() {
             Better depends on who is buying.
           </Heading>
           <p className="mt-7 max-w-2xl text-base leading-7 text-ink/65">
-            For the example apartment setup, more weight is useful—but it does
-            not automatically outweigh budget, portability, or ease of use.
+            For the example agency, deeper integrations are useful—but they do
+            not automatically outweigh budget, ease of use, or the fact that
+            nobody has time to configure it.
           </p>
         </div>
 
@@ -59,26 +60,26 @@ export function ComparisonSection() {
               <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-ink/10 pt-4">
                 <div>
                   <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/45">
-                    Maximum
+                    Entry plan
                   </dt>
                   <dd className="mt-1 text-xs leading-5">
-                    {product.maximumWeight}
+                    {product.planLabel}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/45">
-                    Beginner
+                    Ease of use
                   </dt>
                   <dd className="mt-1 text-xs leading-5">
-                    {product.beginnerScore}/100
+                    {product.easeScore}/100
                   </dd>
                 </div>
                 <div>
                   <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/45">
-                    Apartment
+                    Integrations
                   </dt>
                   <dd className="mt-1 text-xs leading-5">
-                    {product.apartmentScore}/100
+                    {product.integrationScore}/100
                   </dd>
                 </div>
               </dl>
@@ -92,7 +93,7 @@ export function ComparisonSection() {
         <div className="mt-14 hidden overflow-x-auto border border-ink/15 bg-surface md:block lg:mt-20">
           <table className="w-full min-w-[760px] border-collapse text-left">
             <caption className="sr-only">
-              Comparison of three fictional demo adjustable dumbbell pairs
+              Comparison of three fictional demo business tools
             </caption>
             <thead>
               <tr className="border-b border-ink/15 text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/45">
@@ -103,13 +104,13 @@ export function ComparisonSection() {
                   Reference price
                 </th>
                 <th className="p-5 font-bold sm:p-6" scope="col">
-                  Maximum weight
+                  Entry plan
                 </th>
                 <th className="p-5 font-bold sm:p-6" scope="col">
-                  Beginner fit
+                  Ease of use
                 </th>
                 <th className="p-5 font-bold sm:p-6" scope="col">
-                  Apartment fit
+                  Integrations
                 </th>
                 <th className="p-5 font-bold sm:p-6" scope="col">
                   Decision
@@ -148,13 +149,13 @@ export function ComparisonSection() {
                     />
                   </td>
                   <td className="p-5 text-sm sm:p-6">
-                    {product.maximumWeight}
+                    {product.planLabel}
                   </td>
                   <td className="p-5 text-sm sm:p-6">
-                    {product.beginnerScore}/100
+                    {product.easeScore}/100
                   </td>
                   <td className="p-5 text-sm sm:p-6">
-                    {product.apartmentScore}/100
+                    {product.integrationScore}/100
                   </td>
                   <td className="p-5 sm:p-6">
                     {product.recommended ? (

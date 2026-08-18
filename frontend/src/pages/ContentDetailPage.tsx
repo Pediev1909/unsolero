@@ -49,7 +49,7 @@ export function ContentDetailPage() {
     title: entry.data?.seo.title ?? 'Editorial guide | UNSOLERO',
     description:
       entry.data?.seo.description ??
-      'Constraint-aware home gym guidance from UNSOLERO Editorial.',
+      'Constraint-aware software stack guidance from UNSOLERO Editorial.',
     type: entry.data ? 'article' : 'website',
     imagePath: entry.data?.hero_image.url,
     canonicalURL: entry.data?.seo.canonical_url,

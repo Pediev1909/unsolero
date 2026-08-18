@@ -15,6 +15,7 @@ func filterEligible(
 	input Input,
 	candidates []CandidateSnapshot,
 	existing []ExistingEquipment,
+	config Config,
 ) ([]eligibleCandidate, []RejectedProduct) {
 	availableCapabilities := equipmentCapabilities(existing)
 	availableRedundancyGroups := equipmentRedundancyGroups(existing)
@@ -27,6 +28,7 @@ func filterEligible(
 			candidate,
 			availableRedundancyGroups,
 			availableCapabilities,
+			config,
 		)
 		if code != "" {
 			rejected = append(rejected, RejectedProduct{
@@ -64,6 +66,7 @@ func basicHardRejection(
 	candidate CandidateSnapshot,
 	existingRedundancyGroups []string,
 	existingCapabilities []Capability,
+	config Config,
 ) (string, string) {
 	if !supportsGoal(candidate, input.Goal) {
 		return "goal.unsupported", "The active policy does not support this product for your goal"
@@ -74,8 +77,12 @@ func basicHardRejection(
 	if candidate.Price.AmountMinor > input.Budget.AmountMinor {
 		return "budget.exceeded", "Costs more than your total budget"
 	}
-	if code, message := spaceRejection(candidate, input.AvailableSpace); code != "" {
-		return code, message
+	// Space is only a constraint where products occupy space. Without this a
+	// non-physical vertical rejects its whole catalog for having no footprint.
+	if config.SpatialConstraints {
+		if code, message := spaceRejection(candidate, input.AvailableSpace); code != "" {
+			return code, message
+		}
 	}
 	if intersectsStrings(candidate.RedundancyGroups, existingRedundancyGroups) {
 		return "existing_equipment.redundant", "Duplicates equipment you already own"

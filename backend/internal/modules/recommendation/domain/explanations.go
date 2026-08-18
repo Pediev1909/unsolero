@@ -11,6 +11,7 @@ func reasonsFor(
 	candidate CandidateSnapshot,
 	compatibleEquipment *ExistingEquipment,
 	breakdown ScoreBreakdown,
+	config Config,
 ) []Reason {
 	reasons := []Reason{
 		{
@@ -24,7 +25,7 @@ func reasonsFor(
 	}
 	if breakdown.GoalMatch >= 85 {
 		reasons = append(reasons, Reason{
-			Code: "goal.strong_match", Message: "Strong match for " + goalLabel(input.Goal),
+			Code: "goal.strong_match", Message: "Strong match for " + goalLabel(config.Goals, input.Goal),
 			Dimension: "goal_match", Score: breakdown.GoalMatch,
 		})
 	}
@@ -43,7 +44,7 @@ func reasonsFor(
 		})
 	}
 	for _, priority := range input.Priorities {
-		reason, include := priorityReason(priority, breakdown)
+		reason, include := priorityReason(priority, breakdown, config)
 		if include {
 			reasons = append(reasons, reason)
 		}
@@ -51,38 +52,30 @@ func reasonsFor(
 	return reasons
 }
 
-func goalLabel(goal planning.Goal) string {
-	switch goal {
-	case planning.GoalBuildMuscle:
-		return "hypertrophy"
-	case planning.GoalStrength:
-		return "strength training"
-	case planning.GoalGeneralFitness:
-		return "general fitness"
-	case planning.GoalWeightLoss:
-		return "conditioning"
-	case planning.GoalMobility:
-		return "mobility work"
-	default:
-		return "your goal"
+func goalLabel(goals []GoalPolicy, goal planning.Goal) string {
+	for _, declared := range goals {
+		if declared.Goal == goal {
+			return declared.Label
+		}
 	}
+	return "your goal"
 }
 
-func priorityReason(priority Priority, breakdown ScoreBreakdown) (Reason, bool) {
-	switch priority {
-	case PriorityBudget:
-		return Reason{Code: "priority.value", Message: "Strong value for the available budget", Dimension: "value", Score: breakdown.Value}, breakdown.Value >= 85
-	case PriorityCompact:
-		return Reason{Code: "priority.compact", Message: "Uses your available space efficiently", Dimension: "space_match", Score: breakdown.SpaceMatch}, breakdown.SpaceMatch >= 85
-	case PriorityQuality:
-		return Reason{Code: "priority.quality", Message: "Strong structured quality score", Dimension: "quality", Score: breakdown.Quality}, breakdown.Quality >= 85
-	case PriorityDurability:
-		return Reason{Code: "priority.durability", Message: "Strong structured durability score", Dimension: "durability", Score: breakdown.Durability}, breakdown.Durability >= 85
-	case PriorityQuiet:
-		return Reason{Code: "priority.quiet", Message: "Well suited to quieter training", Dimension: "noise", Score: breakdown.Noise}, breakdown.Noise >= 85
-	case PriorityPortability:
-		return Reason{Code: "priority.portable", Message: "Easy to move or store", Dimension: "portability", Score: breakdown.Portability}, breakdown.Portability >= 85
-	default:
-		return Reason{}, false
+// priorityReason renders the explanation the policy declares for a priority.
+// The message and threshold are policy data so that a vertical can explain a
+// priority in its own language without an engine change.
+func priorityReason(priority Priority, breakdown ScoreBreakdown, config Config) (Reason, bool) {
+	for _, policy := range config.Priorities {
+		if policy.Key != priority {
+			continue
+		}
+		score := breakdownValue(breakdown, policy.ReasonDimension)
+		return Reason{
+			Code:      policy.ReasonCode,
+			Message:   policy.ReasonMessage,
+			Dimension: string(policy.ReasonDimension),
+			Score:     score,
+		}, score >= policy.ReasonThreshold
 	}
+	return Reason{}, false
 }

@@ -1,4 +1,4 @@
-import { ArrowRight, Dumbbell } from 'lucide-react'
+import { ArrowRight, Layers3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { SiteFooter } from '../components/layout/SiteFooter'
@@ -16,8 +16,8 @@ import { usePageMetadata } from '../lib/seo/usePageMetadata'
 export function SavedSetupsPage() {
   const saved = useSavedSetups()
   usePageMetadata({
-    title: 'Saved Home Gym Setups | UNSOLERO',
-    description: 'Reopen and manage personalized home gym plans.',
+    title: 'Saved Software Stacks | UNSOLERO',
+    description: 'Reopen and manage personalized stack plans.',
     robots: 'noindex, follow',
   })
   return (
@@ -67,7 +67,7 @@ export function SavedSetupsPage() {
                   >
                     <div>
                       <div className="flex items-center gap-3">
-                        <Dumbbell
+                        <Layers3
                           aria-hidden="true"
                           className="text-bronze"
                           size={18}

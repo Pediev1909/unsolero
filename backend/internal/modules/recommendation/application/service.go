@@ -25,6 +25,10 @@ var ErrActivePolicyUnavailable = errors.New("no approved active recommendation p
 
 var draftSlugPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
+// draftCodePattern matches the normalized-code format shared by policy
+// vocabularies. It constrains shape only; membership is the engine's job.
+var draftCodePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
 type Generated struct {
 	RecommendationID *domain.RecommendationID
 	SetupID          *planning.SetupID
@@ -303,27 +307,21 @@ func validateDraft(draft ports.Draft) error {
 			return ErrInvalidDraft
 		}
 	}
-	validPreferences := map[domain.TrainingPreference]bool{
-		domain.PreferenceDumbbells: true, domain.PreferenceBarbell: true,
-		domain.PreferenceKettlebell: true, domain.PreferenceResistanceBand: true,
-		domain.PreferenceBodyweight: true, domain.PreferenceCardio: true,
-		domain.PreferenceLowImpact: true,
-	}
+	// A draft is validated for shape only. Which preferences and priorities
+	// actually exist is declared by the active recommendation policy, and the
+	// engine enforces that membership when the draft is used. Repeating the
+	// vocabulary here would mean three copies drifting apart on every policy
+	// change, so the domain stays the single authority.
 	seenPreferences := make(map[domain.TrainingPreference]bool, len(draft.TrainingPreferences))
 	for _, preference := range draft.TrainingPreferences {
-		if !validPreferences[preference] || seenPreferences[preference] {
+		if !draftCodePattern.MatchString(string(preference)) || seenPreferences[preference] {
 			return ErrInvalidDraft
 		}
 		seenPreferences[preference] = true
 	}
-	validPriorities := map[domain.Priority]bool{
-		domain.PriorityBudget: true, domain.PriorityCompact: true,
-		domain.PriorityQuality: true, domain.PriorityDurability: true,
-		domain.PriorityQuiet: true, domain.PriorityPortability: true,
-	}
 	seenPriorities := make(map[domain.Priority]bool, len(draft.Priorities))
 	for _, priority := range draft.Priorities {
-		if !validPriorities[priority] || seenPriorities[priority] {
+		if !draftCodePattern.MatchString(string(priority)) || seenPriorities[priority] {
 			return ErrInvalidDraft
 		}
 		seenPriorities[priority] = true

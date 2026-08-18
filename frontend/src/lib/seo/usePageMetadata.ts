@@ -17,7 +17,7 @@ export function usePageMetadata({
   description,
   robots = 'index, follow',
   type = 'website',
-  imagePath = '/images/rigmark-home-gym-hero.webp',
+  imagePath = '/images/unsolero-saas-hero.webp',
   canonicalURL,
   author,
   publishedAt,

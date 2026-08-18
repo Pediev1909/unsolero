@@ -77,7 +77,7 @@ func (deterministicSetupOptimizer) Optimize(input optimizationInput) setupSelect
 				selectedContains(selected, candidate.Candidate.ProductID) ||
 				candidate.Candidate.Price.AmountMinor > input.Budget-total ||
 				!compatibleWithSelection(candidate.Candidate, selected, existingCapabilities) ||
-				!fitsWithinTotalFloorArea(appendCandidate(selected, candidate), input.Space) {
+				!fitsWithinFloorArea(appendCandidate(selected, candidate), input.Space, input.Config) {
 				continue
 			}
 
@@ -250,6 +250,16 @@ func appendCandidate(selected []RankedProduct, product RankedProduct) []RankedPr
 // products may each fit while their combined footprints do not. The catalog does
 // not yet model safe overlap zones, so summing footprints is the only defensible
 // deterministic rule.
+// fitsWithinFloorArea applies the floor-area constraint only where products
+// occupy floor. A non-physical vertical has no floor to run out of, so the
+// constraint is skipped rather than evaluated against a zero-sized room.
+func fitsWithinFloorArea(products []RankedProduct, space AvailableSpace, config Config) bool {
+	if !config.SpatialConstraints {
+		return true
+	}
+	return fitsWithinTotalFloorArea(products, space)
+}
+
 func fitsWithinTotalFloorArea(products []RankedProduct, space AvailableSpace) bool {
 	availableArea := space.LengthMM * space.WidthMM
 	var requiredArea int64

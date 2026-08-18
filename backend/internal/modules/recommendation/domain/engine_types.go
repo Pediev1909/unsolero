@@ -55,45 +55,16 @@ type ExistingEquipment struct {
 	RedundancyGroups []string
 }
 
+// TrainingPreference, Priority and Capability are open vocabularies. Their
+// permitted values are declared by the active recommendation policy for the
+// current vertical, not fixed in code, so a new vertical ships as policy data
+// rather than as an engine change. Values are still constrained to the
+// normalized-code format and must be declared by the policy before use.
 type TrainingPreference string
-
-const (
-	PreferenceDumbbells      TrainingPreference = "dumbbells"
-	PreferenceBarbell        TrainingPreference = "barbell"
-	PreferenceKettlebell     TrainingPreference = "kettlebell"
-	PreferenceResistanceBand TrainingPreference = "resistance_bands"
-	PreferenceBodyweight     TrainingPreference = "bodyweight"
-	PreferenceCardio         TrainingPreference = "cardio"
-	PreferenceLowImpact      TrainingPreference = "low_impact"
-)
 
 type Priority string
 
-const (
-	PriorityBudget      Priority = "budget"
-	PriorityCompact     Priority = "compact"
-	PriorityQuality     Priority = "quality"
-	PriorityDurability  Priority = "durability"
-	PriorityQuiet       Priority = "quiet"
-	PriorityPortability Priority = "portability"
-)
-
 type Capability string
-
-const (
-	CapabilityResistanceTraining Capability = "resistance_training"
-	CapabilityStrengthTraining   Capability = "strength_training"
-	CapabilityHypertrophy        Capability = "hypertrophy"
-	CapabilitySupportedTraining  Capability = "supported_training"
-	CapabilityBarbellTraining    Capability = "barbell_training"
-	CapabilityWeightPlates       Capability = "weight_plates"
-	CapabilitySafeBarbell        Capability = "safe_barbell_training"
-	CapabilityConditioning       Capability = "conditioning"
-	CapabilityMobility           Capability = "mobility"
-	CapabilityLowImpact          Capability = "low_impact"
-	CapabilityPullUp             Capability = "pull_up"
-	CapabilityAnchorPoint        Capability = "anchor_point"
-)
 
 type CandidateSnapshot struct {
 	ProductID        catalog.ProductID
@@ -169,7 +140,11 @@ type SetupRole struct {
 }
 
 type GoalPolicy struct {
-	Goal  planning.Goal
+	Goal planning.Goal
+	// Label is the human phrase used in explanations. It is policy data
+	// because "hypertrophy" and "customer support" are both valid goals for
+	// their own vertical and neither belongs in the engine.
+	Label string
 	Roles []SetupRole
 }
 
@@ -187,6 +162,20 @@ type Weights struct {
 	Noise           int
 }
 
+// PriorityPolicy defines what a single user-selectable priority does. A
+// priority boosts one or more scored dimensions and, when the resulting score
+// clears its threshold, contributes an explanation. Declaring this as data is
+// what allows "compact" and "quiet" to be replaced by vertical-appropriate
+// priorities without touching the engine.
+type PriorityPolicy struct {
+	Key             Priority
+	BoostDimensions []Dimension
+	ReasonCode      string
+	ReasonMessage   string
+	ReasonDimension Dimension
+	ReasonThreshold int
+}
+
 type Config struct {
 	PolicyVersion        string
 	Weights              Weights
@@ -195,6 +184,12 @@ type Config struct {
 	CandidatesPerSlot    int
 	OptionalSlotBonus    int
 	Goals                []GoalPolicy
+	Priorities           []PriorityPolicy
+	PreferenceTags       []TrainingPreference
+	// SpatialConstraints reports whether this vertical has physical products.
+	// When false the engine does not require room or product dimensions and
+	// skips space eligibility and space scoring entirely.
+	SpatialConstraints bool
 }
 
 type ScoreBreakdown struct {

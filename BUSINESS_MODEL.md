@@ -90,7 +90,7 @@ The cost of a bad decision is not only money. It includes wasted floor space, re
 
 ### Consumer promise
 
-> Build the right home gym for your goals, space, budget, and existing equipment—with exact products, explicit trade-offs, and no commission-driven ranking.
+> Build the right set of products for your goals, budget, and what you already own—with exact products, explicit trade-offs, and no commission-driven ranking.
 
 UNSOLERO should deliver:
 

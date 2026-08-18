@@ -23,7 +23,7 @@ describe('SiteHeader', () => {
     expect(
       within(
         screen.getByRole('navigation', { name: 'Primary navigation' }),
-      ).getByRole('link', { name: 'Equipment' }),
+      ).getByRole('link', { name: 'Software' }),
     ).toHaveAttribute('aria-current', 'page')
   })
 

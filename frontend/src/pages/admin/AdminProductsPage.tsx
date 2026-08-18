@@ -40,7 +40,7 @@ export function AdminProductsPage() {
             <Plus aria-hidden="true" size={16} /> Create product
           </ButtonLink>
         }
-        description="Create structured equipment records, manage suitability facts, and control publication."
+        description="Create structured product records, manage suitability facts, and control publication."
         eyebrow="Catalog"
         title="Products"
       />

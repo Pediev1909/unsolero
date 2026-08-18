@@ -142,9 +142,9 @@ func (repository *Repository) ActivePolicy(ctx context.Context) (domain.Policy, 
 		goal_match_weight,budget_match_weight,space_match_weight,experience_match_weight,
 		preference_match_weight,quality_weight,value_weight,durability_weight,
 		compatibility_weight,portability_weight,noise_weight,priority_boost_percent,
-		maximum_setup_items,candidates_per_slot,optional_slot_bonus
+		maximum_setup_items,candidates_per_slot,optional_slot_bonus,spatial_constraints
 		FROM recommendation.policy_versions
-		WHERE vertical_key='fitness' AND workflow_status='active'`).Scan(
+		WHERE vertical_key=$1 AND workflow_status='active'`, repository.vertical).Scan(
 		&policy.Config.PolicyVersion, &policy.Config.Weights.GoalMatch,
 		&policy.Config.Weights.BudgetMatch, &policy.Config.Weights.SpaceMatch,
 		&policy.Config.Weights.ExperienceMatch, &policy.Config.Weights.PreferenceMatch,
@@ -152,7 +152,8 @@ func (repository *Repository) ActivePolicy(ctx context.Context) (domain.Policy, 
 		&policy.Config.Weights.Durability, &policy.Config.Weights.Compatibility,
 		&policy.Config.Weights.Portability, &policy.Config.Weights.Noise,
 		&policy.Config.PriorityBoostPercent, &policy.Config.MaximumSetupItems,
-		&policy.Config.CandidatesPerSlot, &policy.Config.OptionalSlotBonus)
+		&policy.Config.CandidatesPerSlot, &policy.Config.OptionalSlotBonus,
+		&policy.Config.SpatialConstraints)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Policy{}, ports.ErrNotFound
 	}
@@ -160,6 +161,9 @@ func (repository *Repository) ActivePolicy(ctx context.Context) (domain.Policy, 
 		return domain.Policy{}, fmt.Errorf("load active recommendation policy: %w", err)
 	}
 	if err = repository.loadPolicyGoals(ctx, &policy); err != nil {
+		return domain.Policy{}, err
+	}
+	if err = repository.loadPolicyVocabulary(ctx, &policy); err != nil {
 		return domain.Policy{}, err
 	}
 	if err = repository.loadCategoryPolicies(ctx, &policy); err != nil {
@@ -172,9 +176,11 @@ func (repository *Repository) ActivePolicy(ctx context.Context) (domain.Policy, 
 }
 
 func (repository *Repository) loadPolicyGoals(ctx context.Context, policy *domain.Policy) error {
-	rows, err := repository.pool.Query(ctx, `SELECT roles.goal_key,roles.role_key,roles.is_required,
+	rows, err := repository.pool.Query(ctx, `SELECT roles.goal_key,goals.label,roles.role_key,roles.is_required,
 		roles.sort_order,capabilities.capability_key
 		FROM recommendation.policy_setup_roles roles
+		JOIN recommendation.policy_goals goals
+		 ON goals.policy_version=roles.policy_version AND goals.goal_key=roles.goal_key
 		JOIN recommendation.policy_setup_role_capabilities capabilities
 		 ON capabilities.policy_version=roles.policy_version AND capabilities.goal_key=roles.goal_key
 		 AND capabilities.role_key=roles.role_key
@@ -188,16 +194,17 @@ func (repository *Repository) loadPolicyGoals(ctx context.Context, policy *domai
 	roleIndexes := make(map[string]int)
 	for rows.Next() {
 		var goal planning.Goal
+		var goalLabel string
 		var roleKey string
 		var required bool
 		var sortOrder int
 		var capability domain.Capability
-		if err = rows.Scan(&goal, &roleKey, &required, &sortOrder, &capability); err != nil {
+		if err = rows.Scan(&goal, &goalLabel, &roleKey, &required, &sortOrder, &capability); err != nil {
 			return err
 		}
 		goalIndex, exists := goalIndexes[goal]
 		if !exists {
-			policy.Config.Goals = append(policy.Config.Goals, domain.GoalPolicy{Goal: goal})
+			policy.Config.Goals = append(policy.Config.Goals, domain.GoalPolicy{Goal: goal, Label: goalLabel})
 			goalIndex = len(policy.Config.Goals) - 1
 			goalIndexes[goal] = goalIndex
 		}
@@ -260,7 +267,7 @@ func (repository *Repository) loadProductPolicies(ctx context.Context, policy *d
 		JOIN catalog.products catalog_products ON catalog_products.id=products.product_id
 		JOIN recommendation.category_policies categories
 		 ON categories.policy_version=products.policy_version AND categories.category_id=catalog_products.category_id
-		JOIN recommendation.product_space_profiles space
+		LEFT JOIN recommendation.product_space_profiles space
 		 ON space.policy_version=products.policy_version AND space.product_id=products.product_id
 		WHERE products.policy_version=$1 AND categories.support_status='supported'`, policy.Config.PolicyVersion)
 	if err != nil {
@@ -269,13 +276,20 @@ func (repository *Repository) loadProductPolicies(ctx context.Context, policy *d
 	defer rows.Close()
 	for rows.Next() {
 		var item domain.ProductPolicy
+		// The space profile is optional: a non-physical product has no
+		// footprint to declare. An inner join here silently dropped such a
+		// product's entire policy, which surfaced as "no active policy" rather
+		// than as a missing footprint. A physical vertical still fails closed,
+		// because the engine rejects a zero footprint when it validates
+		// candidates with spatial constraints enabled.
+		var footprintLength, footprintWidth, footprintHeight sql.NullInt64
 		var storageLength, storageWidth, storageHeight sql.NullInt64
 		var operating [5]sql.NullInt64
 		var safety [5]sql.NullInt64
 		var roomHeight, accessWidth sql.NullInt64
 		var overlap sql.NullString
 		if err = rows.Scan(&item.ProductID, &item.FactRevisionID, &item.ScoreRevisionID,
-			&item.Space.Footprint.LengthMM, &item.Space.Footprint.WidthMM, &item.Space.Footprint.HeightMM,
+			&footprintLength, &footprintWidth, &footprintHeight,
 			&storageLength, &storageWidth, &storageHeight,
 			&operating[0], &operating[1], &operating[2], &operating[3], &operating[4],
 			&safety[0], &safety[1], &safety[2], &safety[3], &safety[4],
@@ -283,6 +297,9 @@ func (repository *Repository) loadProductPolicies(ctx context.Context, policy *d
 			&item.Space.RequiresStorageFootprint, &item.Space.RequiresOperatingClearance,
 			&item.Space.RequiresSafetyClearance, &item.Space.RequiresAccessWidth); err != nil {
 			return err
+		}
+		item.Space.Footprint = domain.SpatialEnvelope{
+			LengthMM: footprintLength.Int64, WidthMM: footprintWidth.Int64, HeightMM: footprintHeight.Int64,
 		}
 		if storageLength.Valid {
 			item.Space.StorageFootprint = &domain.SpatialEnvelope{LengthMM: storageLength.Int64, WidthMM: storageWidth.Int64, HeightMM: storageHeight.Int64}
@@ -412,3 +429,68 @@ func (repository *Repository) loadProductStringRelations(ctx context.Context, po
 }
 
 var _ ports.PolicyRepository = (*Repository)(nil)
+
+// loadPolicyVocabulary reads the preference and priority vocabularies the
+// active policy declares. Both are ordered deterministically so that two runs
+// against the same policy produce identical scores and explanations.
+func (repository *Repository) loadPolicyVocabulary(ctx context.Context, policy *domain.Policy) error {
+	tagRows, err := repository.pool.Query(ctx, `SELECT tag_key
+		FROM recommendation.policy_preference_tags
+		WHERE policy_version=$1 ORDER BY tag_key`, policy.Config.PolicyVersion)
+	if err != nil {
+		return fmt.Errorf("load policy preference tags: %w", err)
+	}
+	defer tagRows.Close()
+	for tagRows.Next() {
+		var tag domain.TrainingPreference
+		if err = tagRows.Scan(&tag); err != nil {
+			return err
+		}
+		policy.Config.PreferenceTags = append(policy.Config.PreferenceTags, tag)
+	}
+	if err = tagRows.Err(); err != nil {
+		return fmt.Errorf("load policy preference tags: %w", err)
+	}
+
+	priorityRows, err := repository.pool.Query(ctx, `SELECT priorities.priority_key,
+		priorities.reason_code,priorities.reason_message,priorities.reason_dimension,
+		priorities.reason_threshold,dimensions.dimension
+		FROM recommendation.policy_priorities priorities
+		JOIN recommendation.policy_priority_dimensions dimensions
+		 ON dimensions.policy_version=priorities.policy_version
+		 AND dimensions.priority_key=priorities.priority_key
+		WHERE priorities.policy_version=$1
+		ORDER BY priorities.sort_order,priorities.priority_key,dimensions.dimension`,
+		policy.Config.PolicyVersion)
+	if err != nil {
+		return fmt.Errorf("load policy priorities: %w", err)
+	}
+	defer priorityRows.Close()
+	priorityIndexes := make(map[domain.Priority]int)
+	for priorityRows.Next() {
+		var key domain.Priority
+		var reasonCode, reasonMessage string
+		var reasonDimension domain.Dimension
+		var reasonThreshold int
+		var dimension domain.Dimension
+		if err = priorityRows.Scan(&key, &reasonCode, &reasonMessage,
+			&reasonDimension, &reasonThreshold, &dimension); err != nil {
+			return err
+		}
+		index, exists := priorityIndexes[key]
+		if !exists {
+			policy.Config.Priorities = append(policy.Config.Priorities, domain.PriorityPolicy{
+				Key: key, ReasonCode: reasonCode, ReasonMessage: reasonMessage,
+				ReasonDimension: reasonDimension, ReasonThreshold: reasonThreshold,
+			})
+			index = len(policy.Config.Priorities) - 1
+			priorityIndexes[key] = index
+		}
+		policy.Config.Priorities[index].BoostDimensions = append(
+			policy.Config.Priorities[index].BoostDimensions, dimension)
+	}
+	if err = priorityRows.Err(); err != nil {
+		return fmt.Errorf("load policy priorities: %w", err)
+	}
+	return nil
+}

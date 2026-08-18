@@ -3,7 +3,7 @@ import { Skeleton } from '../../../components/ui/Skeleton'
 export function CatalogLoadingGrid() {
   return (
     <div
-      aria-label="Loading equipment"
+      aria-label="Loading software"
       className="grid grid-cols-1 border-l border-t border-ink/15 xs:grid-cols-2 xl:grid-cols-3"
       role="status"
     >
@@ -16,7 +16,7 @@ export function CatalogLoadingGrid() {
           <Skeleton className="mt-6 h-10 w-full" />
         </div>
       ))}
-      <span className="sr-only">Loading equipment catalog.</span>
+      <span className="sr-only">Loading software catalog.</span>
     </div>
   )
 }

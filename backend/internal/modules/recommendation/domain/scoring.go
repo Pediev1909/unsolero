@@ -9,12 +9,12 @@ import (
 func scoreCandidates(input Input, candidates []eligibleCandidate, config Config) []RankedProduct {
 	ranked := make([]RankedProduct, 0, len(candidates))
 	for _, eligible := range candidates {
-		breakdown := scoreBreakdown(input, eligible.Candidate, eligible.Existing)
+		breakdown := scoreBreakdown(input, eligible.Candidate, eligible.Existing, config)
 		ranked = append(ranked, RankedProduct{
 			Candidate:      eligible.Candidate,
 			ObjectiveScore: objectiveScore(breakdown, config, input.Priorities),
 			Breakdown:      breakdown,
-			Reasons:        reasonsFor(input, eligible.Candidate, eligible.Existing, breakdown),
+			Reasons:        reasonsFor(input, eligible.Candidate, eligible.Existing, breakdown, config),
 		})
 	}
 	sortRanked(ranked)
@@ -25,11 +25,12 @@ func scoreBreakdown(
 	input Input,
 	candidate CandidateSnapshot,
 	compatibleEquipment *ExistingEquipment,
+	config Config,
 ) ScoreBreakdown {
 	return ScoreBreakdown{
 		GoalMatch:       goalScore(input.Goal, candidate),
 		BudgetMatch:     budgetScore(input.Budget.AmountMinor, candidate.Price.AmountMinor),
-		SpaceMatch:      spaceScore(input.AvailableSpace, candidate),
+		SpaceMatch:      spatialScore(input.AvailableSpace, candidate, config),
 		ExperienceMatch: experienceScore(input.Experience, candidate),
 		PreferenceMatch: preferenceScore(input.TrainingPreferences, candidate),
 		Quality:         int(candidate.Scores.Quality),
@@ -43,21 +44,22 @@ func scoreBreakdown(
 
 func objectiveScore(breakdown ScoreBreakdown, config Config, priorities []Priority) int {
 	weights := config.Weights
-	for _, priority := range priorities {
-		switch priority {
-		case PriorityBudget:
-			weights.BudgetMatch = boostWeight(weights.BudgetMatch, config.PriorityBoostPercent)
-			weights.Value = boostWeight(weights.Value, config.PriorityBoostPercent)
-		case PriorityCompact:
-			weights.SpaceMatch = boostWeight(weights.SpaceMatch, config.PriorityBoostPercent)
-		case PriorityQuality:
-			weights.Quality = boostWeight(weights.Quality, config.PriorityBoostPercent)
-		case PriorityDurability:
-			weights.Durability = boostWeight(weights.Durability, config.PriorityBoostPercent)
-		case PriorityQuiet:
-			weights.Noise = boostWeight(weights.Noise, config.PriorityBoostPercent)
-		case PriorityPortability:
-			weights.Portability = boostWeight(weights.Portability, config.PriorityBoostPercent)
+	// Priorities are applied in the order the policy declares them, not the
+	// order the user selected them, so that two users who pick the same set
+	// in a different order receive identical scores.
+	for _, policy := range config.Priorities {
+		selected := false
+		for _, priority := range priorities {
+			if priority == policy.Key {
+				selected = true
+				break
+			}
+		}
+		if !selected {
+			continue
+		}
+		for _, dimension := range policy.BoostDimensions {
+			weights = boostDimension(weights, dimension, config.PriorityBoostPercent)
 		}
 	}
 	values := breakdownValues(breakdown)
@@ -86,6 +88,17 @@ func budgetScore(budget, price int64) int {
 	}
 	usagePercent := int(price * 100 / budget)
 	return clampScore(100 - usagePercent/4)
+}
+
+// spatialScore returns a neutral full score for a non-spatial vertical so the
+// dimension never penalises a product that has no physical footprint. Policy
+// is expected to give the dimension zero weight there as well; this keeps the
+// engine correct even if it does not.
+func spatialScore(space AvailableSpace, candidate CandidateSnapshot, config Config) int {
+	if !config.SpatialConstraints {
+		return 100
+	}
+	return spaceScore(space, candidate)
 }
 
 func spaceScore(space AvailableSpace, candidate CandidateSnapshot) int {

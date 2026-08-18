@@ -8,7 +8,7 @@ const steps = [
     number: '01',
     icon: SlidersHorizontal,
     title: 'Define your constraints',
-    copy: 'Share your goal, experience, room dimensions, budget, and equipment you already own.',
+    copy: 'Share what the business does, your team size, your monthly budget, and the tools you already run.',
   },
   {
     number: '02',

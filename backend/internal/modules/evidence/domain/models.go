@@ -214,8 +214,15 @@ func (input RevisionInput) Validate() error {
 	}
 	requiredFacts := map[string]bool{
 		"category": true, "brand": true, "name": true, "slug": true,
-		"description": true, "price": true, "dimensions": true, "weight": true,
-		"material": true, "warranty": true,
+		"description": true, "price": true, "warranty": true,
+	}
+	// Provenance is required for populated facts. A non-physical product has
+	// no dimensions, weight or material to attest to, so demanding provenance
+	// for them would mean citing a source for a null.
+	if input.Product.IsPhysical {
+		requiredFacts["dimensions"] = true
+		requiredFacts["weight"] = true
+		requiredFacts["material"] = true
 	}
 	if input.Product.MaxCapacityGrams != nil {
 		requiredFacts["max_capacity"] = true

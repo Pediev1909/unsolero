@@ -37,7 +37,7 @@ func TestAdminProductAndOfferLifecycle(t *testing.T) {
 	var categoryID catalog.CategoryID
 	var brandID catalog.BrandID
 	var merchantID string
-	if err := pool.QueryRow(ctx, `SELECT id FROM catalog.categories ORDER BY id LIMIT 1`).Scan(&categoryID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT id FROM catalog.categories WHERE is_physical ORDER BY id LIMIT 1`).Scan(&categoryID); err != nil {
 		t.Fatalf("load category: %v", err)
 	}
 	if err := pool.QueryRow(ctx, `SELECT id FROM catalog.brands ORDER BY id LIMIT 1`).Scan(&brandID); err != nil {

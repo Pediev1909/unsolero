@@ -36,8 +36,8 @@ export function SetupPage() {
   const [name, setName] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
   usePageMetadata({
-    title: `${currentName ?? 'Saved Home Gym Setup'} | UNSOLERO`,
-    description: 'Review and manage a saved personalized home gym setup.',
+    title: `${currentName ?? 'Saved Software Stack'} | UNSOLERO`,
+    description: 'Review and manage a saved personalized software stack.',
     robots: 'noindex, follow',
   })
   const pending =
@@ -113,13 +113,13 @@ export function SetupPage() {
                     Saved setup
                   </p>
                   <p className="mt-1 font-semibold">
-                    {currentName ?? 'Personalized Home Gym'}
+                    {currentName ?? 'Personalized Stack'}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => {
-                      setName(currentName ?? 'Personalized Home Gym')
+                      setName(currentName ?? 'Personalized Stack')
                       setActionError(null)
                       setRenameOpen(true)
                     }}

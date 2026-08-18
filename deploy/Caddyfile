@@ -1,0 +1,53 @@
+# Public edge for the single-box deployment.
+#
+# Caddy does one job here: terminate TLS and hand the request to the web
+# container. It deliberately does not re-implement routing, because the web
+# image's nginx config already owns the full route table, including the /api
+# prefix, the sitemap, robots.txt and the SPA fallback. Splitting that across
+# two proxies is how the two drift apart.
+#
+# Certificates are issued automatically over ACME and renewed in the
+# background, which is why no certificate paths appear below.
+#
+# Behind Cloudflare, set the SSL/TLS mode to "Full (strict)". Cloudflare then
+# validates this origin certificate rather than trusting any certificate, and
+# the connection is encrypted on both legs.
+
+{
+	email {$ACME_EMAIL}
+	# The admin API would otherwise listen on 2019 inside the container.
+	admin off
+	servers {
+		# Client IP is taken from the immediate peer unless a trusted proxy
+		# says otherwise. Cloudflare's ranges are not listed, so a spoofed
+		# X-Forwarded-For from the internet cannot change the observed IP that
+		# rate limiting and analytics depend on.
+		trusted_proxies static private_ranges
+	}
+}
+
+{$PUBLIC_HOSTNAME} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Caddy advertises itself by default; the version is free
+		# reconnaissance for anyone scanning for known issues.
+		-Server
+	}
+
+	# The metrics endpoint is authenticated, but it has no reason to be
+	# reachable from the internet at all on a single-box deployment.
+	handle /metrics* {
+		respond 404
+	}
+
+	reverse_proxy web:8080 {
+		health_uri /
+		health_interval 30s
+		health_timeout 5s
+	}
+}

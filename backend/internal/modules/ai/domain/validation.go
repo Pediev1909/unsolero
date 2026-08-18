@@ -256,23 +256,27 @@ func validateEquipment(values []recommendation.ExistingEquipment) error {
 	return nil
 }
 
+// validatePreferences and validatePriorities check the normalized-code shape
+// and reject duplicates. The permitted vocabulary is declared by the active
+// recommendation policy and enforced by the engine, so an AI-produced value
+// that is well-formed but undeclared is refused there rather than here.
 func validatePreferences(values []recommendation.TrainingPreference) error {
-	valid := map[recommendation.TrainingPreference]bool{
-		recommendation.PreferenceDumbbells: true, recommendation.PreferenceBarbell: true,
-		recommendation.PreferenceKettlebell: true, recommendation.PreferenceResistanceBand: true,
-		recommendation.PreferenceBodyweight: true, recommendation.PreferenceCardio: true,
-		recommendation.PreferenceLowImpact: true,
-	}
-	return validateUnique(values, valid)
+	return validateUniqueCodes(values)
 }
 
 func validatePriorities(values []recommendation.Priority) error {
-	valid := map[recommendation.Priority]bool{
-		recommendation.PriorityBudget: true, recommendation.PriorityCompact: true,
-		recommendation.PriorityQuality: true, recommendation.PriorityDurability: true,
-		recommendation.PriorityQuiet: true, recommendation.PriorityPortability: true,
+	return validateUniqueCodes(values)
+}
+
+func validateUniqueCodes[T ~string](values []T) error {
+	seen := make(map[T]bool, len(values))
+	for _, value := range values {
+		if !codePattern.MatchString(string(value)) || seen[value] {
+			return errorsForValidation("value is unsupported or duplicated")
+		}
+		seen[value] = true
 	}
-	return validateUnique(values, valid)
+	return nil
 }
 
 func validateUnique[T comparable](values []T, valid map[T]bool) error {

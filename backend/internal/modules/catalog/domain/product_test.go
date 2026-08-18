@@ -12,6 +12,7 @@ func TestProductValidate(t *testing.T) {
 		Slug:             "demo-product",
 		Description:      "A fictional demo product.",
 		Price:            Money{AmountMinor: 10_000, Currency: "USD"},
+		IsPhysical:       true,
 		Dimensions:       Dimensions{LengthMM: 100, WidthMM: 100, HeightMM: 100},
 		WeightGrams:      10_000,
 		MaxCapacityGrams: &capacity,
@@ -79,5 +80,42 @@ func TestProductInsightsAreDerivedFromScores(t *testing.T) {
 	}
 	if len(product.UseCases()) != 3 {
 		t.Fatalf("expected three use cases, got %#v", product.UseCases())
+	}
+}
+
+func TestNonPhysicalProductValidatesWithoutPhysicalAttributes(t *testing.T) {
+	product := Product{
+		ID: "product-id", CategoryID: "category-id", BrandID: "brand-id",
+		Name: "Demo Subscription", Slug: "demo-subscription",
+		Description: "A fictional demo subscription.",
+		Price:       Money{AmountMinor: 2_900, Currency: "USD"},
+		Scores: Scores{
+			Quality: 80, Value: 80, Durability: 80, Beginner: 80,
+			Advanced: 80, Apartment: 0, Noise: 0, Portability: 80,
+		},
+		Status: ProductStatusPublished,
+	}
+
+	if err := product.Validate(); err != nil {
+		t.Fatalf("Validate() rejected a valid non-physical product: %v", err)
+	}
+}
+
+func TestNonPhysicalProductRejectsPhysicalAttributes(t *testing.T) {
+	product := Product{
+		ID: "product-id", CategoryID: "category-id", BrandID: "brand-id",
+		Name: "Demo Subscription", Slug: "demo-subscription",
+		Description: "A fictional demo subscription.",
+		Price:       Money{AmountMinor: 2_900, Currency: "USD"},
+		Dimensions:  Dimensions{LengthMM: 100, WidthMM: 100, HeightMM: 100},
+		Scores: Scores{
+			Quality: 80, Value: 80, Durability: 80, Beginner: 80,
+			Advanced: 80, Apartment: 0, Noise: 0, Portability: 80,
+		},
+		Status: ProductStatusPublished,
+	}
+
+	if err := product.Validate(); err == nil {
+		t.Fatal("Validate() accepted a non-physical product carrying a footprint")
 	}
 }

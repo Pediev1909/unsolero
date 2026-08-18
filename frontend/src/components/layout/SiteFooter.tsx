@@ -13,7 +13,7 @@ export function SiteFooter() {
           <div>
             <BrandMark inverse />
             <p className="mt-5 max-w-sm text-sm leading-6 text-canvas/60">
-              Better equipment decisions for the space you actually live in.
+              Better software decisions for the business you actually run.
             </p>
           </div>
           <nav

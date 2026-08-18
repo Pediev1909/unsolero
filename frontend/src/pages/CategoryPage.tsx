@@ -36,7 +36,7 @@ export function CategoryPage() {
     <CatalogListing
       categorySlug={category.data.slug}
       description={category.data.description}
-      eyebrow="Equipment category"
+      eyebrow="Software category"
       noindex={false}
       title={category.data.name}
       afterCatalog={<RelatedContentSection categorySlug={category.data.slug} />}

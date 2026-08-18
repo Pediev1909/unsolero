@@ -15,9 +15,9 @@ export function FeaturedProductsSection() {
       <Container>
         <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-end">
           <div>
-            <p className="eyebrow">Featured equipment</p>
+            <p className="eyebrow">Featured tools</p>
             <Heading className="mt-5 max-w-3xl" level={2} size="section">
-              A preview of the equipment we evaluate.
+              A preview of the tools we evaluate.
             </Heading>
           </div>
           <p className="max-w-md text-sm leading-6 text-ink/60">

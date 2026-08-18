@@ -21,6 +21,7 @@ const adminProductColumns = `
 	products.id, products.category_id, categories.name, categories.slug,
 	products.brand_id, brands.name, brands.slug, products.name, products.slug,
 	products.description, products.price_minor, products.currency,
+	categories.is_physical,
 	products.length_mm, products.width_mm, products.height_mm,
 	products.weight_grams, products.max_capacity_grams, products.material,
 	products.warranty_months, products.quality_score, products.value_score,
@@ -87,12 +88,17 @@ func (repository *Repository) GetProduct(ctx context.Context, id catalog.Product
 
 func scanAdminProduct(row scanner, total *int64, product *catalog.Product) error {
 	var capacity sql.NullInt64
+	// A non-physical category leaves these columns null; they are scanned
+	// through nullable holders and stay at their zero value.
+	var lengthMM, widthMM, heightMM, weightGrams sql.NullInt64
+	var material sql.NullString
 	targets := []interface{}{
 		&product.ID, &product.CategoryID, &product.CategoryName, &product.CategorySlug,
 		&product.BrandID, &product.BrandName, &product.BrandSlug, &product.Name, &product.Slug,
 		&product.Description, &product.Price.AmountMinor, &product.Price.Currency,
-		&product.Dimensions.LengthMM, &product.Dimensions.WidthMM, &product.Dimensions.HeightMM,
-		&product.WeightGrams, &capacity, &product.Material, &product.WarrantyMonths,
+		&product.IsPhysical,
+		&lengthMM, &widthMM, &heightMM,
+		&weightGrams, &capacity, &material, &product.WarrantyMonths,
 		&product.Scores.Quality, &product.Scores.Value, &product.Scores.Durability,
 		&product.Scores.Beginner, &product.Scores.Advanced, &product.Scores.Apartment,
 		&product.Scores.Noise, &product.Scores.Portability, &product.Status,
@@ -108,7 +114,34 @@ func scanAdminProduct(row scanner, total *int64, product *catalog.Product) error
 		value := capacity.Int64
 		product.MaxCapacityGrams = &value
 	}
+	product.Dimensions = catalog.Dimensions{
+		LengthMM: lengthMM.Int64, WidthMM: widthMM.Int64, HeightMM: heightMM.Int64,
+	}
+	product.WeightGrams = weightGrams.Int64
+	product.Material = material.String
 	return nil
+}
+
+// physicalValues renders the physical attributes for a write. A non-physical
+// product writes nulls, which the catalog trigger requires; writing zeros
+// would violate the positive-value checks instead. Whether the product is
+// physical is read from its category rather than taken from the request, so a
+// caller cannot disagree with the category it is writing into.
+func physicalValues(isPhysical bool, input admin.ProductInput) (any, any, any, any, any) {
+	if !isPhysical {
+		return nil, nil, nil, nil, nil
+	}
+	return input.Dimensions.LengthMM, input.Dimensions.WidthMM, input.Dimensions.HeightMM,
+		input.WeightGrams, input.Material
+}
+
+func categoryIsPhysical(ctx context.Context, tx pgx.Tx, id catalog.CategoryID) (bool, error) {
+	var isPhysical bool
+	if err := tx.QueryRow(ctx,
+		`SELECT is_physical FROM catalog.categories WHERE id=$1`, id).Scan(&isPhysical); err != nil {
+		return false, fmt.Errorf("load category physicality: %w", err)
+	}
+	return isPhysical, nil
 }
 
 func (repository *Repository) loadProductChildren(ctx context.Context, products []catalog.Product) error {
@@ -203,6 +236,11 @@ func (repository *Repository) CreateProduct(ctx context.Context, actor identity.
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	var id catalog.ProductID
+	isPhysical, err := categoryIsPhysical(ctx, tx, input.CategoryID)
+	if err != nil {
+		return catalog.Product{}, err
+	}
+	insertLength, insertWidth, insertHeight, insertWeight, insertMaterial := physicalValues(isPhysical, input)
 	err = tx.QueryRow(ctx, `
 		INSERT INTO catalog.products (
 			category_id, brand_id, name, slug, description, price_minor, currency,
@@ -211,8 +249,8 @@ func (repository *Repository) CreateProduct(ctx context.Context, actor identity.
 			beginner_score, advanced_score, apartment_score, noise_score, portability_score
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
 		RETURNING id`, input.CategoryID, input.BrandID, input.Name, input.Slug, input.Description,
-		input.Price.AmountMinor, input.Price.Currency, input.Dimensions.LengthMM, input.Dimensions.WidthMM,
-		input.Dimensions.HeightMM, input.WeightGrams, input.MaxCapacityGrams, input.Material,
+		input.Price.AmountMinor, input.Price.Currency, insertLength, insertWidth,
+		insertHeight, insertWeight, input.MaxCapacityGrams, insertMaterial,
 		input.WarrantyMonths, input.Scores.Quality, input.Scores.Value, input.Scores.Durability,
 		input.Scores.Beginner, input.Scores.Advanced, input.Scores.Apartment, input.Scores.Noise,
 		input.Scores.Portability).Scan(&id)
@@ -231,6 +269,11 @@ func (repository *Repository) UpdateProduct(ctx context.Context, actor identity.
 		return catalog.Product{}, fmt.Errorf("begin update product: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	isPhysical, err := categoryIsPhysical(ctx, tx, input.CategoryID)
+	if err != nil {
+		return catalog.Product{}, err
+	}
+	updateLength, updateWidth, updateHeight, updateWeight, updateMaterial := physicalValues(isPhysical, input)
 	tag, err := tx.Exec(ctx, `
 		UPDATE catalog.products SET category_id=$2, brand_id=$3, name=$4, slug=$5,
 			description=$6, price_minor=$7, currency=$8, length_mm=$9, width_mm=$10,
@@ -239,8 +282,8 @@ func (repository *Repository) UpdateProduct(ctx context.Context, actor identity.
 			beginner_score=$19, advanced_score=$20, apartment_score=$21, noise_score=$22,
 			portability_score=$23, updated_at=now()
 		WHERE id=$1 AND status <> 'published'`, id, input.CategoryID, input.BrandID, input.Name, input.Slug, input.Description,
-		input.Price.AmountMinor, input.Price.Currency, input.Dimensions.LengthMM, input.Dimensions.WidthMM,
-		input.Dimensions.HeightMM, input.WeightGrams, input.MaxCapacityGrams, input.Material,
+		input.Price.AmountMinor, input.Price.Currency, updateLength, updateWidth,
+		updateHeight, updateWeight, input.MaxCapacityGrams, updateMaterial,
 		input.WarrantyMonths, input.Scores.Quality, input.Scores.Value, input.Scores.Durability,
 		input.Scores.Beginner, input.Scores.Advanced, input.Scores.Apartment, input.Scores.Noise,
 		input.Scores.Portability)

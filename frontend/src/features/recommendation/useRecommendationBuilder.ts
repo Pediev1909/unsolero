@@ -137,24 +137,20 @@ function validateStep(step: number, values: BuilderValues): string | null {
     case 0:
       return values.goal ? null : 'Choose your primary goal.'
     case 1:
-      return values.experience ? null : 'Choose your experience level.'
+      return values.experience ? null : 'Choose who will look after these tools.'
     case 2:
-      return values.space_preset
-        ? null
-        : 'Choose the space that best matches your training area.'
-    case 3:
       return values.budget_minor >= 10_000
         ? null
-        : 'Enter a budget of at least $100.'
-    case 5:
+        : 'Enter a monthly budget of at least $100.'
+    case 4:
       return values.training_preferences.length > 0
         ? null
-        : 'Choose at least one training preference.'
-    case 6:
+        : 'Choose at least one preference.'
+    case 5:
       return values.priorities.length > 0
         ? null
         : 'Choose at least one priority.'
-    case 7:
+    case 6:
       return values.free_text.length <= 1000
         ? null
         : 'Keep the description under 1,000 characters.'

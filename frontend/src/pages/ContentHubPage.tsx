@@ -23,7 +23,7 @@ const guides: HubConfig = {
   eyebrow: 'Editorial guidance',
   title: 'Buy with a clearer brief.',
   description:
-    'Practical guides built from structured equipment facts, real constraints, and explicit trade-offs—not review-volume rankings.',
+    'Practical guides built from structured software facts, real constraints, and explicit trade-offs—not review-volume rankings.',
   emptyTitle: 'No published guides yet',
 }
 
@@ -32,7 +32,7 @@ const articles: HubConfig = {
   eyebrow: 'Planning library',
   title: 'Make the room work first.',
   description:
-    'Editorial field notes for measuring, planning, and improving a home gym before another product enters the room.',
+    'Editorial field notes for planning and tightening a software stack before another subscription joins it.',
   emptyTitle: 'No published articles yet',
 }
 
@@ -47,7 +47,7 @@ export function ArticlesPage() {
 function ContentHub({ config }: { config: HubConfig }) {
   const content = useContent({ section: config.section, limit: 24 })
   usePageMetadata({
-    title: `${config.section === 'guides' ? 'Home Gym Guides' : 'Home Gym Articles'} | UNSOLERO`,
+    title: `${config.section === 'guides' ? 'Software Stack Guides' : 'Software Stack Articles'} | UNSOLERO`,
     description: config.description,
   })
   useStructuredData('content-collection', {

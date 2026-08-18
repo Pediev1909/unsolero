@@ -187,6 +187,7 @@ func policyProduct(category string) catalog.Product {
 		ID: "policy-product", FactRevisionID: "facts-v1", ScoreRevisionID: "scores-v1",
 		Name: "Policy product", CategorySlug: category,
 		Price:      catalog.Money{AmountMinor: 10000, Currency: "USD"},
+		IsPhysical: true,
 		Dimensions: catalog.Dimensions{LengthMM: 500, WidthMM: 400, HeightMM: 300},
 		Scores:     balancedScores(),
 	}

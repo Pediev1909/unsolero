@@ -160,7 +160,7 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("configure account security: %w", err)
 	}
-	catalogRepository := catalogpostgres.New(db)
+	catalogRepository := catalogpostgres.NewForVertical(db, cfg.Recommendation.Vertical)
 	commerceRepository := commercepostgres.New(db, cfg.Commerce.OfferMaximumAge)
 	commerceProviders := merchantadapter.NewRegistry()
 	commerceImportService := commerce.NewImportService(commerceRepository, commerceProviders)
@@ -176,13 +176,20 @@ func run(logger *slog.Logger) error {
 	case "disabled":
 		imageScanner = imagescan.Unavailable{}
 	case "external":
-		return errors.New("MEDIA_SCAN_PROVIDER=external requires a reviewed malware-scanning adapter that is not linked in this repository")
+		// clamd is reachable only on the private network. Readiness is checked
+		// at startup so a misconfigured scanner is found now rather than by the
+		// first administrator who tries to upload an image.
+		clamav := imagescan.NewClamAV(cfg.Assets.ScanEndpoint, cfg.Assets.ScanTimeout, 0)
+		if scanErr := clamav.Ready(ctx); scanErr != nil {
+			return fmt.Errorf("media scanner is not ready: %w", scanErr)
+		}
+		imageScanner = clamav
 	default:
 		return errors.New("unsupported media scanning provider")
 	}
 	wishlistRepository := planningpostgres.NewWishlistRepository(db)
 	comparisonRepository := planningpostgres.NewComparisonRepository(db)
-	recommendationRepository := recommendationpostgres.New(db)
+	recommendationRepository := recommendationpostgres.NewForVertical(db, cfg.Recommendation.Vertical)
 	aiProvider, err := aiadapter.NewRegistry().Select(aiadapter.Config{
 		Provider: cfg.AI.Provider, Model: cfg.AI.Model, APIKey: cfg.AI.APIKey,
 		Timeout: cfg.AI.Timeout, MaxResponseBytes: cfg.AI.MaxResponseBytes,

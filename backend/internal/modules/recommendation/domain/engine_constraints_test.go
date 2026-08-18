@@ -11,7 +11,7 @@ func TestExistingEquipmentPreventsRedundantRecommendation(t *testing.T) {
 	input := testInput(planning.GoalBuildMuscle, planning.ExperienceIntermediate, 50000)
 	input.ExistingEquipment = []ExistingEquipment{{
 		Name: "adjustable dumbbells", CategorySlug: "adjustable-dumbbells",
-		Capabilities:     []Capability{CapabilityResistanceTraining, CapabilityStrengthTraining, CapabilityHypertrophy},
+		Capabilities:     []Capability{Capability("resistance_training"), Capability("strength_training"), Capability("hypertrophy")},
 		RedundancyGroups: []string{"dumbbell_system"},
 	}}
 	dumbbells := testCandidate("new-dumbbells", "adjustable-dumbbells", 25000, balancedScores())
@@ -34,7 +34,7 @@ func TestExistingPullUpBarProducesCompatibilityExplanation(t *testing.T) {
 	input := testInput(planning.GoalMobility, planning.ExperienceBeginner, 10000)
 	input.ExistingEquipment = []ExistingEquipment{{
 		Name: "pull-up bar", CategorySlug: "pull-up-bar",
-		Capabilities: []Capability{CapabilityPullUp, CapabilityAnchorPoint},
+		Capabilities: []Capability{Capability("pull_up"), Capability("anchor_point")},
 	}}
 	bands := testCandidate("bands", "resistance-bands", 4000, balancedScores())
 
@@ -87,7 +87,7 @@ func TestMutuallyIncompatibleProductsAreNotCombined(t *testing.T) {
 	input := testInput(planning.GoalGeneralFitness, planning.ExperienceIntermediate, 150000)
 	dumbbells := testCandidate("dumbbells", "adjustable-dumbbells", 25000, balancedScores())
 	cardio := testCandidate("cardio", "cardio-machines", 60000, balancedScores())
-	cardio.IncompatibleWith = []Capability{CapabilityResistanceTraining}
+	cardio.IncompatibleWith = []Capability{Capability("resistance_training")}
 
 	result, err := testEngine(t).Recommend(input, []CandidateSnapshot{dumbbells, cardio})
 	if err != nil {

@@ -2,6 +2,7 @@ package domain_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"reflect"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"rigmark/internal/modules/catalog/ports"
 	planning "rigmark/internal/modules/planning/domain"
 	recommendation "rigmark/internal/modules/recommendation/domain"
+	recommendationports "rigmark/internal/modules/recommendation/ports"
 )
 
 func TestSeedCatalogProducesRepeatableRecommendation(t *testing.T) {
@@ -35,6 +37,9 @@ func TestSeedCatalogProducesRepeatableRecommendation(t *testing.T) {
 		t.Fatalf("load catalog candidates: %v", err)
 	}
 	policy, err := recommendationpostgres.New(pool).ActivePolicy(ctx)
+	if errors.Is(err, recommendationports.ErrNotFound) {
+		t.Skip("the fitness vertical is not seeded in this database")
+	}
 	if err != nil {
 		t.Fatalf("load active policy: %v", err)
 	}
@@ -59,7 +64,7 @@ func TestSeedCatalogProducesRepeatableRecommendation(t *testing.T) {
 			Name: "pull-up bar", CategorySlug: "pull-up-bar",
 		}},
 		Priorities: []recommendation.Priority{
-			recommendation.PriorityBudget, recommendation.PriorityCompact,
+			recommendation.Priority("budget"), recommendation.Priority("compact"),
 		},
 	})
 

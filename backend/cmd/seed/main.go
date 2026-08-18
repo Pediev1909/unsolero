@@ -41,10 +41,16 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 	defer pool.Close()
-	if err := database.ApplySeed(ctx, pool, os.DirFS(cfg.Seeds.Directory), "demo.sql"); err != nil {
-		return fmt.Errorf("apply demo seed: %w", err)
+	// Each vertical has its own fictional fixture. Seeding every vertical would
+	// leave a deployment holding catalogs it does not serve.
+	seedFile := "demo.sql"
+	if cfg.Recommendation.Vertical != "fitness" {
+		seedFile = cfg.Recommendation.Vertical + "_demo.sql"
+	}
+	if err := database.ApplySeed(ctx, pool, os.DirFS(cfg.Seeds.Directory), seedFile); err != nil {
+		return fmt.Errorf("apply %s seed: %w", cfg.Recommendation.Vertical, err)
 	}
 
-	logger.Info("fictional demo data is current")
+	logger.Info("fictional demo data is current", "vertical", cfg.Recommendation.Vertical, "seed", seedFile)
 	return nil
 }
