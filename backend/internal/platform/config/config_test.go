@@ -329,6 +329,7 @@ func TestLoadAcceptsSecureProductionConfiguration(t *testing.T) {
 	t.Setenv("EMAIL_PROVIDER", "external")
 	t.Setenv("MEDIA_STORAGE_PROVIDER", "external")
 	t.Setenv("MEDIA_SCAN_PROVIDER", "external")
+	t.Setenv("MEDIA_SCAN_ENDPOINT", "clamav:3310")
 	t.Setenv("ALERT_PROVIDER", "external")
 	t.Setenv("METRICS_ENABLED", "true")
 	t.Setenv("METRICS_TOKEN", "12345678901234567890123456789012")
@@ -385,6 +386,7 @@ func TestLoadRejectsPrivateOrReservedProductionPublicURL(t *testing.T) {
 			t.Setenv("RATE_LIMIT_KEY_SECRET", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 			t.Setenv("MEDIA_STORAGE_PROVIDER", "external")
 			t.Setenv("MEDIA_SCAN_PROVIDER", "external")
+			t.Setenv("MEDIA_SCAN_ENDPOINT", "clamav:3310")
 			if _, err := Load(); err == nil {
 				t.Fatalf("Load() accepted non-public production origin %q", siteURL)
 			}
@@ -418,6 +420,7 @@ func setSecureProductionEnvironment(t *testing.T) {
 	t.Setenv("RATE_LIMIT_KEY_SECRET", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 	t.Setenv("MEDIA_STORAGE_PROVIDER", "external")
 	t.Setenv("MEDIA_SCAN_PROVIDER", "external")
+	t.Setenv("MEDIA_SCAN_ENDPOINT", "clamav:3310")
 	t.Setenv("ALERT_PROVIDER", "external")
 	t.Setenv("METRICS_ENABLED", "true")
 	t.Setenv("METRICS_TOKEN", "12345678901234567890123456789012")

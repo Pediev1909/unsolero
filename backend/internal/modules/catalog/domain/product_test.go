@@ -67,7 +67,7 @@ func TestAttributeValidateEnforcesTypedValue(t *testing.T) {
 }
 
 func TestProductInsightsAreDerivedFromScores(t *testing.T) {
-	product := Product{Scores: Scores{
+	product := Product{IsPhysical: true, Scores: Scores{
 		Quality: 90, Value: 84, Durability: 88, Beginner: 92,
 		Advanced: 55, Apartment: 95, Noise: 86, Portability: 40,
 	}}
@@ -117,5 +117,37 @@ func TestNonPhysicalProductRejectsPhysicalAttributes(t *testing.T) {
 
 	if err := product.Validate(); err == nil {
 		t.Fatal("Validate() accepted a non-physical product carrying a footprint")
+	}
+}
+
+// A non-physical product must not be described by dimensions it cannot have.
+// Apartment and quiet-operation scores sit at zero for software, and reporting
+// them would present three inapplicable dimensions as serious weaknesses.
+func TestNonPhysicalInsightsExcludePhysicalDimensions(t *testing.T) {
+	product := Product{Scores: Scores{
+		Quality: 90, Value: 84, Durability: 88, Beginner: 92,
+		Advanced: 55, Apartment: 0, Noise: 0, Portability: 40,
+	}}
+
+	for _, insight := range product.Suitability() {
+		if insight.Key == "apartment" || insight.Key == "quiet" {
+			t.Fatalf("Suitability() reported the physical dimension %q for software", insight.Key)
+		}
+	}
+	for _, insight := range product.Considerations() {
+		if insight.Key == "apartment" || insight.Key == "quiet" {
+			t.Fatalf("Considerations() flagged the inapplicable dimension %q as a weakness", insight.Key)
+		}
+	}
+	// Portability still applies, but it means keeping your data rather than
+	// carrying the product, so it must be labelled accordingly.
+	var portability string
+	for _, insight := range product.Suitability() {
+		if insight.Key == "portable" {
+			portability = insight.Label
+		}
+	}
+	if portability != "Data portability" {
+		t.Fatalf("portability label = %q, want %q", portability, "Data portability")
 	}
 }

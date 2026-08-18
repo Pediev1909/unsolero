@@ -373,6 +373,12 @@ func keySpecificationDTO(product domain.Product) keySpecificationResponse {
 		}
 		return keySpecificationResponse{Label: label, Value: value}
 	}
+	if !product.IsPhysical {
+		// A subscription has no headline physical measurement. Falling through
+		// to weight reported "0 kg", which reads as broken data rather than as
+		// an absent one.
+		return keySpecificationResponse{Label: "Billing", Value: "Per month"}
+	}
 	return keySpecificationResponse{Label: "Product weight", Value: formatKilograms(product.WeightGrams)}
 }
 
