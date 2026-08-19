@@ -2,7 +2,7 @@
 
 UNSOLERO is a trust-first decision engine for people assembling a set of products that has to work together. It turns goals, budget, experience, and what someone already owns into explainable purchasing decisions.
 
-The product domain is a configuration rather than an assumption. The engine, catalog and policy are vertical-neutral; a deployment selects its vertical with `RECOMMENDATION_VERTICAL`. Two ship in the repository: `saas` (business software stacks) and `fitness` (home-gym equipment).
+The product domain is a configuration rather than an assumption. The engine, catalog and policy are vertical-neutral; a deployment selects its vertical with `RECOMMENDATION_VERTICAL`. One ships in the repository: `saas` (business software stacks). A home-gym vertical shipped alongside it until the pivot and has been removed; what it proved is that the engine holds a vertical it was not written for.
 
 The current implementation includes the project foundation, core relational data model, typed domains, PostgreSQL adapters, secure opaque-session authentication, responsive public experience, deterministic recommendations, evidence governance, comparison/wishlist/setup flows, tracked offer redirects, privacy-governed analytics, role-protected operations, atomic Redis-compatible abuse control, private S3-compatible media storage, a transactional SMTP boundary, and provider-neutral AI/commerce/telemetry boundaries. No live AI, commerce, conversion, email, scanner, alert, or other external provider is enabled. The repository is not approved for public production traffic.
 
@@ -80,13 +80,16 @@ vertical at a time. Startup fails on a malformed value, and a value with no
 active policy fails when a recommendation is requested rather than silently
 returning nothing.
 
-Two verticals ship in the repository:
+One vertical ships in the repository:
 
-- `fitness` — home-gym equipment. Physical products with dimensions, weight,
-  material and room-fit constraints.
 - `saas` — business software stacks. Non-physical products; the policy sets
   `spatial_constraints` to false and the engine skips space eligibility and
   space scoring rather than scoring them as neutral.
+
+The engine keeps its spatial path, because a vertical whose products occupy
+space is exactly the case that proves the policy is data rather than
+assumption. It costs a SaaS deployment nothing: `spatial_constraints` is false
+and the branch is never entered.
 
 What a vertical defines is data, not code: its goals, setup roles,
 capabilities, preference tags, priorities and redundancy groups all live in
@@ -96,10 +99,9 @@ version and a catalog, not changing the engine. The `Capability`,
 and then checked against what the active policy declares, so an undeclared
 value is rejected rather than silently ignored.
 
-Each vertical has its own fictional development fixture (`seeds/demo.sql` for
-fitness, `seeds/saas_demo.sql` for saas); the seed process loads the one
-matching `RECOMMENDATION_VERTICAL`. Both are explicitly fictional and must not
-be treated as real product data.
+Each vertical has its own fictional development fixture; the seed process
+loads `seeds/<vertical>_demo.sql`. It is explicitly fictional and must not be
+treated as real product data.
 
 `PUBLIC_SITE_URL` is the canonical public origin used for editorial canonical
 URLs, the sitemap, and the robots sitemap directive. Production startup rejects
@@ -333,7 +335,7 @@ workflow rather than an unsafe raw-HTML editor.
 
 The pure engine lives under `backend/internal/modules/recommendation/domain`. It accepts normalized user constraints plus bounded catalog candidate snapshots, applies hard eligibility and compatibility rules, calculates an explicit eleven-dimension score breakdown, assembles a budget-constrained non-redundant setup, and returns structured reasons, alternatives, and rejections.
 
-Each vertical has its own active policy version (`saas-v1`, `fitness-v2`). Its weights, supported categories and goals, setup roles, capabilities, product requirements, compatibility rules, redundancy groups, and evidence-bound spatial profiles are loaded from PostgreSQL. Creating a catalog category or product never makes it recommendation-eligible: the active policy must explicitly support the category and bind the product's current published fact and score revisions. Stable product-ID tie-breaking, canonical input fingerprints, candidate-order normalization, policy immutability, and commercial-free run snapshots make results reproducible. Free text is validated and fingerprinted but deliberately does not affect scoring until a separately validated interpretation layer exists.
+Each vertical has its own active policy version (`saas-v1`). Its weights, supported categories and goals, setup roles, capabilities, product requirements, compatibility rules, redundancy groups, and evidence-bound spatial profiles are loaded from PostgreSQL. Creating a catalog category or product never makes it recommendation-eligible: the active policy must explicitly support the category and bind the product's current published fact and score revisions. Stable product-ID tie-breaking, canonical input fingerprints, candidate-order normalization, policy immutability, and commercial-free run snapshots make results reproducible. Free text is validated and fingerprinted but deliberately does not affect scoring until a separately validated interpretation layer exists.
 
 Space decisions never interpret missing data as zero. Base footprint is required; storage footprint, operating and safety clearance, room height, access width, and explicitly shared overlap zones are applied only when governed measurements exist. If a policy requires one of those measurements and it is missing, that product is rejected with a structured unknown-measurement reason.
 
@@ -341,7 +343,7 @@ Recommendation inputs contain no merchant, commission, sponsorship, payout, or a
 
 Authenticated generation atomically stores the immutable recommendation input/result and creates a planning setup. Saved setups can be listed at `/setups`, reopened, renamed, deleted, compared, or used as the input for a new edited revision. Guest generation remains stateless on the server by design; guests can deliberately save setup results in browser local storage.
 
-The comparison workspace at `/compare` supports two to four products across structured specifications and suitability scores. `/wishlist` shows saved equipment with current catalog prices and tracked merchant actions. Authenticated comparison and wishlist IDs persist in PostgreSQL; guests use the same selection rules through a local-storage adapter, so presentation logic is not duplicated.
+The comparison workspace at `/compare` supports two to four products across structured specifications and suitability scores. `/wishlist` shows saved software with current catalog prices and tracked merchant actions. Authenticated comparison and wishlist IDs persist in PostgreSQL; guests use the same selection rules through a local-storage adapter, so presentation logic is not duplicated.
 
 ## AI integration boundary
 

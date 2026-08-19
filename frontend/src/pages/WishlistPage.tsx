@@ -33,7 +33,7 @@ export function WishlistPage() {
         <Container className="py-14 sm:py-20">
           <p className="eyebrow">Your shortlist</p>
           <Heading className="mt-5" level={1} size="display">
-            Saved equipment.
+            Saved software.
           </Heading>
           <p className="mt-5 max-w-2xl text-ink/70">
             Current catalog prices and available merchant offers are loaded when

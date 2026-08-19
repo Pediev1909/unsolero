@@ -42,11 +42,9 @@ func run(logger *slog.Logger) error {
 	}
 	defer pool.Close()
 	// Each vertical has its own fictional fixture. Seeding every vertical would
-	// leave a deployment holding catalogs it does not serve.
-	seedFile := "demo.sql"
-	if cfg.Recommendation.Vertical != "fitness" {
-		seedFile = cfg.Recommendation.Vertical + "_demo.sql"
-	}
+	// leave a deployment holding catalogs it does not serve. The unprefixed
+	// demo.sql was the home-gym fixture and is gone with that vertical.
+	seedFile := cfg.Recommendation.Vertical + "_demo.sql"
 	if err := database.ApplySeed(ctx, pool, os.DirFS(cfg.Seeds.Directory), seedFile); err != nil {
 		return fmt.Errorf("apply %s seed: %w", cfg.Recommendation.Vertical, err)
 	}

@@ -25,7 +25,7 @@ type Repository struct {
 }
 
 // DefaultVertical is used when no vertical is configured.
-const DefaultVertical = "fitness"
+const DefaultVertical = "saas"
 
 func New(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool, vertical: DefaultVertical}
@@ -201,11 +201,11 @@ func (repository *Repository) SaveResult(
 	}
 
 	var setupID planning.SetupID
-	setupName := fmt.Sprintf("Personalized Home Gym · %.8s", recommendationID)
+	setupName := fmt.Sprintf("Personalized software stack · %.8s", recommendationID)
 	err = tx.QueryRow(ctx, `INSERT INTO planning.setups
 		(user_id, source_recommendation_id, name, description, currency)
 		VALUES ($1,$2,$3,$4,$5) RETURNING id`, userID, recommendationID, setupName,
-		"A deterministic UNSOLERO setup based on your goals, space, and budget.", result.TotalCost.Currency,
+		"A deterministic UNSOLERO stack based on your goals, constraints and budget.", result.TotalCost.Currency,
 	).Scan(&setupID)
 	if err != nil {
 		return ports.SavedResult{}, fmt.Errorf("insert setup: %w", err)

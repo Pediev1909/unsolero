@@ -24,7 +24,7 @@ export function RelatedContentSection({
           Research before you shortlist.
         </Heading>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
-          Curated planning and buying guidance connected to this equipment
+          Curated planning and buying guidance connected to this software
           category.
         </p>
         <div className="mt-9">

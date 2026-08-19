@@ -85,10 +85,10 @@ func basicHardRejection(
 		}
 	}
 	if intersectsStrings(candidate.RedundancyGroups, existingRedundancyGroups) {
-		return "existing_equipment.redundant", "Duplicates equipment you already own"
+		return "existing_equipment.redundant", "Duplicates a tool you already run"
 	}
 	if intersects(candidate.IncompatibleWith, existingCapabilities) {
-		return "compatibility.existing_conflict", "Conflicts with your existing equipment"
+		return "compatibility.existing_conflict", "Conflicts with a tool you already run"
 	}
 	return "", ""
 }

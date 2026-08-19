@@ -36,9 +36,9 @@ export function ControlsShowcase() {
             <option disabled value="">
               Select a goal
             </option>
-            <option value="muscle">Build muscle</option>
-            <option value="strength">Build strength</option>
-            <option value="fitness">General fitness</option>
+            <option value="grow">Win more customers</option>
+            <option value="operate">Run the business day to day</option>
+            <option value="replace">Replace a tool we outgrew</option>
           </Select>
           <Input
             error="Enter a budget greater than zero."

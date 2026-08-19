@@ -7,7 +7,7 @@ import { ShowcaseBlock } from './ShowcaseBlock'
 
 const demoProducts: ProductCardData[] = [
   {
-    id: 'demo-northline-nest-24-pair',
+    id: 'demo-northwind-crm',
     name: 'Demo Northwind CRM',
     brand: 'Demo Northline',
     category: 'CRM',
@@ -17,7 +17,7 @@ const demoProducts: ProductCardData[] = [
     badge: { label: 'Fictional demo', variant: 'accent' },
   },
   {
-    id: 'demo-quietform-dial-20-pair',
+    id: 'demo-pocket-crm',
     name: 'Demo Pocket CRM',
     brand: 'Demo QuietForm',
     category: 'CRM',
@@ -27,10 +27,10 @@ const demoProducts: ProductCardData[] = [
     badge: { label: 'Fictional demo', variant: 'neutral' },
   },
   {
-    id: 'demo-oak-iron-foldaway-flat-bench',
-    name: 'Demo Oak & Iron Foldaway Flat Bench',
-    brand: 'Demo Oak & Iron',
-    category: 'Benches',
+    id: 'demo-ledgerline-books',
+    name: 'Demo Ledgerline Books',
+    brand: 'Demo Ledgerline',
+    category: 'Accounting',
     priceMinor: 14900,
     currency: 'USD',
     href: '/design-system#products',

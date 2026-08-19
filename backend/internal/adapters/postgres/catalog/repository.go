@@ -21,7 +21,7 @@ type Repository struct {
 }
 
 // DefaultVertical is used when no vertical is configured.
-const DefaultVertical = "fitness"
+const DefaultVertical = "saas"
 
 func New(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool, vertical: DefaultVertical}

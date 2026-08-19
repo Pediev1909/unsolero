@@ -37,7 +37,7 @@ func reasonsFor(
 	if breakdown.ExperienceMatch >= 85 {
 		reasons = append(reasons, Reason{
 			Code:      "experience.strong_match",
-			Message:   fmt.Sprintf("Well suited to %s training", input.Experience),
+			Message:   fmt.Sprintf("Well suited to a %s team", input.Experience),
 			Dimension: "experience_match", Score: breakdown.ExperienceMatch,
 		})
 	}

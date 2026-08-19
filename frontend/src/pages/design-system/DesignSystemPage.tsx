@@ -25,7 +25,7 @@ export function DesignSystemPage() {
             </Heading>
             <div className="mt-8 grid gap-8 border-t border-ink/15 pt-8 md:grid-cols-2 md:gap-16">
               <p className="max-w-xl text-body-lg text-ink/70">
-                A premium, editorial system for trustworthy fitness decisions
+                A premium, editorial system for trustworthy software decisions
                 across every screen size.
               </p>
               <p className="max-w-xl text-sm leading-6 text-ink/70">

@@ -264,7 +264,7 @@ payloads or credentials. Metrics return `available`, `no_data`, or
 `insufficient_data` plus numerator, denominator, definition, reporting window,
 freshness, and original-currency values. No FX conversion is performed.
 
-## Saved equipment
+## Saved products
 
 These endpoints require an authenticated session:
 

@@ -506,7 +506,7 @@ func Load() (Config, error) {
 			PublicURL:   strings.TrimRight(valueOrDefault("PUBLIC_SITE_URL", "http://localhost:5173"), "/"),
 			SPAShellURL: os.Getenv("SPA_SHELL_URL"),
 		},
-		Recommendation: Recommendation{Vertical: valueOrDefault("RECOMMENDATION_VERTICAL", "fitness")},
+		Recommendation: Recommendation{Vertical: valueOrDefault("RECOMMENDATION_VERTICAL", "saas")},
 		AI: AI{
 			Provider:         valueOrDefault("AI_PROVIDER", "disabled"),
 			Model:            os.Getenv("AI_MODEL"),
@@ -699,7 +699,7 @@ func Load() (Config, error) {
 		return Config{}, errors.New("hosted staging and production require an external media scanning adapter")
 	}
 	if !verticalKeyPattern.MatchString(cfg.Recommendation.Vertical) {
-		return Config{}, errors.New("RECOMMENDATION_VERTICAL must be a lowercase key such as fitness or saas")
+		return Config{}, errors.New("RECOMMENDATION_VERTICAL must be a lowercase key such as saas")
 	}
 	if !providerNamePattern.MatchString(cfg.AI.Provider) || cfg.AI.Timeout <= 0 ||
 		cfg.AI.MaxResponseBytes < 1_024 || cfg.AI.MaxResponseBytes > 1_048_576 {
