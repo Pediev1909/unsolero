@@ -1,6 +1,8 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router-dom'
 
+import { isStaleBuildError, recoverFromStaleBuild } from './staleBuild'
+
 import { SiteFooter } from '../components/layout/SiteFooter'
 import { SiteHeader } from '../components/layout/SiteHeader'
 import { Button } from '../components/ui/Button'
@@ -10,6 +12,14 @@ import { Heading } from '../components/ui/Heading'
 export function RouteErrorPage() {
   const error = useRouteError()
   const notFound = isRouteErrorResponse(error) && error.status === 404
+
+  // A deploy replaces the hashed chunk filenames the open page is holding, so
+  // its next lazy route 404s. That is a stale document rather than a fault,
+  // and reloading fixes it. Done during render, before the error page paints,
+  // so a visitor mid-task sees a reload instead of a dead end.
+  if (isStaleBuildError(error) && recoverFromStaleBuild()) {
+    return null
+  }
 
   return (
     <>
