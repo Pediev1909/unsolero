@@ -162,7 +162,7 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
         hint={`${values.free_text.length}/1,000 characters. Saved with your request; the deterministic engine does not interpret this note yet.`}
         label="Describe your ideal setup"
         maxLength={1000}
-        placeholder="For example: I train early, share a wall with a neighbor, and want equipment that can store in a closet."
+        placeholder="For example: we bill hourly, everything has to reach our invoicing, and nobody has time to configure a new tool."
         rows={7}
       />
     </div>

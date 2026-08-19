@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 
 import { useCurrentUser } from '../auth/queries'
+import { steps } from './options'
 import {
   builderValuesSchema,
   recommendationInputSchema,
@@ -84,7 +85,7 @@ export function useRecommendationBuilder(initialInput?: RecommendationInput) {
       return
     }
     setStepError(null)
-    if (currentStep < 7) {
+    if (currentStep < steps.length - 1) {
       setCurrentStep((step) => step + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
@@ -170,7 +171,7 @@ function readLocalProgress(): {
     const parsed = builderValuesSchema.safeParse(value.values)
     if (!parsed.success || typeof value.currentStep !== 'number') return null
     return {
-      currentStep: Math.min(7, Math.max(0, Math.floor(value.currentStep))),
+      currentStep: Math.min(steps.length - 1, Math.max(0, Math.floor(value.currentStep))),
       values: parsed.data,
     }
   } catch {
