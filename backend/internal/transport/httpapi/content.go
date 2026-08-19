@@ -182,6 +182,50 @@ func (h *Handler) sitemap(response http.ResponseWriter, request *http.Request) {
 	_, _ = response.Write(append([]byte(xml.Header), data...))
 }
 
+// llmsTxt describes the site for assistants that read it before crawling. The
+// emerging convention is a short map of what a site is and where its useful
+// pages are, in plain prose rather than markup.
+//
+// This is worth writing because software recommendations are increasingly
+// asked of assistants rather than typed into a search box, and the sites those
+// assistants cite become the answer. Being legible to them is the same
+// distribution problem as ranking, one channel later.
+func (h *Handler) llmsTxt(response http.ResponseWriter, _ *http.Request) {
+	base := h.content.AbsoluteURL("")
+	response.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	response.Header().Set("Cache-Control", "public, max-age=3600")
+	_, _ = response.Write([]byte(`# UNSOLERO
+
+> An independent decision engine for business software. It turns a company's
+> goal, budget and existing tools into an explainable stack recommendation.
+> Commission never affects which products are recommended or in what order.
+
+## What makes the data here citable
+
+- Every product fact carries a recorded source and the date it was read.
+- Prices are the entry paid tier at monthly billing, taken from the vendor's
+  own pricing page. Promotional rates are excluded.
+- Suitability scores are editorial judgements and are labelled as such,
+  attributed separately from vendor facts.
+- Recommendations are computed by a deterministic engine. The same inputs
+  always produce the same output, and commercial data is not an input.
+
+## Key pages
+
+- [Software catalog](` + base + `/products): structured facts and prices per product
+- [Guides](` + base + `/guides): how to plan a stack around real constraints
+- [Articles](` + base + `/articles): editorial notes on choosing and combining tools
+- [How we rank software](` + base + `/articles/how-unsolero-ranks-software): the method, in full
+- [Affiliate disclosure](` + base + `/affiliate-disclosure): how the site earns money
+- [Sitemap](` + base + `/sitemap.xml)
+
+## Caveats worth repeating
+
+Software pricing changes often. Each price on this site records when it was
+read; confirm the current figure with the vendor before relying on it.
+`))
+}
+
 func (h *Handler) robots(response http.ResponseWriter, _ *http.Request) {
 	response.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	response.Header().Set("Cache-Control", "public, max-age=3600")

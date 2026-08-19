@@ -346,6 +346,7 @@ func NewRouter(
 		mux.HandleFunc("GET /api/content/{slug}", handler.getContent)
 		mux.HandleFunc("GET /sitemap.xml", handler.sitemap)
 		mux.HandleFunc("GET /robots.txt", handler.robots)
+		mux.HandleFunc("GET /llms.txt", handler.llmsTxt)
 	}
 	if handler.catalog != nil && handler.commerce != nil {
 		mux.HandleFunc("GET /api/catalog/products/{slug}/offers", handler.listOffers)
