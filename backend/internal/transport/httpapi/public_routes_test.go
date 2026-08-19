@@ -73,6 +73,7 @@ func TestPublicRouteStatusManifestAndCanonicalBehavior(t *testing.T) {
 		// These two shipped in the router and the footer but not here, so they
 		// answered 404 and noindex. They are what an affiliate programme
 		// review opens first, which made the omission expensive and silent.
+		{"about", "/about", http.StatusOK, true, false},
 		{"privacy policy", "/privacy", http.StatusOK, true, false},
 		{"affiliate disclosure", "/affiliate-disclosure", http.StatusOK, true, false},
 		{"known dynamic public", "/products/known-product", http.StatusOK, true, false},

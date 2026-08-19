@@ -16,11 +16,15 @@
 -- commercial data is kept out. Replace them with better artwork when there is
 -- any; the entries do not depend on these specific files.
 
+-- A named person rather than a faceless masthead. Search engines weigh
+-- attribution to a real, identifiable author, and a reader deciding whether to
+-- trust a ranking is entitled to know who produced it. The slug is unchanged so
+-- existing entries keep their author.
 INSERT INTO editorial.authors (name, slug, bio)
 VALUES (
-    'UNSOLERO Editorial',
+    'Andon Pediev',
     'unsolero-editorial',
-    'UNSOLERO editors turn structured software facts into practical, constraint-aware stack guidance. We publish our method so it can be argued with.'
+    'Andon Pediev builds and runs UNSOLERO on his own: the scoring engine, the catalog, and the record of where every published fact came from. Prices and plan limits are read from vendor documentation and carry the date they were read. Suitability scores are editorial judgements and are labelled separately from anything a vendor claims.'
 )
 ON CONFLICT (slug) DO UPDATE SET
     name = EXCLUDED.name, bio = EXCLUDED.bio, updated_at = now()

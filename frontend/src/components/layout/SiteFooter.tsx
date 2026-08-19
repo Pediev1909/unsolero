@@ -43,6 +43,12 @@ export function SiteFooter() {
             </Link>
             <Link
               className="text-canvas/70 transition-colors duration-150 hover:text-canvas"
+              to="/about"
+            >
+              About
+            </Link>
+            <Link
+              className="text-canvas/70 transition-colors duration-150 hover:text-canvas"
               to="/privacy"
             >
               Privacy

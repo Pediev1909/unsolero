@@ -23,7 +23,7 @@ var staticPublicRoutes = map[string]bool{
 	// Indexable on purpose. Affiliate programme reviewers and search engines
 	// both look for these two before approving or ranking a commercial site,
 	// so a 404 here is expensive.
-	"/privacy": true, "/affiliate-disclosure": true,
+	"/about": true, "/privacy": true, "/affiliate-disclosure": true,
 	"/login": false, "/register": false, "/check-email": false,
 	"/verify-email": false, "/forgot-password": false, "/reset-password": false,
 	"/login/mfa": false, "/build": false, "/compare": false,
@@ -257,6 +257,9 @@ func staticRouteMetadata(path string) (string, string) {
 	case "/articles":
 		return "Software stack articles | UNSOLERO",
 			"Editorial notes on choosing, combining and replacing the tools a business runs on."
+	case "/about":
+		return "About UNSOLERO | Who runs this site",
+			"UNSOLERO is built and run by Andon Pediev. Who writes it, where the facts come from, and what it does not yet claim to know."
 	case "/privacy":
 		return "Privacy policy | UNSOLERO",
 			"What we store, why we store it, and how to have it removed."
