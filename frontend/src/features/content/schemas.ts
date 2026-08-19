@@ -65,3 +65,15 @@ export type ContentType = z.infer<typeof contentTypeSchema>
 export type ContentSummary = z.infer<typeof contentSummarySchema>
 export type ContentBlock = z.infer<typeof contentBlockSchema>
 export type ContentDetail = z.infer<typeof contentDetailSchema>
+
+export const contentAuthorPageSchema = z.object({
+  author: z.object({
+    name: z.string(),
+    slug: z.string(),
+    bio: z.string(),
+    avatar_url: z.string().nullable(),
+  }),
+  entries: z.array(contentSummarySchema),
+})
+
+export type ContentAuthorPage = z.infer<typeof contentAuthorPageSchema>

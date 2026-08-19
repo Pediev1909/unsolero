@@ -71,6 +71,24 @@ func (service *Service) Get(ctx context.Context, slug string) (domain.Entry, err
 	return entry, nil
 }
 
+// Author returns one author with everything they have published. The byline on
+// an entry is only worth as much as the page behind it: a reader deciding
+// whether to trust a ranking, and a search engine weighing who produced it,
+// both need somewhere to look the person up.
+func (service *Service) Author(ctx context.Context, slug string) (domain.Author, []domain.Summary, error) {
+	author, err := service.repository.GetAuthorBySlug(ctx, slug)
+	if err != nil {
+		return domain.Author{}, nil, err
+	}
+	entries, err := service.repository.ListPublished(ctx, ports.Filter{
+		AuthorSlug: author.Slug, Limit: 100,
+	})
+	if err != nil {
+		return domain.Author{}, nil, err
+	}
+	return author, entries, nil
+}
+
 func (service *Service) Sitemap(ctx context.Context) ([]domain.SitemapEntry, error) {
 	return service.repository.ListSitemapEntries(ctx)
 }

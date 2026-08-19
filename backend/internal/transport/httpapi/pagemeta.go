@@ -269,7 +269,7 @@ func productStructuredData(product catalog.Product, canonicalURL string) map[str
 }
 
 // articleStructuredData emits schema.org/Article for editorial pages.
-func articleStructuredData(entry content.Entry, canonicalURL string) map[string]any {
+func (h *Handler) articleStructuredData(entry content.Entry, canonicalURL string) map[string]any {
 	data := map[string]any{
 		"@context":    "https://schema.org",
 		"@type":       "Article",
@@ -281,7 +281,14 @@ func articleStructuredData(entry content.Entry, canonicalURL string) map[string]
 		data["mainEntityOfPage"] = canonicalURL
 	}
 	if entry.AuthorName != "" {
-		data["author"] = map[string]any{"@type": "Organization", "name": entry.AuthorName}
+		// A Person, not an Organization. Search engines weigh attribution to a
+		// named, identifiable human, and the url is what turns a name into an
+		// entity they can look up rather than a string on a page.
+		author := map[string]any{"@type": "Person", "name": entry.AuthorName}
+		if entry.Author.Slug != "" {
+			author["url"] = h.absolutePublicRoute("/author/" + entry.Author.Slug)
+		}
+		data["author"] = author
 	}
 	if !entry.PublishedAt.IsZero() {
 		data["datePublished"] = entry.PublishedAt.UTC().Format(time.RFC3339)
@@ -370,4 +377,27 @@ func writeEntryBlock(body *strings.Builder, block content.Block) {
 		}
 		body.WriteString(`</blockquote>`)
 	}
+}
+
+// renderAuthorBody ships the author's name, biography and published work inside
+// the document, for the same reason the entries do: a page whose body only
+// exists after JavaScript runs is an empty page to everything that does not run
+// it, and this one exists to be read by exactly those readers.
+func renderAuthorBody(author content.Author, entries []content.Summary) string {
+	var body strings.Builder
+	body.WriteString(`<main class="mx-auto max-w-reading px-4 py-12">`)
+	body.WriteString(`<h1 class="font-editorial text-4xl">` + html.EscapeString(author.Name) + `</h1>`)
+	if author.Bio != "" {
+		body.WriteString(`<p class="mt-4 text-body">` + html.EscapeString(author.Bio) + `</p>`)
+	}
+	if len(entries) > 0 {
+		body.WriteString(`<h2 class="mt-10 font-editorial text-2xl">Published work</h2><ul class="mt-5 space-y-3">`)
+		for _, entry := range entries {
+			body.WriteString(`<li><a href="` + html.EscapeString(entry.Path) + `">` +
+				html.EscapeString(entry.Title) + `</a></li>`)
+		}
+		body.WriteString(`</ul>`)
+	}
+	body.WriteString(`</main>`)
+	return body.String()
 }

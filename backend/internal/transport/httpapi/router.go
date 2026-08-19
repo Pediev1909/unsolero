@@ -127,6 +127,7 @@ type AnalyticsReportingService interface {
 type ContentService interface {
 	List(context.Context, string, string, int) ([]contentdomain.Summary, error)
 	Get(context.Context, string) (contentdomain.Entry, error)
+	Author(context.Context, string) (contentdomain.Author, []contentdomain.Summary, error)
 	Sitemap(context.Context) ([]contentdomain.SitemapEntry, error)
 	AbsoluteURL(string) string
 }
@@ -343,6 +344,9 @@ func NewRouter(
 	}
 	if handler.content != nil {
 		mux.HandleFunc("GET /api/content", handler.listContent)
+		// Registered before the slug route so an author path is not read as a
+		// content slug.
+		mux.HandleFunc("GET /api/content/authors/{slug}", handler.getAuthor)
 		mux.HandleFunc("GET /api/content/{slug}", handler.getContent)
 		mux.HandleFunc("GET /sitemap.xml", handler.sitemap)
 		mux.HandleFunc("GET /robots.txt", handler.robots)

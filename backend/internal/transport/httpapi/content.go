@@ -56,6 +56,32 @@ type contentDetailResponse struct {
 	SEO               contentSEOResponse       `json:"seo"`
 }
 
+type contentAuthorPageResponse struct {
+	Author  contentAuthorResponse    `json:"author"`
+	Entries []contentSummaryResponse `json:"entries"`
+}
+
+// getAuthor serves the page behind a byline. Attribution to a named person is
+// the signal a reader and a search engine both look for, and it is worth
+// nothing if the name does not lead anywhere.
+func (h *Handler) getAuthor(response http.ResponseWriter, request *http.Request) {
+	author, entries, err := h.content.Author(request.Context(), request.PathValue("slug"))
+	if err != nil {
+		h.writeContentError(response, err)
+		return
+	}
+	result := contentAuthorPageResponse{
+		Author: contentAuthorResponse{
+			Name: author.Name, Slug: author.Slug, Bio: author.Bio, AvatarURL: author.AvatarURL,
+		},
+		Entries: make([]contentSummaryResponse, 0, len(entries)),
+	}
+	for _, entry := range entries {
+		result.Entries = append(result.Entries, contentSummaryDTO(entry))
+	}
+	writeJSON(response, http.StatusOK, result, h.logger)
+}
+
 func (h *Handler) listContent(response http.ResponseWriter, request *http.Request) {
 	limit := 12
 	if raw := request.URL.Query().Get("limit"); raw != "" {

@@ -39,7 +39,11 @@ export function ContentDetailPage() {
       datePublished: entry.data.published_at,
       dateModified: entry.data.updated_at,
       mainEntityOfPage: entry.data.seo.canonical_url,
-      author: { '@type': 'Organization', name: entry.data.author.name },
+      author: {
+        '@type': 'Person',
+        name: entry.data.author.name,
+        url: `${window.location.origin}/author/${entry.data.author.slug}`,
+      },
       publisher: { '@type': 'Organization', name: 'UNSOLERO' },
       articleSection: contentTypeLabel(entry.data.type),
     }
@@ -108,7 +112,14 @@ export function ContentDetailPage() {
                   </p>
                 </div>
                 <div className="border-t border-ink/15 pt-5 text-xs leading-6 text-ink/70 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
-                  <p className="font-semibold text-ink">{item.author.name}</p>
+                  <p className="font-semibold text-ink">
+                    <Link
+                      className="underline decoration-ink/25 underline-offset-4 hover:decoration-ink"
+                      to={`/author/${item.author.slug}`}
+                    >
+                      {item.author.name}
+                    </Link>
+                  </p>
                   <p>Published {formatEditorialDate(item.published_at)}</p>
                   {item.updated_at.slice(0, 10) !==
                     item.published_at.slice(0, 10) && (

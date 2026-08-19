@@ -117,11 +117,8 @@ export function AboutPage() {
                   <p>
                     Corrections are welcome, particularly on prices and plan limits.
                     If something here is wrong, write to{' '}
-                    <a
-                      className="underline"
-                      href="mailto:pedievandon1909@gmail.com"
-                    >
-                      pedievandon1909@gmail.com
+                    <a className="underline" href="mailto:andon@unsolero.com">
+                      andon@unsolero.com
                     </a>{' '}
                     and say which page and which figure.
                   </p>

@@ -12,6 +12,10 @@ type repositoryStub struct {
 	filter ports.Filter
 }
 
+func (stub *repositoryStub) GetAuthorBySlug(_ context.Context, slug string) (domain.Author, error) {
+	return domain.Author{Name: "Andon Pediev", Slug: slug, Bio: "Builds and runs UNSOLERO."}, nil
+}
+
 func (stub *repositoryStub) ListPublished(_ context.Context, filter ports.Filter) ([]domain.Summary, error) {
 	stub.filter = filter
 	return []domain.Summary{}, nil

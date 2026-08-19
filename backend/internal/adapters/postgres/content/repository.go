@@ -47,8 +47,10 @@ func (repository *Repository) ListPublished(ctx context.Context, filter ports.Fi
 				WHERE entry_categories.entry_id = entries.id AND categories.slug = $2
 			))
 			AND ($3 = '' OR entries.id::text <> $3)
+			AND ($5 = '' OR authors.slug = $5)
 		ORDER BY entries.published_at DESC, entries.id
-		LIMIT $4`, typeFilter, filter.CategorySlug, filter.ExcludeID, filter.Limit)
+		LIMIT $4`, typeFilter, filter.CategorySlug, filter.ExcludeID, filter.Limit,
+		filter.AuthorSlug)
 	if err != nil {
 		return nil, fmt.Errorf("list published editorial entries: %w", err)
 	}
@@ -206,6 +208,12 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 			-- They belong here because affiliate programme reviews and search
 			-- engines both look for them on a commercial site.
 			UNION ALL SELECT '/about', site_updated_at FROM public_updates
+			UNION ALL
+			SELECT '/author/' || slug, updated_at FROM editorial.authors
+			WHERE EXISTS (
+				SELECT 1 FROM editorial.entries
+				WHERE entries.author_id = authors.id AND entries.status = 'published'
+			)
 			UNION ALL SELECT '/privacy', site_updated_at FROM public_updates
 			UNION ALL SELECT '/affiliate-disclosure', site_updated_at FROM public_updates
 			UNION ALL
@@ -259,4 +267,24 @@ func scanSummary(scanner summaryScanner) (domain.Summary, error) {
 	}
 	summary.Path = summary.Type.Path(summary.Slug)
 	return summary, nil
+}
+
+// GetAuthorBySlug reads one author. Attribution to a named, identifiable person
+// is what search engines weigh, and a byline is only worth as much as the page
+// it leads to, so the author needs to be addressable in their own right.
+func (repository *Repository) GetAuthorBySlug(ctx context.Context, slug string) (domain.Author, error) {
+	var author domain.Author
+	var avatar *string
+	err := repository.pool.QueryRow(ctx, `
+		SELECT id::text, name, slug, bio, avatar_url
+		FROM editorial.authors WHERE slug = $1`, slug).
+		Scan(&author.ID, &author.Name, &author.Slug, &author.Bio, &avatar)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Author{}, ports.ErrNotFound
+	}
+	if err != nil {
+		return domain.Author{}, fmt.Errorf("get editorial author: %w", err)
+	}
+	author.AvatarURL = avatar
+	return author, nil
 }

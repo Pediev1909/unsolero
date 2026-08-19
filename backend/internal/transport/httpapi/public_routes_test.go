@@ -55,6 +55,10 @@ func (routeContentStub) Get(_ context.Context, slug string) (contentdomain.Entry
 	}
 	return contentdomain.Entry{Summary: contentdomain.Summary{Path: "/guides/known-guide"}, CanonicalURL: "https://unsolero.example/guides/known-guide"}, nil
 }
+func (routeContentStub) Author(context.Context, string) (contentdomain.Author, []contentdomain.Summary, error) {
+	return contentdomain.Author{}, nil, nil
+}
+
 func (routeContentStub) Sitemap(context.Context) ([]contentdomain.SitemapEntry, error) {
 	return nil, nil
 }

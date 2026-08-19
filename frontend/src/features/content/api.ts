@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
 import { apiRequest } from '../../lib/api/client'
-import { contentDetailSchema, contentSummarySchema } from './schemas'
+import {
+  contentAuthorPageSchema,
+  contentDetailSchema,
+  contentSummarySchema,
+} from './schemas'
 
 export interface ContentQuery {
   section?: 'all' | 'articles' | 'guides' | 'comparisons'
@@ -25,5 +29,11 @@ export function getContent(query: ContentQuery) {
 export function getContentEntry(slug: string) {
   return apiRequest(`/content/${slug}`, { method: 'GET' }, (value) =>
     contentDetailSchema.parse(value),
+  )
+}
+
+export function getContentAuthor(slug: string) {
+  return apiRequest(`/content/authors/${slug}`, { method: 'GET' }, (value) =>
+    contentAuthorPageSchema.parse(value),
   )
 }

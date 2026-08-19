@@ -12,12 +12,14 @@ var ErrNotFound = errors.New("editorial content not found")
 type Filter struct {
 	Types        []domain.ContentType
 	CategorySlug string
+	AuthorSlug   string
 	ExcludeID    string
 	Limit        int
 }
 
 type Repository interface {
 	ListPublished(context.Context, Filter) ([]domain.Summary, error)
+	GetAuthorBySlug(context.Context, string) (domain.Author, error)
 	GetPublishedBySlug(context.Context, string) (domain.Entry, error)
 	ListSitemapEntries(context.Context) ([]domain.SitemapEntry, error)
 }

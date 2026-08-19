@@ -213,8 +213,25 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		meta.Title = defaultText(entry.SEOTitle, entry.Title+" | UNSOLERO")
 		meta.Description = truncateDescription(defaultText(entry.SEODescription, entry.Description), 160)
 		meta.ImageURL = h.absoluteImageURL(entry.HeroImageURL)
-		meta.StructuredData = articleStructuredData(entry, meta.CanonicalURL)
+		meta.StructuredData = h.articleStructuredData(entry, meta.CanonicalURL)
 		meta.PrerenderedBody = renderEntryBody(entry)
+		return meta, true, nil
+	case "author":
+		if h.content == nil {
+			return pageMetadata{}, false, nil
+		}
+		author, entries, err := h.content.Author(request.Context(), value)
+		if err != nil {
+			return pageMetadata{}, false, err
+		}
+		meta.Indexable = true
+		meta.Title = author.Name + " | UNSOLERO"
+		meta.Description = truncateDescription(author.Bio, 160)
+		meta.StructuredData = map[string]any{
+			"@context": "https://schema.org", "@type": "Person",
+			"name": author.Name, "description": author.Bio, "url": meta.CanonicalURL,
+		}
+		meta.PrerenderedBody = renderAuthorBody(author, entries)
 		return meta, true, nil
 	case "setups":
 		return pageMetadata{}, uuidRoutePattern.MatchString(value), nil

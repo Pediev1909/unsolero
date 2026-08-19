@@ -21,6 +21,10 @@ func (contentStub) List(context.Context, string, string, int) ([]domain.Summary,
 func (contentStub) Get(context.Context, string) (domain.Entry, error) {
 	return domain.Entry{}, nil
 }
+func (contentStub) Author(context.Context, string) (domain.Author, []domain.Summary, error) {
+	return domain.Author{}, nil, nil
+}
+
 func (contentStub) Sitemap(context.Context) ([]domain.SitemapEntry, error) {
 	return []domain.SitemapEntry{{Path: "/guides/example", ModifiedAt: time.Date(2026, 8, 16, 0, 0, 0, 0, time.UTC)}}, nil
 }
