@@ -214,6 +214,7 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		meta.Description = truncateDescription(defaultText(entry.SEODescription, entry.Description), 160)
 		meta.ImageURL = h.absoluteImageURL(entry.HeroImageURL)
 		meta.StructuredData = articleStructuredData(entry, meta.CanonicalURL)
+		meta.PrerenderedBody = renderEntryBody(entry)
 		return meta, true, nil
 	case "setups":
 		return pageMetadata{}, uuidRoutePattern.MatchString(value), nil

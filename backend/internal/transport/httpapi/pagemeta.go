@@ -21,13 +21,15 @@ import (
 // saw the home page for every product and article on the site. This injects
 // per-route metadata into the shell before it is sent.
 //
-// It deliberately stops short of server-side rendering. The body is still
-// rendered by React; only the head is authored here, which is what search
-// results, social previews and structured data actually read.
+// Editorial routes additionally carry their text in the document, because a
+// correct title above an empty body still reads as an empty page to anything
+// that does not run the application. See renderEntryBody.
 
 const (
 	pageMetaStartMarker = "<!--PAGE_META_START-->"
 	pageMetaEndMarker   = "<!--PAGE_META_END-->"
+	// Must stay in step with frontend/index.html and frontend/src/main.tsx.
+	rootMountPoint = `<div id="root"></div>`
 )
 
 // documentContentSecurityPolicy is the policy an HTML document needs, as
@@ -56,6 +58,9 @@ type pageMetadata struct {
 	// Indexable is false for account and admin routes, and for any URL
 	// carrying a query string.
 	Indexable bool
+	// PrerenderedBody is the page's content as HTML, placed inside the root
+	// element so clients that do not run JavaScript still receive it.
+	PrerenderedBody string
 }
 
 // spaShellProvider fetches the built index.html from the web container and
@@ -180,7 +185,17 @@ func renderShell(shell string, meta pageMetadata) (string, bool) {
 	}
 	block.WriteString("\n    ")
 
-	return shell[:start] + block.String() + shell[end+len(pageMetaEndMarker):], true
+	rendered := shell[:start] + block.String() + shell[end+len(pageMetaEndMarker):]
+
+	if meta.PrerenderedBody != "" {
+		// React clears the container on mount, so this is replaced the moment
+		// the application starts. It exists for everything that never gets
+		// that far. If the mount point is ever renamed the replacement simply
+		// does not happen, which costs the prerender rather than the page.
+		rendered = strings.Replace(rendered, rootMountPoint,
+			`<div id="root">`+meta.PrerenderedBody+`</div>`, 1)
+	}
+	return rendered, true
 }
 
 func writeMetaTag(block *strings.Builder, tag, value string) {
@@ -275,4 +290,84 @@ func articleStructuredData(entry content.Entry, canonicalURL string) map[string]
 		data["dateModified"] = entry.UpdatedAt.UTC().Format(time.RFC3339)
 	}
 	return data
+}
+
+// renderEntryBody turns an editorial entry into the HTML that ships inside the
+// document, so the article text is present before any JavaScript runs.
+//
+// Until now a fetch of an article returned about 2.8 KB of shell: correct
+// title, description and JSON-LD, and not one sentence of the article. Google
+// executes JavaScript and eventually sees the page, but nothing else in the
+// chain does — other crawlers, link previews, and the assistants the site
+// publishes an llms.txt for, which was pointing them at pages that answered
+// with an empty document.
+//
+// React clears the container when it mounts, so this content is what a reader
+// sees for the moment before the application takes over, and is what a client
+// that never runs the application sees permanently. Blocks are a closed set of
+// structured types rather than stored markup, so every value here is escaped
+// and no caller can inject elements.
+func renderEntryBody(entry content.Entry) string {
+	var body strings.Builder
+	body.WriteString(`<article class="mx-auto max-w-reading px-4 py-12">`)
+	body.WriteString(`<h1 class="font-editorial text-4xl">` + html.EscapeString(entry.Title) + `</h1>`)
+	if entry.Description != "" {
+		body.WriteString(`<p class="mt-4 text-body-lg text-ink/70">` +
+			html.EscapeString(entry.Description) + `</p>`)
+	}
+	if entry.Author.Name != "" {
+		body.WriteString(`<p class="mt-4 text-body-sm text-ink/70">By ` +
+			html.EscapeString(entry.Author.Name))
+		if !entry.PublishedAt.IsZero() {
+			// A machine-readable date next to the visible one is what a
+			// crawler uses to decide how current the page is.
+			body.WriteString(` · <time datetime="` +
+				html.EscapeString(entry.PublishedAt.Format(time.RFC3339)) + `">` +
+				html.EscapeString(entry.PublishedAt.Format("2 January 2006")) + `</time>`)
+		}
+		body.WriteString(`</p>`)
+	}
+	for _, block := range entry.Content {
+		writeEntryBlock(&body, block)
+	}
+	body.WriteString(`</article>`)
+	return body.String()
+}
+
+func writeEntryBlock(body *strings.Builder, block content.Block) {
+	switch block.Type {
+	case content.BlockHeading:
+		if block.Heading != "" {
+			body.WriteString(`<h2 class="mt-10 font-editorial text-2xl">` +
+				html.EscapeString(block.Heading) + `</h2>`)
+		}
+	case content.BlockParagraph:
+		if block.Text != "" {
+			body.WriteString(`<p class="mt-5 text-body">` + html.EscapeString(block.Text) + `</p>`)
+		}
+	case content.BlockUnordered, content.BlockOrdered:
+		if len(block.Items) == 0 {
+			return
+		}
+		tag := "ul"
+		if block.Type == content.BlockOrdered {
+			tag = "ol"
+		}
+		body.WriteString(`<` + tag + ` class="mt-5 space-y-2 text-body">`)
+		for _, item := range block.Items {
+			body.WriteString(`<li>` + html.EscapeString(item) + `</li>`)
+		}
+		body.WriteString(`</` + tag + `>`)
+	case content.BlockQuote, content.BlockCallout:
+		if block.Text == "" {
+			return
+		}
+		body.WriteString(`<blockquote class="mt-6 border-l-2 border-ink/20 pl-4 text-body">` +
+			html.EscapeString(block.Text))
+		if block.Attribution != "" {
+			body.WriteString(`<footer class="mt-2 text-body-sm text-ink/70">— ` +
+				html.EscapeString(block.Attribution) + `</footer>`)
+		}
+		body.WriteString(`</blockquote>`)
+	}
 }

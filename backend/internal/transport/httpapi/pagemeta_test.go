@@ -3,7 +3,10 @@ package httpapi
 import (
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
+
+	content "rigmark/internal/modules/content/domain"
 )
 
 const testShell = `<!doctype html>
@@ -152,5 +155,69 @@ func TestDocumentPolicyAllowsTheAssetsThePageLoads(t *testing.T) {
 	}
 	if strings.Contains(documentContentSecurityPolicy, "default-src 'none'") {
 		t.Fatal("the document policy is the API's JSON policy, which blocks all page assets")
+	}
+}
+
+// An article whose text never reaches the document reads as an empty page to
+// every client that does not run the application, including the assistants the
+// site publishes an llms.txt for.
+func TestEntryBodyReachesTheDocument(t *testing.T) {
+	entry := content.Entry{Content: []content.Block{
+		{Type: content.BlockHeading, Heading: "How the score is built"},
+		{Type: content.BlockParagraph, Text: "Commission is not an input."},
+		{Type: content.BlockUnordered, Items: []string{"Recorded source", "Date read"}},
+	}}
+	entry.Title = "How UNSOLERO ranks software"
+	entry.Author = content.Author{Name: "A. Reviewer"}
+	entry.PublishedAt = time.Date(2026, 8, 19, 0, 0, 0, 0, time.UTC)
+
+	rendered, ok := renderShell(testShell, pageMetadata{
+		Title: "t", Indexable: true, PrerenderedBody: renderEntryBody(entry),
+	})
+	if !ok {
+		t.Fatal("renderShell reported failure")
+	}
+	for _, want := range []string{
+		"How the score is built",
+		"Commission is not an input.",
+		"<li>Recorded source</li>",
+		"A. Reviewer",
+		`<time datetime="2026-08-19T00:00:00Z">`,
+	} {
+		if !strings.Contains(rendered, want) {
+			t.Fatalf("document is missing %q:\n%s", want, rendered)
+		}
+	}
+	// The mount point must still be the single container React takes over.
+	if strings.Count(rendered, `id="root"`) != 1 {
+		t.Fatalf("expected exactly one root element:\n%s", rendered)
+	}
+}
+
+// Block text is stored data. It must not be able to introduce markup.
+func TestEntryBodyEscapesBlockText(t *testing.T) {
+	entry := content.Entry{Content: []content.Block{
+		{Type: content.BlockParagraph, Text: `</div><script>alert(1)</script>`},
+		{Type: content.BlockUnordered, Items: []string{`<img src=x onerror=alert(1)>`}},
+	}}
+	entry.Title = `Title <script>alert(1)</script>`
+
+	body := renderEntryBody(entry)
+	if strings.Contains(body, "<script>") || strings.Contains(body, "<img") {
+		t.Fatalf("stored text produced live markup:\n%s", body)
+	}
+	if !strings.Contains(body, "&lt;script&gt;") {
+		t.Fatalf("expected escaped text in the body:\n%s", body)
+	}
+}
+
+// A route with no body must leave the shell exactly as it was.
+func TestShellIsUnchangedWithoutAPrerenderedBody(t *testing.T) {
+	rendered, ok := renderShell(testShell, pageMetadata{Title: "t", Indexable: true})
+	if !ok {
+		t.Fatal("renderShell reported failure")
+	}
+	if !strings.Contains(rendered, `<div id="root"></div>`) {
+		t.Fatalf("empty mount point was modified:\n%s", rendered)
 	}
 }
