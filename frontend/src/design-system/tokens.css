@@ -1,11 +1,18 @@
 @theme {
   /* Typography */
   --font-sans:
-    'Helvetica Neue', 'Neue Haas Grotesk Text Pro', Helvetica, Arial, sans-serif;
-  --font-display:
-    'Helvetica Neue', 'Neue Haas Grotesk Display Pro', Helvetica, Arial,
+    'Inter', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Arial,
     sans-serif;
-  --font-editorial: 'Iowan Old Style', 'Baskerville', 'Times New Roman', serif;
+  --font-display:
+    'Inter', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, Arial,
+    sans-serif;
+  /* Kept for long-form editorial only. Every comparison site in this category
+     is set entirely in one grotesque; a serif reading column is a cheap and
+     durable way to look unlike them. */
+  --font-editorial: 'Iowan Old Style', 'Charter', 'Georgia', serif;
+  /* Prices sit in columns and must line up. Proportional figures make a table
+     of prices look accidental. */
+  --font-numeric: 'Inter', 'Helvetica Neue', Arial, sans-serif;
 
   --text-caption: 0.6875rem;
   --text-caption--line-height: 1rem;
@@ -19,22 +26,33 @@
   --text-body-lg--line-height: 1.75rem;
 
   /* Core and semantic colors */
-  --color-canvas: #f3f0e9;
-  --color-surface: #fcfaf5;
-  --color-paper: #e8e3d9;
-  --color-ink: #171816;
-  --color-ink-soft: #4f514c;
-  --color-line: #cbc5b9;
-  --color-bronze: #8c5d35;
-  --color-bronze-dark: #684125;
-  --color-bronze-soft: #dfc9b6;
-  --color-moss: #48604e;
-  --color-moss-soft: #d9e2da;
-  --color-amber: #8a641f;
-  --color-amber-soft: #eee1c3;
-  --color-ember: #8a3f35;
-  --color-ember-soft: #edd7d2;
-  --color-charcoal: #242622;
+  /* The warm cream and bronze this started with belonged to the equipment
+     vertical: a craft-catalogue palette for physical goods. Buyers comparing
+     business software read tables of numbers, so the palette is now cool,
+     high-contrast and quiet, and white is reserved for surfaces holding data.
+
+     The accent is a deep teal rather than the blue or violet every SaaS
+     template reaches for. It is distinctive at no cost to credibility, and it
+     clears 7:1 against both surface and canvas.
+
+     Token names are unchanged so the whole interface moves with these values.
+     "bronze" now names the accent role, not the colour. */
+  --color-canvas: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-paper: #e8eaee;
+  --color-ink: #14171c;
+  --color-ink-soft: #545b67;
+  --color-line: #d2d6dd;
+  --color-bronze: #14605a;
+  --color-bronze-dark: #0d4340;
+  --color-bronze-soft: #cbe0dd;
+  --color-moss: #2c6349;
+  --color-moss-soft: #d3e5db;
+  --color-amber: #7c5a12;
+  --color-amber-soft: #efe2c4;
+  --color-ember: #98362c;
+  --color-ember-soft: #f0d8d4;
+  --color-charcoal: #1c1f25;
 
   /* Spacing: 4px base with editorial section intervals */
   --spacing-section-sm: 4rem;

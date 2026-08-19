@@ -37,9 +37,12 @@ export function PriceDisplay({
       {...props}
       className={cn('inline-flex items-baseline gap-2', className)}
     >
+      {/* Tabular figures keep prices aligned when several sit in a column,
+          which is most of this site. Proportional digits make a comparison
+          table look like it was typeset by accident. */}
       <span
         className={cn(
-          'font-display font-medium tracking-[-0.035em]',
+          'font-display font-medium tabular-nums tracking-[-0.035em]',
           sizes[size],
         )}
       >
