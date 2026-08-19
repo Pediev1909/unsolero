@@ -14,8 +14,8 @@ const summary: ContentSummary = {
   path: '/guides/structured-buying-guide',
   description: 'A concise description grounded in structured product facts.',
   hero_image: {
-    url: '/images/demo-adjustable-dumbbells.webp',
-    alt_text: 'Fictional adjustable dumbbells',
+    url: '/images/saas-agency-stack.svg',
+    alt_text: 'Diagram of a connected software stack',
     is_primary: false,
   },
   author_name: 'UNSOLERO Editorial',

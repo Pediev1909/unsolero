@@ -23,7 +23,7 @@ export function WishlistPage() {
     wishlist.isPending || (wishlist.productIDs.length > 0 && products.isPending)
   usePageMetadata({
     title: 'Saved Equipment | UNSOLERO',
-    description: 'Review saved home gym equipment and current merchant offers.',
+    description: 'Review saved software and current offers.',
     robots: 'noindex, follow',
   })
   return (

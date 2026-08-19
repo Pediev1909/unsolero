@@ -8,7 +8,7 @@ import { ShowcaseBlock } from './ShowcaseBlock'
 const demoProducts: ProductCardData[] = [
   {
     id: 'demo-northline-nest-24-pair',
-    name: 'Demo Northline Nest 24 Dumbbell Pair',
+    name: 'Demo Northwind CRM',
     brand: 'Demo Northline',
     category: 'CRM',
     priceMinor: 32900,
@@ -18,7 +18,7 @@ const demoProducts: ProductCardData[] = [
   },
   {
     id: 'demo-quietform-dial-20-pair',
-    name: 'Demo QuietForm Dial 20 Dumbbell Pair',
+    name: 'Demo Pocket CRM',
     brand: 'Demo QuietForm',
     category: 'CRM',
     priceMinor: 27900,

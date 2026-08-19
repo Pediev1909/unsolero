@@ -37,9 +37,9 @@ export function RecommendationBuilderPage() {
     document.getElementById('recommendation-step-title')?.focus()
   }, [builder.currentStep])
   usePageMetadata({
-    title: 'Build Your Home Gym | UNSOLERO',
+    title: 'Build Your Software Stack | UNSOLERO',
     description:
-      'Create a personalized home gym setup around your goals, available space, existing equipment, and complete budget.',
+      'Build a software stack around what your business does, the tools you already run, and your monthly budget.',
     robots: 'noindex, follow',
   })
 

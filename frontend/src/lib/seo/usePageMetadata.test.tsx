@@ -36,7 +36,7 @@ describe('usePageMetadata', () => {
     ).toHaveAttribute('content', 'UNSOLERO Editorial')
     expect(document.querySelector('meta[property="og:image"]')).toHaveAttribute(
       'content',
-      'http://localhost:3000/images/unsolero-saas-hero.webp',
+      'http://localhost:3000/images/unsolero-saas-hero.svg',
     )
   })
 })

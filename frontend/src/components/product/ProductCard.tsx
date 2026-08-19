@@ -1,4 +1,4 @@
-import { Dumbbell, MoveUpRight } from 'lucide-react'
+import { Layers3, MoveUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { cn } from '../../lib/styles/cn'
@@ -48,7 +48,7 @@ export function ProductCard({
         ) : (
           <div className="grid size-full place-items-center text-ink/25">
             <div className="text-center">
-              <Dumbbell aria-hidden="true" className="mx-auto" size={30} />
+              <Layers3 aria-hidden="true" className="mx-auto" size={30} />
               <span className="mt-3 block text-[0.625rem] font-semibold uppercase tracking-[0.14em]">
                 Image not available
               </span>

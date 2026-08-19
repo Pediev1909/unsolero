@@ -9,7 +9,7 @@ export function Hero() {
       <div className="absolute inset-x-0 bottom-0 top-20 lg:left-[44%]">
         <img
           className="size-full object-cover object-[66%_center]"
-          src="/images/unsolero-saas-hero.webp"
+          src="/images/unsolero-saas-hero.svg"
           alt="A small team reviewing the tools their business runs on"
           fetchPriority="high"
         />

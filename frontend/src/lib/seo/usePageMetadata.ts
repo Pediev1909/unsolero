@@ -17,7 +17,7 @@ export function usePageMetadata({
   description,
   robots = 'index, follow',
   type = 'website',
-  imagePath = '/images/unsolero-saas-hero.webp',
+  imagePath = '/images/unsolero-saas-hero.svg',
   canonicalURL,
   author,
   publishedAt,

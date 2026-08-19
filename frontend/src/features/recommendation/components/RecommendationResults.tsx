@@ -72,7 +72,7 @@ export function RecommendationResults({
       <div className="max-w-4xl">
         <p className="eyebrow">Your decision brief</p>
         <Heading className="mt-5" level={1} size="display">
-          Your Personalized Home Gym
+          Your Personalized Stack
         </Heading>
         <p className="mt-6 max-w-2xl text-base leading-7 text-ink/65 sm:text-lg">
           A complete setup selected from structured product facts, your

@@ -33,7 +33,7 @@ export function useLocalSetups() {
     get(id: string) {
       return setups.find((setup) => setup.id === id)
     },
-    save(result: RecommendationResult, name = 'Personalized Home Gym') {
+    save(result: RecommendationResult, name = 'Personalized Stack') {
       const now = new Date().toISOString()
       const setupName = uniqueName(setups, name)
       const setup: LocalSetup = {
