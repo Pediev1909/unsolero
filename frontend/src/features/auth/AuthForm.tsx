@@ -64,7 +64,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <p className="text-center text-sm text-ink/70">
         {isLogin ? 'New to UNSOLERO?' : 'Already have an account?'}{' '}
         <Link
-          className="font-semibold text-ink underline decoration-ink/25 underline-offset-4"
+          className="py-1 font-semibold text-ink underline decoration-ink/25 underline-offset-4"
           to={isLogin ? '/register' : '/login'}
         >
           {isLogin ? 'Create an account' : 'Sign in'}
@@ -73,7 +73,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       {isLogin && (
         <p className="text-center text-sm">
           <Link
-            className="font-semibold text-ink underline decoration-ink/25 underline-offset-4"
+            className="py-1 font-semibold text-ink underline decoration-ink/25 underline-offset-4"
             to="/forgot-password"
           >
             Forgot your password?
