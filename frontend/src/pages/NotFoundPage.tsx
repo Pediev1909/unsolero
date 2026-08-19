@@ -4,8 +4,17 @@ import { SiteFooter } from '../components/layout/SiteFooter'
 import { SiteHeader } from '../components/layout/SiteHeader'
 import { ButtonLink } from '../components/ui/ButtonLink'
 import { Heading } from '../components/ui/Heading'
+import { usePageMetadata } from '../lib/seo/usePageMetadata'
 
 export function NotFoundPage() {
+  // Nginx serves the unmodified shell for an unknown path, so without this the
+  // tab, the bookmark and any shared link all claimed to be the home page.
+  usePageMetadata({
+    title: 'Page not found | UNSOLERO',
+    description: 'The page you requested does not exist or has moved.',
+    robots: 'noindex, follow',
+  })
+
   return (
     // A reader who lands here arrived from a stale link or a typo, so this is
     // the page most in need of a way onward. It previously filled the viewport

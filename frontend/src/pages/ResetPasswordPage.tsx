@@ -39,6 +39,8 @@ export function ResetPasswordPage() {
   return (
     <AuthLayout
       description="A successful reset revokes every existing session. The reset token can be used once."
+      documentDescription="Set a new password for your UNSOLERO account."
+      documentTitle="Choose a new password | UNSOLERO"
       eyebrow="Account recovery"
       title="Choose a new password."
     >

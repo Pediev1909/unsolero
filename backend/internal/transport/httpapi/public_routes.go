@@ -283,6 +283,14 @@ func staticRouteMetadata(path string) (string, string) {
 	case "/affiliate-disclosure":
 		return "Affiliate disclosure | UNSOLERO",
 			"How UNSOLERO earns, and why commission is excluded from the ranking."
+	// Not indexable, so these titles never reach a search result. They reach the
+	// browser tab on the first paint, before the app has booted and set its own.
+	case "/login":
+		return "Sign in | UNSOLERO",
+			"Sign in to UNSOLERO to return to your saved software decisions and comparisons."
+	case "/register":
+		return "Create an account | UNSOLERO",
+			"Create a free UNSOLERO account to save software setups, comparisons and recommendations."
 	default:
 		return "UNSOLERO", "Independent business software recommendations built around your real constraints."
 	}

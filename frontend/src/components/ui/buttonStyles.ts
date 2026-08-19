@@ -14,7 +14,10 @@ const variants: Record<ButtonVariant, string> = {
 }
 
 const sizes: Record<ButtonSize, string> = {
-  sm: 'min-h-10 px-3.5 text-xs',
+  // 44px, not 40. The small size carries the consent banner's two buttons, the
+  // catalog card's compare and save controls and the mobile menu toggle, which
+  // are among the most-tapped things on the site.
+  sm: 'min-h-11 px-3.5 text-xs',
   md: 'min-h-12 px-5 text-sm',
   lg: 'min-h-14 px-6 text-sm',
 }

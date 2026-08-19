@@ -9,6 +9,8 @@ export function CheckEmailPage() {
   return (
     <AuthLayout
       description="Registration responses are deliberately generic, so an address cannot be used to discover whether an account exists."
+      documentDescription="Confirm your email address to finish setting up your UNSOLERO account."
+      documentTitle="Check your email | UNSOLERO"
       eyebrow="Account security"
       title="Check your email flow."
     >

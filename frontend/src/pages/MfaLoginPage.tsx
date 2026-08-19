@@ -40,6 +40,8 @@ export function MfaLoginPage() {
   return (
     <AuthLayout
       description="Use the six-digit code from your authenticator, or one unused recovery code."
+      documentDescription="Enter your authenticator code to finish signing in to UNSOLERO."
+      documentTitle="Two-step verification | UNSOLERO"
       eyebrow="Privileged authentication"
       title="Complete secure sign in."
     >

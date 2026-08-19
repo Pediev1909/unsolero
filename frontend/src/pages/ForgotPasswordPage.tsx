@@ -29,6 +29,8 @@ export function ForgotPasswordPage() {
   return (
     <AuthLayout
       description="For privacy, the response is identical whether or not the address belongs to an account."
+      documentDescription="Request a password reset link for your UNSOLERO account."
+      documentTitle="Reset your password | UNSOLERO"
       eyebrow="Account recovery"
       title="Reset your password."
     >

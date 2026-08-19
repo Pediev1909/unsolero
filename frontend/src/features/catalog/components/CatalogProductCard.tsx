@@ -63,8 +63,11 @@ export function CatalogProductCard({
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
+            {/* Small caps set at 10px left an 11px-tall tap target. The hit
+                box is raised to 24px and pulled back up by the same amount it
+                added, so the card's spacing is unchanged. */}
             <Link
-              className="text-[0.625rem] font-bold uppercase tracking-[0.13em] text-ink/65 hover:text-bronze-dark"
+              className="-mt-1.5 inline-flex min-h-6 items-center text-[0.625rem] font-bold uppercase tracking-[0.13em] text-ink/65 hover:text-bronze-dark"
               to={`/brands/${product.brand.slug}`}
             >
               {product.brand.name}
@@ -124,7 +127,7 @@ export function CatalogProductCard({
         </div>
 
         <Link
-          className="mt-4 text-xs font-semibold text-ink/70 hover:text-bronze-dark"
+          className="mt-3 flex min-h-6 items-center text-xs font-semibold text-ink/70 hover:text-bronze-dark"
           to={`/categories/${product.category.slug}`}
         >
           {product.category.name}

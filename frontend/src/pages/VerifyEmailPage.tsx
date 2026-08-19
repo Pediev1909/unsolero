@@ -43,6 +43,8 @@ export function VerifyEmailPage() {
   return (
     <AuthLayout
       description="Verification tokens are hashed at rest, expire, and can be used once."
+      documentDescription="Completing email verification for your UNSOLERO account."
+      documentTitle="Verify your email | UNSOLERO"
       eyebrow="Account security"
       title="Verify your email."
     >

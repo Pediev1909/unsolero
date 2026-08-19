@@ -13,8 +13,14 @@ import { useCurrentUser, useLogout } from '../features/auth/queries'
 import { SecuritySettings } from '../features/auth/components/SecuritySettings'
 import { useSetups } from '../features/recommendation/queries'
 import { formatMinorCurrency } from '../lib/money/format'
+import { usePageMetadata } from '../lib/seo/usePageMetadata'
 
 export function AccountPage() {
+  usePageMetadata({
+    title: 'Your account | UNSOLERO',
+    description: 'Your saved setups, security settings and account details.',
+    robots: 'noindex, follow',
+  })
   const account = useCurrentUser()
   const logout = useLogout()
   // Only ask for saved setups once we know there is a session. Without a

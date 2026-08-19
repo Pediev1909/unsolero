@@ -10,6 +10,10 @@
 
   html {
     scroll-behavior: smooth;
+    /* The palette is warm paper and is the only one this site has. Without
+       this, a reader whose system is set to dark gets dark form controls,
+       dark scrollbars and a dark autofill highlight dropped onto it. */
+    color-scheme: light;
   }
 
   body {
@@ -208,6 +212,16 @@
   }
 }
 
+/*
+ * Reduced motion asks for less movement, not less feedback. The blanket
+ * `animation-duration: 0.01ms` this replaced also flattened the colour and
+ * focus transitions that confirm a hover, a focus ring or a press, so the
+ * interface stopped answering rather than becoming calm. Each thing that moves
+ * gets a still alternative that keeps its meaning: the nav underline appears
+ * instead of sweeping, panels fade instead of sliding, and the loading
+ * placeholder holds the middle of its sweep. Component-level `motion-reduce:`
+ * variants handle the Tailwind transforms.
+ */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -217,8 +231,46 @@
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  }
+
+  .nav-link::after {
+    transition: none;
+  }
+
+  .skeleton-shimmer {
+    background-position: center;
+    animation: none;
+  }
+
+  /* Redefined rather than disabled: an element that arrives still has to be
+     seen arriving, so the travel is dropped and the fade is kept. */
+  @keyframes toast-enter {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes drawer-enter {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes drawer-left-enter {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 }

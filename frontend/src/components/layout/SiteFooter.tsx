@@ -58,11 +58,16 @@ export function SiteFooter() {
                 <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-canvas/55">
                   {group.heading}
                 </p>
+                {/* The links are 14px text, so their own box was 17px tall and
+                    a thumb had 17px of vertical room to hit one. `min-h-6`
+                    raises each hit box to the 24px WCAG 2.2 asks for, and
+                    because it grows into the gap that was already there, the
+                    footer keeps the height it was shrunk to. */}
                 <ul className="mt-3 space-y-2">
                   {group.links.map((link) => (
                     <li key={link.to}>
                       <Link
-                        className="text-sm text-canvas/75 transition-colors duration-150 hover:text-canvas"
+                        className="flex min-h-6 items-center text-sm text-canvas/75 transition-colors duration-150 hover:text-canvas"
                         to={link.to}
                       >
                         {link.label}
