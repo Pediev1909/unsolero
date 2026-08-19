@@ -50,6 +50,13 @@ export function ScrollRestoration() {
   const location = useLocation()
   const navigationType = useNavigationType()
   const currentKey = useRef(location.key)
+  // React Router names the first entry of every document "default", so the
+  // key a fresh load asks about is the same one the previous document saved
+  // under. Restoring on that first render made a followed link reopen at the
+  // offset of the page it was followed from — the very thing this component
+  // exists to prevent. A document that has just loaded has no position of its
+  // own to return to.
+  const hasNavigated = useRef(false)
 
   // Record where the reader was before the route changes, and again if they
   // close or hide the tab from a scrolled position.
@@ -67,9 +74,12 @@ export function ScrollRestoration() {
   useEffect(() => {
     claimScrollControl()
 
+    const isFirstRender = !hasNavigated.current
+    hasNavigated.current = true
+
     // A link followed, or an address typed: this page has not been seen at
     // this position before, so it starts where a page starts.
-    if (navigationType !== NavigationType.Pop) {
+    if (navigationType !== NavigationType.Pop || isFirstRender) {
       if (!location.hash) window.scrollTo(0, 0)
       return
     }
