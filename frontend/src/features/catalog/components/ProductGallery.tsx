@@ -9,7 +9,12 @@ export function ProductGallery({ product }: { product: ProductDetail }) {
 
   return (
     <div>
-      <div className="aspect-[4/3] overflow-hidden bg-paper">
+      <div
+        className={cn(
+          'overflow-hidden bg-paper',
+          image ? 'aspect-[4/3]' : 'aspect-[16/6]',
+        )}
+      >
         {image ? (
           <img
             alt={image.alt_text}

@@ -36,7 +36,17 @@ export function ProductCard({
 }: ProductCardProps) {
   const content = (
     <>
-      <div className="relative aspect-[4/3] overflow-hidden bg-paper">
+      {/* Every product in a software catalog reaches this branch, so the
+          media slot is never a photograph and a 4:3 box is 292px of empty
+          paper on a phone before the name, the price or a button. The
+          placeholder keeps a band deep enough to read as a deliberate mark
+          and no deeper; 4:3 is kept for the day a vendor supplies artwork. */}
+      <div
+        className={cn(
+          'relative overflow-hidden bg-paper',
+          product.image ? 'aspect-[4/3]' : 'aspect-[16/6]',
+        )}
+      >
         {product.image ? (
           <img
             alt={product.image.alt}

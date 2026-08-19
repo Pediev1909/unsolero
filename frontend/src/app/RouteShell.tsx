@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
-import { Outlet, ScrollRestoration, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 
+import { ScrollRestoration } from './scrollRestoration'
 import { trackEvent } from '../features/analytics/tracking'
 import { AnalyticsConsentBanner } from '../features/analytics/AnalyticsConsentBanner'
 import { analyticsConsentChangedEvent } from '../features/analytics/consent'
@@ -40,11 +41,8 @@ export function RouteShell() {
 
   return (
     <>
-      {/* Without this the browser keeps the scroll position across a route
-          change, so following a link from halfway down a page lands halfway
-          down the next one. ScrollRestoration is used rather than a plain
-          scroll to the top because it also restores the previous position on
-          back and forward, which a reader comparing products expects. */}
+      {/* A local implementation rather than the router's: see the file for
+          the two positions this site was landing readers in. */}
       <ScrollRestoration />
       <Outlet />
       <AnalyticsConsentBanner />
