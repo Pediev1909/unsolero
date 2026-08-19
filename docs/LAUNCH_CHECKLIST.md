@@ -121,34 +121,46 @@ claims go stale and belong in the catalog behind the evidence workflow.
 
 Only after the site is live with real content.
 
-### Start with PartnerStack
+### Apply in this order
 
-[PartnerStack](https://partnerstack.com) is a network, not a single program. It
-carries programs for 600+ B2B software companies, and one approval gets you
-into a marketplace where you apply to individual programs. Several approve
-automatically with no traffic minimum.
+**1. PartnerStack first.** It is a network, not a single programme, and it
+carries ClickUp among others. One approval opens a marketplace you then apply
+into, and several of its programmes approve automatically.
 
-**It accepts individuals** — no company required. It does check that your site
-is real: a dead link, a placeholder page, or a personal social profile in place
-of a site is grounds for rejection. Make the LinkedIn profile you sign up with
-match the name on the account.
+- Partner signup: https://partnerstack.com/partners-and-publishers
+- Programme directory: https://market.partnerstack.com
 
-### Then the direct programs
+The network application asks for eight to ten details and takes about five
+minutes. It accepts individuals. What it checks is that your site is real: a
+dead link, a placeholder page, or a social profile in place of a site is
+grounds for rejection. Sign up with an email and name that match the LinkedIn
+profile you give it.
 
-Typical 2026 rates run 20–40%, with the industry median around 22.5% of
-first-year revenue. The headline rates worth knowing:
+**2. Then the direct programmes.** Every product in the catalog has one, which
+is why those six were chosen.
 
-| Program | Rate | Notes |
+| Product | Where to apply | Published terms |
 | --- | --- | --- |
-| Systeme.io | 60% lifetime | Highest headline rate in the category |
-| Kit (ConvertKit) | 30–50% lifetime | Tiered; 30% base, rises with volume |
-| Notion | 50% for 12 months | |
-| Webflow | 50% of first-year revenue | Application-based |
+| ClickUp | via PartnerStack, or https://clickup.com/partners/affiliates | up to $25 per free workspace signup; 25% recurring at higher tiers; 30-day cookie |
+| HubSpot | https://www.hubspot.com/partners/affiliates | 30% recurring monthly for up to one year; paid through Impact; $10 minimum balance |
+| Zoho | https://www.zoho.com/affiliate/ | 15% recurring for the first 12 months; 90-day cookie; reviewed in about 3 business days |
+| FreshBooks | https://www.freshbooks.com/affiliates | up to $10 per free trial, up to $200 per paying customer; paid on the 20th after a 30-day lock |
+| Teamwork | https://www.teamwork.com/partners/ | 15% recurring for the lifetime of the customer |
+| Salesflare | https://www.salesflare.com/affiliates | 30% recurring |
 
-Application-based programs — Webflow, Semrush, Jasper, beehiiv, Frase — do
-approve small sites when the content angle is strong. Under 5,000 monthly
-visitors is not automatically disqualifying if the site is clearly about their
-category.
+Rates and terms are what each programme published when this was written. Verify
+on the programme page before building a page around a number.
+
+### What the applications look at
+
+Zoho states its requirement plainly, and it is representative: a functional
+site with relevant business or technology content. The site now has a catalog,
+six content pages, a privacy policy and an affiliate disclosure, which is the
+state these reviews are looking for.
+
+Apply to two or three first rather than all six at once. If something in the
+application is wrong — a mismatched name, a missing disclosure — you would
+rather learn it on the second rejection than the sixth.
 
 ### Networks worth having
 
@@ -158,11 +170,8 @@ category.
 | ShareASale | $50 |
 | CJ Affiliate | $50 |
 
-All three accept individuals and cost nothing to join.
-
-**Verify every rate before you build a page around it.** Rates and terms change,
-and the figures above are what was published at the time of writing, not a
-contract.
+HubSpot pays through Impact, so that account is needed regardless. All three
+accept individuals and cost nothing to join.
 
 ## Step 7 — Tax
 
