@@ -8,6 +8,7 @@ import { PriceDisplay } from '../../../components/ui/PriceDisplay'
 import { MerchantAction } from '../../catalog/components/MerchantAction'
 import type { ProductSummary } from '../../catalog/schemas'
 import type { RecommendationResult } from '../schemas'
+import { verticalHasSpatialConstraints } from '../options'
 
 type RecommendedProduct = RecommendationResult['recommended_products'][number]
 
@@ -94,7 +95,9 @@ export function RecommendationProduct({
             value={product.key_specification.value}
           />
           <Spec label="Goal fit" value={`${item.breakdown.goal_match}/100`} />
-          <Spec label="Space fit" value={`${item.breakdown.space_match}/100`} />
+          {verticalHasSpatialConstraints && (
+            <Spec label="Space fit" value={`${item.breakdown.space_match}/100`} />
+          )}
         </div>
 
         {alternative && (

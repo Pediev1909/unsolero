@@ -14,6 +14,7 @@ import type { RecommendationResult } from '../schemas'
 import { RecommendationProduct } from './RecommendationProduct'
 import { useLocalSetups } from '../localSetups'
 import { useToast } from '../../../components/ui/useToast'
+import { verticalHasSpatialConstraints } from '../options'
 
 interface RecommendationResultsProps {
   result: RecommendationResult
@@ -93,7 +94,9 @@ export function RecommendationResults({
           value={`${result.recommendation_score}/100`}
         />
         <Metric label="Goal fit" value={`${result.fit.goal_match}/100`} />
-        <Metric label="Space fit" value={`${result.fit.space_match}/100`} />
+        {verticalHasSpatialConstraints && (
+          <Metric label="Space fit" value={`${result.fit.space_match}/100`} />
+        )}
         <Metric label="Budget fit" value={`${result.fit.budget_match}/100`} />
       </div>
 

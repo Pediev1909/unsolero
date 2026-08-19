@@ -4,6 +4,12 @@ import type { BuilderValues } from './schemas'
 // validates membership rather than shape, so an option that drifts out of the
 // policy is rejected at submission instead of quietly scoring as no match.
 
+// Whether this vertical's products occupy physical space. Software does not,
+// which is why the wizard has no space step; the same fact has to reach the
+// results, which were still reporting a "Space fit" score derived from a
+// question nobody was asked. Must match the active policy's spatial_constraints.
+export const verticalHasSpatialConstraints = false
+
 export const goalOptions = [
   {
     value: 'client_services',

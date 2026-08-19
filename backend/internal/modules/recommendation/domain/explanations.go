@@ -15,13 +15,18 @@ func reasonsFor(
 ) []Reason {
 	reasons := []Reason{
 		{
-			Code: "space.fits", Message: "Fits your available space",
-			Dimension: "space_match", Score: breakdown.SpaceMatch,
-		},
-		{
 			Code: "budget.within", Message: "Within your budget",
 			Dimension: "budget_match", Score: breakdown.BudgetMatch,
 		},
+	}
+	// Only a vertical whose products occupy space can claim one fits. In a
+	// software catalog the score is a constant, and offering it as a reason
+	// told the reader something that was not about the product at all.
+	if config.SpatialConstraints {
+		reasons = append([]Reason{{
+			Code: "space.fits", Message: "Fits your available space",
+			Dimension: "space_match", Score: breakdown.SpaceMatch,
+		}}, reasons...)
 	}
 	if breakdown.GoalMatch >= 85 {
 		reasons = append(reasons, Reason{
