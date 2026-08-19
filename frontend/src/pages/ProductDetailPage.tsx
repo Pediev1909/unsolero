@@ -24,6 +24,10 @@ import { ProductComparison } from '../features/catalog/components/ProductCompari
 import { ProductGallery } from '../features/catalog/components/ProductGallery'
 import { ProductOffers } from '../features/catalog/components/ProductOffers'
 import { ProductSpecifications } from '../features/catalog/components/ProductSpecifications'
+import {
+  evidenceFactLabel,
+  visibleEvidence,
+} from '../features/catalog/evidence'
 import { specifications } from '../features/catalog/specifications'
 import { suitabilityVariant } from '../features/catalog/model'
 import { useProduct } from '../features/catalog/queries'
@@ -108,7 +112,10 @@ export function ProductDetailPage() {
             aria-label="Breadcrumb"
             className="flex flex-wrap items-center gap-x-2 text-xs text-ink/68"
           >
-            <Link className="flex min-h-6 items-center hover:text-ink" to="/products">
+            <Link
+              className="flex min-h-6 items-center hover:text-ink"
+              to="/products"
+            >
               Software
             </Link>
             <span aria-hidden="true">/</span>
@@ -119,7 +126,10 @@ export function ProductDetailPage() {
               {item.category.name}
             </Link>
             <span aria-hidden="true">/</span>
-            <span aria-current="page" className="flex min-h-6 items-center text-ink">
+            <span
+              aria-current="page"
+              className="flex min-h-6 items-center text-ink"
+            >
               {item.name}
             </span>
           </nav>
@@ -247,64 +257,66 @@ export function ProductDetailPage() {
           </Container>
         </section>
 
-        <section className="border-b border-ink/15 py-16 sm:py-24">
-          <Container>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
-              Evidence record
-            </p>
-            <Heading className="mt-4" level={2} size="title">
-              Where these product facts come from.
-            </Heading>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
-              Published facts are tied to reviewed sources and immutable
-              revisions. Commercial terms are kept outside this evidence and
-              never affect recommendation scores.
-            </p>
-            <div className="mt-9 grid gap-px border border-ink/15 bg-ink/15 md:grid-cols-2">
-              {item.evidence.map((evidence, index) => (
-                <article
-                  className="bg-canvas p-5 sm:p-6"
-                  key={`${evidence.fact_key}-${evidence.source_title}-${index}`}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="neutral">
-                      {evidenceLabel(evidence.classification)}
-                    </Badge>
-                    {evidence.is_fictional && (
-                      <Badge variant="warning">Fictional demo evidence</Badge>
+        {visibleEvidence(item).length > 0 && (
+          <section className="border-b border-ink/15 py-16 sm:py-24">
+            <Container>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
+                Evidence record
+              </p>
+              <Heading className="mt-4" level={2} size="title">
+                Where these product facts come from.
+              </Heading>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
+                Published facts are tied to reviewed sources and immutable
+                revisions. Commercial terms are kept outside this evidence and
+                never affect recommendation scores.
+              </p>
+              <div className="mt-9 grid gap-px border border-ink/15 bg-ink/15 md:grid-cols-2">
+                {visibleEvidence(item).map((evidence, index) => (
+                  <article
+                    className="bg-canvas p-5 sm:p-6"
+                    key={`${evidence.fact_key}-${evidence.source_title}-${index}`}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="neutral">
+                        {evidenceLabel(evidence.classification)}
+                      </Badge>
+                      {evidence.is_fictional && (
+                        <Badge variant="warning">Fictional demo evidence</Badge>
+                      )}
+                    </div>
+                    <h3 className="mt-4 text-sm font-semibold">
+                      {evidenceFactLabel(evidence.fact_key)}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-ink/70">
+                      {evidence.source_title}
+                    </p>
+                    <p className="mt-3 text-xs text-ink/65">
+                      Observed{' '}
+                      {new Date(evidence.observed_at).toLocaleDateString()}
+                      {' · '}Confidence {evidence.confidence}/100
+                    </p>
+                    {evidence.source_url && (
+                      <a
+                        className="mt-4 inline-flex min-h-11 items-center gap-2 text-xs font-semibold text-bronze-dark hover:text-ink"
+                        href={evidence.source_url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Inspect source
+                        <ExternalLink aria-hidden="true" size={14} />
+                      </a>
                     )}
-                  </div>
-                  <h3 className="mt-4 text-sm font-semibold capitalize">
-                    {evidence.fact_key.replaceAll('_', ' ')}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-ink/70">
-                    {evidence.source_title}
-                  </p>
-                  <p className="mt-3 text-xs text-ink/65">
-                    Observed{' '}
-                    {new Date(evidence.observed_at).toLocaleDateString()}
-                    {' · '}Confidence {evidence.confidence}/100
-                  </p>
-                  {evidence.source_url && (
-                    <a
-                      className="mt-4 inline-flex min-h-11 items-center gap-2 text-xs font-semibold text-bronze-dark hover:text-ink"
-                      href={evidence.source_url}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      Inspect source
-                      <ExternalLink aria-hidden="true" size={14} />
-                    </a>
-                  )}
-                </article>
-              ))}
-            </div>
-            <p className="mt-5 text-xs text-ink/65">
-              Fact revision {item.fact_revision_id.slice(0, 8)} · Score revision{' '}
-              {item.score_revision_id.slice(0, 8)}
-            </p>
-          </Container>
-        </section>
+                  </article>
+                ))}
+              </div>
+              <p className="mt-5 text-xs text-ink/65">
+                Fact revision {item.fact_revision_id.slice(0, 8)} · Score
+                revision {item.score_revision_id.slice(0, 8)}
+              </p>
+            </Container>
+          </section>
+        )}
 
         <section className="py-16 sm:py-24">
           <Container>
