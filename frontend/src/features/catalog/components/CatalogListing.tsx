@@ -101,15 +101,15 @@ export function CatalogListing({
     <>
       <SiteHeader position="sticky" />
       <main id="main-content">
-        <section className="border-b border-ink/15 py-14 sm:py-20 lg:py-24">
+        <section className="border-b border-ink/15 py-10 sm:py-16 lg:py-24">
           <Container>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-bronze-dark">
               {eyebrow}
             </p>
-            <Heading className="mt-5 max-w-4xl" level={1} size="display">
+            <Heading className="mt-4 max-w-4xl sm:mt-5" level={1} size="display">
               {title}
             </Heading>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-ink/70 sm:text-lg">
+            <p className="mt-5 max-w-2xl text-base leading-7 text-ink/70 sm:mt-6 sm:text-lg">
               {description}
             </p>
             {displayedProductsAreAllDemo && (

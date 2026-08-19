@@ -126,13 +126,19 @@ export function CatalogProductCard({
           </div>
         </div>
 
-        <div className="mt-4 flex min-h-7 flex-wrap gap-2">
-          {suitability.map((item) => (
-            <Badge key={item.key} variant="success">
-              {item.label} {item.score}
-            </Badge>
-          ))}
-        </div>
+        {/* Reserved height keeps the cards in a grid row aligned, but a card
+            whose scores did not clear the threshold then carries an empty
+            band. On a phone the cards are stacked full width, so nothing is
+            being aligned to and the band is just a hole. */}
+        {suitability.length > 0 && (
+          <div className="mt-4 flex min-h-7 flex-wrap gap-2">
+            {suitability.map((item) => (
+              <Badge key={item.key} variant="success">
+                {item.label} {item.score}
+              </Badge>
+            ))}
+          </div>
+        )}
 
         <Link
           className="mt-3 flex min-h-6 items-center text-xs font-semibold text-ink/70 hover:text-bronze-dark"
