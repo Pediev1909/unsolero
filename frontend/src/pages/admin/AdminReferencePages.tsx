@@ -76,7 +76,7 @@ export function AdminMerchantsPage() {
           <td className={adminTableCell}>
             <p className="font-medium">{item.name}</p>
             <a
-              className="text-xs text-ink/45 hover:underline"
+              className="text-xs text-ink/65 hover:underline"
               href={item.website_url}
               rel="noopener noreferrer"
               target="_blank"

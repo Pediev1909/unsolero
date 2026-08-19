@@ -80,7 +80,7 @@ export function ContentDetailPage() {
             <Container>
               <nav
                 aria-label="Breadcrumb"
-                className="flex flex-wrap items-center gap-2 text-xs text-ink/50"
+                className="flex flex-wrap items-center gap-2 text-xs text-ink/68"
               >
                 <Link className="hover:text-ink" to="/">
                   Home
@@ -107,7 +107,7 @@ export function ContentDetailPage() {
                     {item.description}
                   </p>
                 </div>
-                <div className="border-t border-ink/15 pt-5 text-xs leading-6 text-ink/55 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+                <div className="border-t border-ink/15 pt-5 text-xs leading-6 text-ink/70 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
                   <p className="font-semibold text-ink">{item.author.name}</p>
                   <p>Published {formatEditorialDate(item.published_at)}</p>
                   {item.updated_at.slice(0, 10) !==
@@ -134,11 +134,11 @@ export function ContentDetailPage() {
             <div className="grid gap-12 lg:grid-cols-[14rem_minmax(0,45rem)] lg:justify-center lg:gap-16 xl:grid-cols-[16rem_minmax(0,45rem)_10rem]">
               <aside className="hidden lg:block">
                 <div className="sticky top-28 border-t border-ink/15 pt-5">
-                  <p className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/45">
+                  <p className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/65">
                     In this piece
                   </p>
                   <nav aria-label="Article sections" className="mt-4">
-                    <ul className="space-y-3 text-sm leading-5 text-ink/60">
+                    <ul className="space-y-3 text-sm leading-5 text-ink/70">
                       {headings.map((heading) => (
                         <li key={heading.heading}>
                           <a
@@ -185,7 +185,7 @@ export function ContentDetailPage() {
               <Heading className="mt-4" level={2} size="title">
                 Inspect the underlying product facts.
               </Heading>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/60">
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
                 Product facts and reference prices come from the catalog. Open a
                 product to review specifications and current demo offers.
               </p>

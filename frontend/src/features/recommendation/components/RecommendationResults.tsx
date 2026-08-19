@@ -184,7 +184,7 @@ export function RecommendationResults({
                     {alternative.product.name}
                   </Link>
                 </h3>
-                <p className="mt-3 text-sm leading-6 text-ink/60">
+                <p className="mt-3 text-sm leading-6 text-ink/70">
                   {alternative.reasons[0]?.message ??
                     'A viable trade-off for the same role.'}
                 </p>
@@ -206,7 +206,7 @@ export function RecommendationResults({
         <Heading id="rejected-heading" size="title">
           Products we deliberately rejected
         </Heading>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/60">
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/70">
           Transparency includes what did not make the setup. These are
           deterministic constraint and redundancy decisions, not negative
           reviews.
@@ -224,12 +224,12 @@ export function RecommendationResults({
                 >
                   {item.product.name}
                 </Link>
-                <p className="text-sm text-ink/60">{item.reason}</p>
+                <p className="text-sm text-ink/70">{item.reason}</p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="mt-6 text-sm text-ink/55">
+          <p className="mt-6 text-sm text-ink/70">
             No additional catalog products needed an explicit rejection.
           </p>
         )}
@@ -266,7 +266,7 @@ function Metric({
 }) {
   return (
     <div className="border-b border-ink/10 p-5 last:border-b-0 sm:p-6 lg:border-b-0 lg:border-r lg:last:border-r-0">
-      <p className="text-[0.625rem] font-bold uppercase tracking-[0.13em] text-ink/45">
+      <p className="text-[0.625rem] font-bold uppercase tracking-[0.13em] text-ink/65">
         {label}
       </p>
       <div className="mt-2 font-display text-3xl font-medium tracking-[-0.04em]">

@@ -51,7 +51,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {leadingIcon && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-ink/45"
+            className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-ink/65"
           >
             {leadingIcon}
           </span>

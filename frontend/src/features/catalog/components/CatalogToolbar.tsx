@@ -19,7 +19,7 @@ export function CatalogToolbar({
 }: CatalogToolbarProps) {
   return (
     <div className="flex flex-col gap-4 border-y border-ink/15 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <p aria-live="polite" className="text-sm text-ink/60">
+      <p aria-live="polite" className="text-sm text-ink/70">
         {count} {count === 1 ? 'product' : 'products'}
       </p>
       <div className="flex items-end gap-3">

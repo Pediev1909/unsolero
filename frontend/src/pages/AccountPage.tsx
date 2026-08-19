@@ -54,7 +54,7 @@ export function AccountPage() {
             Your UNSOLERO.
           </Heading>
           <div className="mt-12 max-w-2xl border-t border-ink/15 pt-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/45">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/65">
               Signed in as
             </p>
             <p className="mt-3 text-lg">{account.data?.email}</p>
@@ -113,7 +113,7 @@ export function AccountPage() {
                 <h3 className="mt-4 text-lg font-semibold">
                   No saved setups yet
                 </h3>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-ink/60">
+                <p className="mt-2 max-w-xl text-sm leading-6 text-ink/70">
                   Complete the decision brief to save a personalized product
                   plan and every trade-off behind it.
                 </p>
@@ -131,7 +131,7 @@ export function AccountPage() {
                       <h3 className="font-display text-2xl font-medium tracking-[-0.035em]">
                         {setup.name}
                       </h3>
-                      <p className="mt-2 text-xs text-ink/50">
+                      <p className="mt-2 text-xs text-ink/68">
                         {setup.item_count}{' '}
                         {setup.item_count === 1 ? 'product' : 'products'} ·{' '}
                         {setup.recommendation_score}/100 match · Saved{' '}

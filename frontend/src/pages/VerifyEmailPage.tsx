@@ -55,7 +55,7 @@ export function VerifyEmailPage() {
       {state === 'complete' && (
         <div role="status">
           <h2 className="text-2xl font-medium">Email verified</h2>
-          <p className="mt-4 text-sm text-ink/60">
+          <p className="mt-4 text-sm text-ink/70">
             Your account now has a verified address.
           </p>
           <Link
@@ -69,7 +69,7 @@ export function VerifyEmailPage() {
       {state === 'error' && (
         <div role="alert">
           <h2 className="text-2xl font-medium">Verification unavailable</h2>
-          <p className="mt-4 text-sm text-ink/60">{message}</p>
+          <p className="mt-4 text-sm text-ink/70">{message}</p>
           <Link
             className="mt-6 inline-block font-semibold underline underline-offset-4"
             to="/login"

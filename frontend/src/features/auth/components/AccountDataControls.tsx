@@ -23,7 +23,7 @@ export function AccountDataControls() {
       <div className="mt-5 grid gap-10 md:grid-cols-2">
         <div>
           <p className="font-semibold">Structured account export</p>
-          <p className="mt-2 text-sm leading-6 text-ink/60">
+          <p className="mt-2 text-sm leading-6 text-ink/70">
             Includes only your appropriate account, profile, wishlist, setups,
             recommendations, consent history, exportable validated analytics,
             and security metadata. Secrets are excluded.
@@ -41,7 +41,7 @@ export function AccountDataControls() {
         >
           <div>
             <p className="font-semibold">Delete account</p>
-            <p className="mt-2 text-sm leading-6 text-ink/60">
+            <p className="mt-2 text-sm leading-6 text-ink/70">
               Owned planning data is removed. Recommendation, commerce, and
               immutable audit history is retained only after personal
               identifiers are removed.

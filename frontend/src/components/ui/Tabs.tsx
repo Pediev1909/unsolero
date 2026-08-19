@@ -77,7 +77,7 @@ export function Tabs({
               aria-controls={`${baseId}-panel-${item.id}`}
               aria-selected={selected}
               className={cn(
-                'relative shrink-0 border-0 bg-transparent px-0 pb-3 pt-1 text-sm font-semibold text-ink/55 transition-colors duration-150 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35',
+                'relative shrink-0 border-0 bg-transparent px-0 pb-3 pt-1 text-sm font-semibold text-ink/70 transition-colors duration-150 hover:text-ink disabled:cursor-not-allowed disabled:opacity-35',
                 selected &&
                   'text-ink after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-bronze',
               )}

@@ -46,11 +46,21 @@ export function ProductCard({
             src={product.image.src}
           />
         ) : (
-          <div className="grid size-full place-items-center text-ink/25">
+          // Most software has no product photograph, so the absence is the
+          // normal case rather than a fault. Announcing "image not available"
+          // made every card look broken; setting the vendor's name reads as a
+          // deliberate mark and still tells you whose product this is.
+          // Replace with the vendor's own artwork once an affiliate programme
+          // supplies approved brand assets.
+          <div className="grid size-full place-items-center bg-paper px-4">
             <div className="text-center">
-              <Layers3 aria-hidden="true" className="mx-auto" size={30} />
-              <span className="mt-3 block text-[0.625rem] font-semibold uppercase tracking-[0.14em]">
-                Image not available
+              <Layers3
+                aria-hidden="true"
+                className="mx-auto text-bronze/70"
+                size={26}
+              />
+              <span className="mt-3 block text-sm font-semibold tracking-[-0.01em] text-ink/70">
+                {product.brand}
               </span>
             </div>
           </div>
@@ -67,7 +77,7 @@ export function ProductCard({
       <div className="grid gap-4 p-4 sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/45">
+            <p className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/65">
               {product.brand} / {product.category}
             </p>
             <h3 className="mt-2 font-display text-xl font-medium leading-tight tracking-[-0.035em]">

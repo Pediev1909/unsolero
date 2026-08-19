@@ -28,10 +28,10 @@ export function ContentCard({ entry }: { entry: ContentSummary }) {
           <h2 className="mt-5 font-display text-2xl font-medium leading-tight tracking-[-0.04em]">
             {entry.title}
           </h2>
-          <p className="mt-4 text-sm leading-6 text-ink/60">
+          <p className="mt-4 text-sm leading-6 text-ink/70">
             {entry.description}
           </p>
-          <p className="mt-auto pt-7 text-xs text-ink/45">
+          <p className="mt-auto pt-7 text-xs text-ink/65">
             {entry.author_name} · {formatEditorialDate(entry.published_at)}
           </p>
         </div>

@@ -68,7 +68,7 @@ function ReportingStatus({ data }: { data: AnalyticsReportData }) {
   return (
     <section className="border border-ink/10 bg-paper p-5 text-sm leading-6 sm:p-6">
       <h2 className="font-semibold">Validated analytics window</h2>
-      <p className="mt-1 text-ink/60">
+      <p className="mt-1 text-ink/70">
         {state}. Coverage is {data.window.coverage}; reporting uses the{' '}
         validated and filtered layer from{' '}
         {new Date(data.window.from).toLocaleDateString()} to{' '}
@@ -86,7 +86,7 @@ function AnalyticsSummary({ data }: { data: AnalyticsReportData }) {
         <h2 className="text-sm font-semibold tracking-[0.15em] uppercase">
           Decision journey
         </h2>
-        <p className="mt-2 text-xs leading-5 text-ink/50">
+        <p className="mt-2 text-xs leading-5 text-ink/68">
           Completion pairs unique onboarding attempts. Affiliate CTR is the
           share of observed product-detail sessions that also produced a
           countable merchant click for that product. Raw automated and unknown
@@ -214,7 +214,7 @@ function UnavailableMetrics() {
   return (
     <section className="border border-ink/10 bg-paper p-5 sm:p-7">
       <h2 className="font-editorial text-xl">Metrics awaiting verified data</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/55">
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-ink/70">
         Affiliate conversion rate, commission, EPC, revenue per visitor, revenue
         per recommendation, revenue per user, customer acquisition cost,
         lifetime value, and repeat user rate remain unavailable. They will only
@@ -256,7 +256,7 @@ function Metric({
 }) {
   return (
     <div className="bg-surface p-5 sm:p-6">
-      <p className="text-xs font-medium text-ink/50">{label}</p>
+      <p className="text-xs font-medium text-ink/68">{label}</p>
       <p className="mt-3 font-editorial text-3xl">
         {dataState === 'no_data' ? (
           <span className="text-sm font-medium text-ink/35">No data</span>
@@ -279,7 +279,7 @@ function RateMetric({
 }) {
   return (
     <div className="bg-surface p-5 sm:p-6">
-      <p className="text-xs font-medium text-ink/50">{label}</p>
+      <p className="text-xs font-medium text-ink/68">{label}</p>
       <p className="mt-3 font-editorial text-3xl">
         {value === null ? (
           <span className="text-sm font-medium text-ink/35">

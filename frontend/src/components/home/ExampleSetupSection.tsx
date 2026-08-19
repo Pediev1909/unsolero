@@ -30,7 +30,7 @@ export function ExampleSetupSection() {
             <Heading className="mt-5 max-w-lg" level={2} size="section">
               A working stack—not a pile of subscriptions.
             </Heading>
-            <p className="mt-7 max-w-md text-base leading-7 text-canvas/65">
+            <p className="mt-7 max-w-md text-base leading-7 text-canvas/78">
               One plan for the brief below, drawn from the live catalog. The
               engine produces it from your own answers, not from ours.
             </p>
@@ -68,7 +68,7 @@ export function ExampleSetupSection() {
                 </h3>
               </div>
               <div className="sm:text-right">
-                <p className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/45">
+                <p className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/65">
                   Setup total
                 </p>
                 <PriceDisplay
@@ -95,7 +95,7 @@ export function ExampleSetupSection() {
                       Buy {index + 1}
                     </p>
                     <h4 className="mt-1 font-medium">{item.name}</h4>
-                    <p className="mt-2 max-w-xl text-sm leading-6 text-ink/60">
+                    <p className="mt-2 max-w-xl text-sm leading-6 text-ink/70">
                       {item.reason}
                     </p>
                   </div>

@@ -64,7 +64,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </select>
           <ChevronDown
             aria-hidden="true"
-            className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-ink/50"
+            className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-ink/68"
             size={17}
           />
         </div>

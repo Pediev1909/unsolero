@@ -117,7 +117,7 @@ export function AdminRecommendationDetailPage() {
   return (
     <>
       <Link
-        className="mb-5 inline-block text-sm text-ink/50 hover:text-ink"
+        className="mb-5 inline-block text-sm text-ink/68 hover:text-ink"
         to="/admin/recommendations"
       >
         ← Recommendations
@@ -175,7 +175,7 @@ function RecommendationDetail({
       <section>
         <h2 className="mb-4 font-editorial text-2xl">Products and reasons</h2>
         {data.items.length === 0 ? (
-          <p className="border border-ink/10 bg-surface p-6 text-ink/50">
+          <p className="border border-ink/10 bg-surface p-6 text-ink/68">
             No data
           </p>
         ) : (
@@ -188,7 +188,7 @@ function RecommendationDetail({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold">{item.product_name}</p>
-                    <p className="text-xs text-ink/45">
+                    <p className="text-xs text-ink/65">
                       {item.item_type.replaceAll('_', ' ')} · rank {item.rank}
                     </p>
                   </div>
@@ -196,7 +196,7 @@ function RecommendationDetail({
                 </div>
                 <p className="mt-4 text-sm">{item.reason_summary}</p>
                 {item.reasons.length > 0 && (
-                  <ul className="mt-3 space-y-2 text-sm text-ink/60">
+                  <ul className="mt-3 space-y-2 text-sm text-ink/70">
                     {item.reasons.map((reason) => (
                       <li key={`${item.product_id}-${reason.code}`}>
                         {reason.message}{' '}
@@ -219,7 +219,7 @@ function RecommendationDetail({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-surface p-5">
-      <p className="text-xs text-ink/45">{label}</p>
+      <p className="text-xs text-ink/65">{label}</p>
       <p className="mt-2 font-semibold">{value}</p>
     </div>
   )

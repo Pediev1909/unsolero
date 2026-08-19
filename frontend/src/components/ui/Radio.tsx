@@ -48,7 +48,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
           {label}
         </label>
         {description && (
-          <p className="mt-1 text-xs leading-5 text-ink/55" id={descriptionId}>
+          <p className="mt-1 text-xs leading-5 text-ink/70" id={descriptionId}>
             {description}
           </p>
         )}

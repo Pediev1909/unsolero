@@ -59,7 +59,7 @@ export function ComparisonSection() {
               />
               <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-ink/10 pt-4">
                 <div>
-                  <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/45">
+                  <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
                     Entry plan
                   </dt>
                   <dd className="mt-1 text-xs leading-5">
@@ -67,7 +67,7 @@ export function ComparisonSection() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/45">
+                  <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
                     Ease of use
                   </dt>
                   <dd className="mt-1 text-xs leading-5">
@@ -75,7 +75,7 @@ export function ComparisonSection() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/45">
+                  <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
                     Integrations
                   </dt>
                   <dd className="mt-1 text-xs leading-5">
@@ -83,7 +83,7 @@ export function ComparisonSection() {
                   </dd>
                 </div>
               </dl>
-              <p className="mt-4 text-xs leading-5 text-ink/60">
+              <p className="mt-4 text-xs leading-5 text-ink/70">
                 {product.verdict}
               </p>
             </article>
@@ -96,7 +96,7 @@ export function ComparisonSection() {
               Comparison of three business tools
             </caption>
             <thead>
-              <tr className="border-b border-ink/15 text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/45">
+              <tr className="border-b border-ink/15 text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/65">
                 <th className="p-5 font-bold sm:p-6" scope="col">
                   Product
                 </th>
@@ -161,7 +161,7 @@ export function ComparisonSection() {
                     {product.recommended ? (
                       <Badge variant="success">Best fit</Badge>
                     ) : (
-                      <span className="text-sm text-ink/60">
+                      <span className="text-sm text-ink/70">
                         {product.verdict}
                       </span>
                     )}
@@ -171,7 +171,7 @@ export function ComparisonSection() {
             </tbody>
           </table>
         </div>
-        <p className="mt-4 text-xs leading-5 text-ink/50">
+        <p className="mt-4 text-xs leading-5 text-ink/68">
           Prices are the entry paid tier at monthly billing, read from each
           vendor&apos;s own pricing page and recorded with the date. Suitability
           scores are our editorial assessment, not vendor claims.

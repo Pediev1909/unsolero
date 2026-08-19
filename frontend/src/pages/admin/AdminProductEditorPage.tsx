@@ -155,7 +155,7 @@ export function AdminProductEditorPage() {
   return (
     <>
       <Link
-        className="mb-5 inline-flex items-center gap-2 text-sm text-ink/55 hover:text-ink"
+        className="mb-5 inline-flex items-center gap-2 text-sm text-ink/70 hover:text-ink"
         to="/admin/products"
       >
         <ArrowLeft aria-hidden="true" size={15} /> Products

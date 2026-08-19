@@ -48,7 +48,7 @@ export function ContentBody({ blocks }: { blocks: ContentBlock[] }) {
               >
                 <p>{block.text}</p>
                 {block.attribution && (
-                  <footer className="mt-3 font-sans text-xs uppercase tracking-[0.12em] text-ink/50">
+                  <footer className="mt-3 font-sans text-xs uppercase tracking-[0.12em] text-ink/68">
                     {block.attribution}
                   </footer>
                 )}

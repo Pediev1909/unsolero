@@ -53,7 +53,7 @@ export function AdminContentPage() {
                 <tr className="bg-surface hover:bg-paper" key={entry.id}>
                   <td className={adminTableCell}>
                     <p className="font-semibold">{entry.title}</p>
-                    <p className="mt-1 text-xs text-ink/45">{entry.path}</p>
+                    <p className="mt-1 text-xs text-ink/65">{entry.path}</p>
                   </td>
                   <td className={adminTableCell}>
                     {contentTypeLabel(entry.type)}

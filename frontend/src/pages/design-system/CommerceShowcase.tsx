@@ -45,7 +45,7 @@ export function CommerceShowcase() {
       eyebrow="08 / Commerce"
       title="Product composition"
     >
-      <p className="mb-5 text-xs leading-5 text-ink/55">
+      <p className="mb-5 text-xs leading-5 text-ink/70">
         Showcase records are fictional seed data. No reviews, availability, or
         merchant claims are implied.
       </p>

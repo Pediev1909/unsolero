@@ -28,7 +28,7 @@ export function DesignSystemPage() {
                 A premium, editorial system for trustworthy fitness decisions
                 across every screen size.
               </p>
-              <p className="max-w-xl text-sm leading-6 text-ink/55">
+              <p className="max-w-xl text-sm leading-6 text-ink/70">
                 This route exists to verify component behavior and responsive
                 composition. It uses no live product claims or analytics.
               </p>

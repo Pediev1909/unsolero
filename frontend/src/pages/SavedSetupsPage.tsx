@@ -31,7 +31,7 @@ export function SavedSetupsPage() {
               <Heading className="mt-5" level={1} size="display">
                 Saved setups.
               </Heading>
-              <p className="mt-5 max-w-2xl text-ink/60">
+              <p className="mt-5 max-w-2xl text-ink/70">
                 {saved.authenticated
                   ? 'These plans are securely saved to your account.'
                   : 'Guest plans stay only in this browser. Sign in before switching devices.'}
@@ -76,7 +76,7 @@ export function SavedSetupsPage() {
                           {setup.name}
                         </h2>
                       </div>
-                      <p className="mt-2 text-xs text-ink/50">
+                      <p className="mt-2 text-xs text-ink/68">
                         {setup.item_count}{' '}
                         {setup.item_count === 1 ? 'product' : 'products'} ·{' '}
                         {setup.recommendation_score}/100 match · Updated{' '}

@@ -33,7 +33,7 @@ export function RouteErrorPage() {
                 ? 'We could not find this page.'
                 : 'Something interrupted this page.'}
             </Heading>
-            <p className="mx-auto mt-5 max-w-lg text-sm leading-6 text-ink/60">
+            <p className="mx-auto mt-5 max-w-lg text-sm leading-6 text-ink/70">
               {notFound
                 ? 'The address may have changed or the page may no longer be published.'
                 : 'Your account and saved data have not been changed. Reload the page to try again.'}

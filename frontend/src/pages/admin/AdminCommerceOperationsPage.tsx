@@ -108,7 +108,7 @@ function ProviderConfiguration() {
         <h2 className="font-editorial text-2xl" id="provider-configurations">
           Provider configurations
         </h2>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-ink/60">
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-ink/70">
           Credential references name entries in an external secret manager;
           secrets are never stored here. A provider cannot become active until
           its runtime adapter verifies the referenced configuration.
@@ -207,7 +207,7 @@ function ProviderConfiguration() {
                 <tr key={provider.id}>
                   <td className={adminTableCell}>
                     <p className="font-medium">{provider.provider_key}</p>
-                    <p className="text-xs text-ink/55">
+                    <p className="text-xs text-ink/70">
                       Adapter: {provider.adapter_key}
                     </p>
                   </td>
@@ -298,7 +298,7 @@ function ImportHistory() {
         <h2 className="font-editorial text-2xl" id="import-history">
           Import history
         </h2>
-        <p className="mt-1 text-sm text-ink/60">
+        <p className="mt-1 text-sm text-ink/70">
           Partial and failed imports remain visible and never reconcile missing
           offers.
         </p>
@@ -436,7 +436,7 @@ function ImportFailures({
                 <p className="mt-1 text-sm text-ink/65">
                   {failure.error_message}
                 </p>
-                <p className="mt-2 text-xs text-ink/55">
+                <p className="mt-2 text-xs text-ink/70">
                   External record:{' '}
                   {failure.external_record_id ?? 'Not supplied'}
                 </p>

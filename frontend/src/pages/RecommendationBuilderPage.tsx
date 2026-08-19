@@ -86,7 +86,7 @@ export function RecommendationBuilderPage() {
             >
               <div className="flex items-center justify-between">
                 <p className="eyebrow">Your brief</p>
-                <span className="text-xs font-semibold text-ink/50">
+                <span className="text-xs font-semibold text-ink/68">
                   {builder.currentStep + 1} / {steps.length}
                 </span>
               </div>
@@ -114,7 +114,7 @@ export function RecommendationBuilderPage() {
                         index === builder.currentStep ? 'step' : undefined
                       }
                       className={cn(
-                        'flex w-full items-center gap-3 py-2 text-left text-sm text-ink/40',
+                        'flex w-full items-center gap-3 py-2 text-left text-sm text-ink/65',
                         index === builder.currentStep &&
                           'font-semibold text-ink',
                         index < builder.currentStep &&
@@ -141,7 +141,7 @@ export function RecommendationBuilderPage() {
                   </li>
                 ))}
               </ol>
-              <p className="mt-6 text-xs leading-5 text-ink/50" role="status">
+              <p className="mt-6 text-xs leading-5 text-ink/68" role="status">
                 {builder.account.isPending
                   ? 'Checking for an account and saved progress…'
                   : builder.account.isError
@@ -178,7 +178,7 @@ export function RecommendationBuilderPage() {
               >
                 {step.title}
               </Heading>
-              <p className="mt-5 max-w-2xl text-sm leading-6 text-ink/60 sm:text-base sm:leading-7">
+              <p className="mt-5 max-w-2xl text-sm leading-6 text-ink/70 sm:text-base sm:leading-7">
                 {step.supporting}
               </p>
 

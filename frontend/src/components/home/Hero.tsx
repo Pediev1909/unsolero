@@ -39,7 +39,7 @@ export function Hero() {
         </div>
       </Container>
 
-      <p className="absolute bottom-7 right-6 z-10 hidden max-w-[170px] text-xs leading-5 text-canvas/65 lg:block xl:right-10">
+      <p className="absolute bottom-7 right-6 z-10 hidden max-w-[170px] text-xs leading-5 text-canvas/78 lg:block xl:right-10">
         Your budget and existing tools are constraints—not afterthoughts.
       </p>
     </section>

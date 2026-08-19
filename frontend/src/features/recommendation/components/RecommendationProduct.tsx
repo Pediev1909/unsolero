@@ -51,7 +51,7 @@ export function RecommendationProduct({
             width={product.primary_image.width_px}
           />
         ) : (
-          <span className="grid size-full place-items-center text-sm text-ink/45">
+          <span className="grid size-full place-items-center text-sm text-ink/65">
             Image unavailable
           </span>
         )}
@@ -62,7 +62,7 @@ export function RecommendationProduct({
           <Badge variant="success">{item.score}/100 match</Badge>
           {product.is_demo && <Badge>Demo product</Badge>}
         </div>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-ink/45">
+        <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-ink/65">
           {product.brand.name}
         </p>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
@@ -153,7 +153,7 @@ export function RecommendationProduct({
 function Spec({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-ink/40">
+      <p className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
         {label}
       </p>
       <p className="mt-1 font-semibold">{value}</p>

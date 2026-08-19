@@ -118,7 +118,7 @@ export function AdminOffersPage() {
                   <tr key={offer.id}>
                     <td className={adminTableCell}>
                       <p className="font-medium">{offer.product_name}</p>
-                      <p className="text-xs text-ink/45">
+                      <p className="text-xs text-ink/65">
                         {offer.merchant_sku}
                       </p>
                     </td>
@@ -135,7 +135,7 @@ export function AdminOffersPage() {
                     </td>
                     <td className={adminTableCell}>
                       <Badge>{offer.freshness_status.replace('_', ' ')}</Badge>
-                      <p className="mt-1 text-xs text-ink/55">
+                      <p className="mt-1 text-xs text-ink/70">
                         {offer.expires_at
                           ? `Expires ${new Date(offer.expires_at).toLocaleString()}`
                           : `Checked ${new Date(offer.last_checked_at).toLocaleString()}`}

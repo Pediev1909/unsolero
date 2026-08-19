@@ -45,7 +45,7 @@ export function ResetPasswordPage() {
       {complete ? (
         <div role="status">
           <h2 className="text-2xl font-medium">Password replaced</h2>
-          <p className="mt-4 text-sm text-ink/60">
+          <p className="mt-4 text-sm text-ink/70">
             All previous sessions have been revoked.
           </p>
           <Link

@@ -76,7 +76,7 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
         </caption>
         <thead>
           <tr>
-            <th className="sticky left-0 z-20 w-36 border-b border-r border-ink/15 bg-paper p-4 text-xs uppercase tracking-[0.12em] text-ink/50">
+            <th className="sticky left-0 z-20 w-36 border-b border-r border-ink/15 bg-paper p-4 text-xs uppercase tracking-[0.12em] text-ink/68">
               Specification
             </th>
             {products.map((product) => (
@@ -87,7 +87,7 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-[0.625rem] uppercase tracking-[0.12em] text-ink/45">
+                    <p className="text-[0.625rem] uppercase tracking-[0.12em] text-ink/65">
                       {product.brand.name}
                     </p>
                     <Link

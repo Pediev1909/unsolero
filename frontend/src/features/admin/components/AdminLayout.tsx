@@ -153,7 +153,7 @@ export function AdminLayout() {
                   'flex min-h-11 items-center gap-3 border-l-2 px-3 text-sm transition-colors',
                   isActive
                     ? 'border-bronze-soft bg-surface/8 text-canvas'
-                    : 'border-transparent text-canvas/60 hover:bg-surface/5 hover:text-canvas',
+                    : 'border-transparent text-canvas/75 hover:bg-surface/5 hover:text-canvas',
                 )
               }
               end={end}
@@ -192,7 +192,7 @@ export function AdminLayout() {
                     'shrink-0 border-b-2 px-3 py-2 text-xs font-medium',
                     isActive
                       ? 'border-charcoal text-charcoal'
-                      : 'border-transparent text-ink/50',
+                      : 'border-transparent text-ink/68',
                   )
                 }
                 end={end}
@@ -229,13 +229,13 @@ export function AdminPageHeader({
   return (
     <div className="mb-8 flex flex-col justify-between gap-5 border-b border-ink/10 pb-7 sm:flex-row sm:items-end">
       <div>
-        <p className="text-xs font-semibold tracking-[0.2em] text-ink/45 uppercase">
+        <p className="text-xs font-semibold tracking-[0.2em] text-ink/65 uppercase">
           {eyebrow}
         </p>
         <h1 className="mt-2 font-editorial text-3xl tracking-tight sm:text-4xl">
           {title}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/60">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/70">
           {description}
         </p>
       </div>

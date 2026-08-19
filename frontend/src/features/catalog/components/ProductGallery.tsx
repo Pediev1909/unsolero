@@ -21,7 +21,7 @@ export function ProductGallery({ product }: { product: ProductDetail }) {
             width={image.width_px}
           />
         ) : (
-          <div className="grid size-full place-items-center text-sm text-ink/45">
+          <div className="grid size-full place-items-center text-sm text-ink/65">
             Image unavailable
           </div>
         )}

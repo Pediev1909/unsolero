@@ -204,7 +204,7 @@ function AffiliateEditor({
           />
         </div>
         <Checkbox label="Active link" {...form.register('is_active')} />
-        <p className="text-xs leading-5 text-ink/50">
+        <p className="text-xs leading-5 text-ink/68">
           Commission: {link.commission_type}. It is retained for reporting and
           never used in recommendation scoring.
         </p>

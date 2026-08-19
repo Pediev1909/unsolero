@@ -75,7 +75,7 @@ export function Modal({
           </h2>
           {description && (
             <p
-              className="mt-2 max-w-lg text-sm leading-6 text-ink/60"
+              className="mt-2 max-w-lg text-sm leading-6 text-ink/70"
               id={descriptionId}
             >
               {description}

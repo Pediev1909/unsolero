@@ -53,7 +53,7 @@ export function AdminTable({ children }: { children: ReactNode }) {
 }
 
 export const adminTableHead =
-  'border-b border-ink/10 bg-paper px-4 py-3 text-xs font-semibold tracking-[0.12em] text-ink/45 uppercase'
+  'border-b border-ink/10 bg-paper px-4 py-3 text-xs font-semibold tracking-[0.12em] text-ink/65 uppercase'
 export const adminTableCell = 'border-b border-ink/8 px-4 py-4 align-top'
 
 export function AdminPagination({
@@ -72,7 +72,7 @@ export function AdminPagination({
       aria-label="Admin table pagination"
       className="mt-4 flex flex-wrap items-center justify-between gap-3"
     >
-      <p className="text-xs text-ink/45">
+      <p className="text-xs text-ink/65">
         {total.toLocaleString()} {total === 1 ? 'record' : 'records'} · Page{' '}
         {page} of {Math.max(totalPages, 1)}
       </p>

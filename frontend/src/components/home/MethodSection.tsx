@@ -53,7 +53,7 @@ export function MethodSection() {
                 </span>
                 <Icon
                   aria-hidden="true"
-                  className="text-ink/45"
+                  className="text-ink/65"
                   size={22}
                   strokeWidth={1.4}
                 />

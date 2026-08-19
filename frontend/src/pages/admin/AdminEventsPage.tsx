@@ -102,7 +102,7 @@ export function AdminEventsPage() {
                           : 'Unattributed'}
                     </td>
                     <td className={`${adminTableCell} max-w-sm`}>
-                      <code className="break-all text-xs text-ink/55">
+                      <code className="break-all text-xs text-ink/70">
                         {JSON.stringify(event.properties)}
                       </code>
                     </td>

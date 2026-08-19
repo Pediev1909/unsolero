@@ -24,7 +24,7 @@ export function MerchantAction({
     return <Skeleton className={`${className} h-11 w-full`} />
   if (offers.isError || offers.data.length === 0)
     return (
-      <p className={`${className} text-xs text-ink/50`}>
+      <p className={`${className} text-xs text-ink/68`}>
         No verified merchant offer is currently available.
       </p>
     )
@@ -46,7 +46,7 @@ export function MerchantAction({
         />
         <ExternalLink aria-hidden="true" size={14} />
       </a>
-      <p className="mt-2 text-xs text-ink/45">
+      <p className="mt-2 text-xs text-ink/65">
         Affiliate link. Commission never changes recommendation scoring.
       </p>
     </div>

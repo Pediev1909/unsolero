@@ -23,7 +23,7 @@ export function ShowcaseBlock({
           <Heading className="mt-4" level={2} size="title">
             {title}
           </Heading>
-          <p className="mt-4 max-w-sm text-sm leading-6 text-ink/60">
+          <p className="mt-4 max-w-sm text-sm leading-6 text-ink/70">
             {description}
           </p>
         </div>

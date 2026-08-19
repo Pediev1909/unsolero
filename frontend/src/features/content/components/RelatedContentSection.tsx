@@ -23,7 +23,7 @@ export function RelatedContentSection({
         <Heading className="mt-4" level={2} size="title">
           Research before you shortlist.
         </Heading>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/60">
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
           Curated planning and buying guidance connected to this equipment
           category.
         </p>

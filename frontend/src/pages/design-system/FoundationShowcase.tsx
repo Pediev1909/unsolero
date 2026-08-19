@@ -71,21 +71,21 @@ export function FoundationShowcase() {
         <div className="grid gap-4 sm:grid-cols-3">
           <Card variant="outlined">
             <p className="eyebrow">Outlined</p>
-            <p className="mt-4 text-sm leading-6 text-ink/60">
+            <p className="mt-4 text-sm leading-6 text-ink/70">
               Default grouping with a quiet one-pixel boundary.
             </p>
           </Card>
           <Card variant="raised">
             <p className="eyebrow">Raised</p>
-            <p className="mt-4 text-sm leading-6 text-ink/60">
+            <p className="mt-4 text-sm leading-6 text-ink/70">
               Reserved for objects that need temporary visual priority.
             </p>
           </Card>
           <Card variant="dark">
-            <p className="text-caption font-bold uppercase tracking-[0.18em] text-canvas/55">
+            <p className="text-caption font-bold uppercase tracking-[0.18em] text-canvas/75">
               Dark
             </p>
-            <p className="mt-4 text-sm leading-6 text-canvas/65">
+            <p className="mt-4 text-sm leading-6 text-canvas/78">
               Used for trust statements and decisive contrast.
             </p>
           </Card>
@@ -102,7 +102,7 @@ export function FoundationShowcase() {
           <PriceDisplay amountMinor={32900} currency="USD" size="lg" />
           <div>
             <Rating label="Illustrative component value" value={4.2} />
-            <p className="mt-1 text-[0.625rem] text-ink/50">
+            <p className="mt-1 text-[0.625rem] text-ink/68">
               Illustrative value only—not a product review.
             </p>
           </div>

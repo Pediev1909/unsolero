@@ -91,13 +91,13 @@ export function AdminProductsPage() {
                       >
                         {product.name}
                       </Link>
-                      <p className="mt-1 text-xs text-ink/45">
+                      <p className="mt-1 text-xs text-ink/65">
                         /{product.slug}
                       </p>
                     </td>
                     <td className={adminTableCell}>
                       <p>{product.brand_name}</p>
-                      <p className="text-xs text-ink/45">
+                      <p className="text-xs text-ink/65">
                         {product.category_name}
                       </p>
                     </td>

@@ -37,7 +37,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">{toast.title}</p>
         {toast.description && (
-          <p className="mt-1 text-xs leading-5 text-ink/60">
+          <p className="mt-1 text-xs leading-5 text-ink/70">
             {toast.description}
           </p>
         )}

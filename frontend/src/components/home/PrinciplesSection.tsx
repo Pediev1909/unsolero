@@ -68,7 +68,7 @@ export function PrinciplesSection() {
               <h3 className="text-2xl font-medium tracking-[-0.035em]">
                 {title}
               </h3>
-              <p className="max-w-xl text-base leading-7 text-canvas/60">
+              <p className="max-w-xl text-base leading-7 text-canvas/75">
                 {copy}
               </p>
             </article>

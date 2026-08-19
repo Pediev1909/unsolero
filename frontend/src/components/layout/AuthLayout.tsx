@@ -31,7 +31,7 @@ export function AuthLayout({
               <Heading className="mt-5" level={1} size="display">
                 {title}
               </Heading>
-              <p className="mt-7 max-w-lg text-base leading-7 text-ink/60">
+              <p className="mt-7 max-w-lg text-base leading-7 text-ink/70">
                 {description}
               </p>
             </section>

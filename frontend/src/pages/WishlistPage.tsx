@@ -35,7 +35,7 @@ export function WishlistPage() {
           <Heading className="mt-5" level={1} size="display">
             Saved equipment.
           </Heading>
-          <p className="mt-5 max-w-2xl text-ink/60">
+          <p className="mt-5 max-w-2xl text-ink/70">
             Current catalog prices and available merchant offers are loaded when
             you open this page. Guest saves stay on this device.
           </p>

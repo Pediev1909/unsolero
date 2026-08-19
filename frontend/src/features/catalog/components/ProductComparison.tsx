@@ -50,7 +50,7 @@ export function ProductComparison({
         />
       )}
       {!loading && !error && products.length < 2 && (
-        <div className="py-10 text-center text-sm text-ink/60">
+        <div className="py-10 text-center text-sm text-ink/70">
           <Scale aria-hidden="true" className="mx-auto mb-3" size={24} />
           Select at least two products. You can compare up to four.
         </div>

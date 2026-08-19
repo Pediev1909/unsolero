@@ -12,7 +12,7 @@ export function SiteFooter() {
         <div className="grid gap-10 border-b border-canvas/15 pb-10 md:grid-cols-[1.2fr_0.8fr] md:gap-16">
           <div>
             <BrandMark inverse />
-            <p className="mt-5 max-w-sm text-sm leading-6 text-canvas/60">
+            <p className="mt-5 max-w-sm text-sm leading-6 text-canvas/75">
               Better software decisions for the business you actually run.
             </p>
           </div>
@@ -67,7 +67,7 @@ export function SiteFooter() {
             </Link>
           </nav>
         </div>
-        <div className="flex flex-col gap-3 pt-6 text-[0.625rem] uppercase tracking-[0.14em] text-canvas/55 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 pt-6 text-[0.625rem] uppercase tracking-[0.14em] text-canvas/75 sm:flex-row sm:items-center sm:justify-between">
           <p>Independent by design</p>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             <button

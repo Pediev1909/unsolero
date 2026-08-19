@@ -20,7 +20,7 @@ export function FeaturedProductsSection() {
               A preview of the tools we evaluate.
             </Heading>
           </div>
-          <p className="max-w-md text-sm leading-6 text-ink/60">
+          <p className="max-w-md text-sm leading-6 text-ink/70">
             Fictional demo products shown at their seeded reference prices. Open
             any product to inspect its specifications, suitability, and
             currently available merchant offers.

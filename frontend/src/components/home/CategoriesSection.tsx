@@ -109,7 +109,7 @@ export function CategoriesSection() {
                 <h3 className="mt-auto pt-12 font-display text-xl font-medium tracking-[-0.035em]">
                   {name}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-ink/55">{note}</p>
+                <p className="mt-2 text-sm leading-6 text-ink/70">{note}</p>
               </Link>
             </li>
           ))}

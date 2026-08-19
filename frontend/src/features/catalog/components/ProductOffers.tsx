@@ -80,14 +80,14 @@ export function ProductOffers({
                   currency={offer.price.currency}
                   size="md"
                 />
-                <span className="inline-flex items-center gap-1 text-xs text-ink/55">
+                <span className="inline-flex items-center gap-1 text-xs text-ink/70">
                   <Truck aria-hidden="true" size={14} />{' '}
                   {offer.shipping_minor
                     ? `${formatMinorCurrency(offer.shipping_minor, offer.price.currency)} shipping`
                     : 'Shipping included'}
                 </span>
               </div>
-              <p className="mt-2 text-xs text-ink/45">
+              <p className="mt-2 text-xs text-ink/65">
                 Estimated total{' '}
                 {formatMinorCurrency(
                   offer.landed_price_minor,
@@ -120,7 +120,7 @@ export function ProductOffers({
           </article>
         ))}
       </div>
-      <p className="mt-4 text-xs leading-5 text-ink/50">
+      <p className="mt-4 text-xs leading-5 text-ink/68">
         Only fresh offer observations are shown; prices and availability are not
         live checkout quotes. Outbound links are tracked for attribution.
         Affiliate commission never changes product ranking or suitability

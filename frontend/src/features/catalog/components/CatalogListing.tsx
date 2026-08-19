@@ -109,11 +109,11 @@ export function CatalogListing({
             <Heading className="mt-5 max-w-4xl" level={1} size="display">
               {title}
             </Heading>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-ink/60 sm:text-lg">
+            <p className="mt-6 max-w-2xl text-base leading-7 text-ink/70 sm:text-lg">
               {description}
             </p>
             {displayedProductsAreAllDemo && (
-              <p className="mt-5 text-xs leading-5 text-ink/45">
+              <p className="mt-5 text-xs leading-5 text-ink/65">
                 Products shown on this page are clearly marked fictional demo
                 data. Prices are reference prices, not live quotes.
               </p>

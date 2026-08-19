@@ -45,7 +45,7 @@ export function MfaSecurity({ user }: { user: AuthUser }) {
       <h3 className="text-xl font-semibold" id="mfa-heading">
         Multi-factor authentication
       </h3>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/60">
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-ink/70">
         TOTP secrets are encrypted server-side. Recovery codes are shown once
         and stored only as hashes.
       </p>
@@ -55,7 +55,7 @@ export function MfaSecurity({ user }: { user: AuthUser }) {
           role="status"
         >
           <p className="font-semibold">Save these recovery codes now</p>
-          <p className="mt-2 text-sm text-ink/60">
+          <p className="mt-2 text-sm text-ink/70">
             Each code works once. They will not be shown again.
           </p>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -78,7 +78,7 @@ export function MfaSecurity({ user }: { user: AuthUser }) {
       {enrollment && (
         <div className="mt-5 border border-ink/15 p-5">
           <p className="font-semibold">Add UNSOLERO to your authenticator</p>
-          <p className="mt-2 text-sm text-ink/60">
+          <p className="mt-2 text-sm text-ink/70">
             Enter this secret manually. It disappears after verification.
           </p>
           <code className="mt-4 block break-all bg-paper p-3 text-sm">
@@ -161,7 +161,7 @@ export function MfaSecurity({ user }: { user: AuthUser }) {
           </form>
           <div>
             <p className="font-semibold">Replace recovery codes</p>
-            <p className="mt-2 text-sm text-ink/60">
+            <p className="mt-2 text-sm text-ink/70">
               Enter a current code above, then generate a completely new set.
             </p>
             <Button

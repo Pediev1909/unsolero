@@ -42,7 +42,7 @@ export function StatePanel({
         {title}
       </h2>
       {description && (
-        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink/60">
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink/70">
           {description}
         </p>
       )}

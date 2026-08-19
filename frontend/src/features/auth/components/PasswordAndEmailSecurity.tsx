@@ -24,7 +24,7 @@ export function PasswordAndEmailSecurity({ user }: { user: AuthUser }) {
         <h3 className="text-xl font-semibold" id="email-security-heading">
           Email verification
         </h3>
-        <p className="mt-3 text-sm leading-6 text-ink/60">
+        <p className="mt-3 text-sm leading-6 text-ink/70">
           {user.email_verified
             ? 'Your account email is verified.'
             : 'Your account email has not been verified yet.'}
@@ -56,7 +56,7 @@ export function PasswordAndEmailSecurity({ user }: { user: AuthUser }) {
         <h3 className="text-xl font-semibold" id="password-security-heading">
           Change password
         </h3>
-        <p className="mt-3 text-sm leading-6 text-ink/60">
+        <p className="mt-3 text-sm leading-6 text-ink/70">
           Changing your password keeps this session and revokes every other
           session.
         </p>

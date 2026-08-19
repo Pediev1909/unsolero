@@ -50,7 +50,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           </label>
           {description && (
             <p
-              className="mt-1 text-xs leading-5 text-ink/55"
+              className="mt-1 text-xs leading-5 text-ink/70"
               id={descriptionId}
             >
               {description}

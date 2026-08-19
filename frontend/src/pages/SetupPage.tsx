@@ -109,7 +109,7 @@ export function SetupPage() {
             <>
               <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-y border-ink/15 py-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.13em] text-ink/45">
+                  <p className="text-xs uppercase tracking-[0.13em] text-ink/65">
                     Saved setup
                   </p>
                   <p className="mt-1 font-semibold">

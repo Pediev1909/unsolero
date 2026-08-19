@@ -32,7 +32,7 @@ export function ComparePage() {
           <Heading className="mt-5" level={1} size="display">
             Compare tools.
           </Heading>
-          <p className="mt-5 max-w-2xl text-ink/60">
+          <p className="mt-5 max-w-2xl text-ink/70">
             Select two to four products. On small screens, swipe the table
             horizontally while specification labels stay visible.
           </p>

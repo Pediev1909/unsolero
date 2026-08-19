@@ -50,7 +50,7 @@ export function Rating({
         })}
       </span>
       {showValue && (
-        <span aria-hidden="true" className="text-xs font-semibold text-ink/60">
+        <span aria-hidden="true" className="text-xs font-semibold text-ink/70">
           {boundedValue.toFixed(1)}
         </span>
       )}

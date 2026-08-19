@@ -28,7 +28,7 @@ export function CatalogPagination({
         <ArrowLeft aria-hidden="true" size={15} />
         Previous
       </Button>
-      <p className="text-sm text-ink/60">
+      <p className="text-sm text-ink/70">
         Page <span className="font-semibold text-ink">{page}</span> of{' '}
         {totalPages}
       </p>

@@ -49,7 +49,7 @@ export function PriceDisplay({
         {current}
       </span>
       {original && originalAmountMinor !== amountMinor && (
-        <span className="text-xs text-ink/45 line-through">
+        <span className="text-xs text-ink/65 line-through">
           <span className="sr-only">Previously </span>
           {original}
         </span>

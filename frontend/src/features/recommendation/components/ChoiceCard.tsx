@@ -25,8 +25,13 @@ export function ChoiceCard({
         <span className="text-base font-semibold tracking-[-0.02em]">
           {label}
         </span>
+        {/* Opacity rather than a fixed colour, so the description follows
+            whatever the card is currently painted in. The previous rule tried
+            to switch colour with peer-checked:, which only reaches siblings of
+            the input — this span is nested, so the selected card kept dark text
+            on its dark background and the description vanished. */}
         {description && (
-          <span className="mt-2 text-sm leading-6 text-ink/55 peer-checked:text-canvas/70 group-has-[:checked]:text-canvas/70">
+          <span className="mt-2 text-sm leading-6 opacity-75">
             {description}
           </span>
         )}

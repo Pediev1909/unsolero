@@ -26,13 +26,13 @@ export function ConversionOperations() {
   return (
     <div className="mt-14 border-t border-ink/10 pt-12">
       <header className="mb-8 max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/55">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink/70">
           Verified commercial facts
         </p>
         <h2 className="mt-2 font-editorial text-3xl">
           Conversions &amp; monetization
         </h2>
-        <p className="mt-2 text-sm leading-6 text-ink/60">
+        <p className="mt-2 text-sm leading-6 text-ink/70">
           Provider-verified events only. Clicks are not conversions, pending
           commission is not earned revenue, and currencies are never combined
           without an external FX source.
@@ -109,15 +109,15 @@ function MetricGrid({ report }: { report: MonetizationReport }) {
       <div className="mt-5 grid gap-px border border-ink/10 bg-ink/10 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
           <article className="min-h-36 bg-surface p-5" key={card.label}>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink/50">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink/68">
               {card.label}
             </p>
             <p className="mt-3 text-xl font-semibold text-ink">{card.value}</p>
-            <p className="mt-3 text-xs leading-5 text-ink/55">{card.detail}</p>
+            <p className="mt-3 text-xs leading-5 text-ink/70">{card.detail}</p>
           </article>
         ))}
       </div>
-      <p className="mt-3 text-xs text-ink/55">
+      <p className="mt-3 text-xs text-ink/70">
         Fresh through: {formatDate(report.fresh_through)}.{' '}
         {report.currency_policy}
       </p>
@@ -163,7 +163,7 @@ function ConversionProviders() {
                 <tr key={provider.id}>
                   <td className={adminTableCell}>
                     <p className="font-medium">{provider.provider_key}</p>
-                    <p className="text-xs text-ink/55">
+                    <p className="text-xs text-ink/70">
                       {provider.merchant_name}
                     </p>
                   </td>
@@ -271,7 +271,7 @@ function VerifiedConversions() {
                     </td>
                     <td className={adminTableCell}>
                       <Badge>{item.order_status}</Badge>
-                      <p className="mt-1 text-xs text-ink/55">
+                      <p className="mt-1 text-xs text-ink/70">
                         {formatMoney(
                           item.order_value_minor,
                           item.order_currency,
@@ -280,7 +280,7 @@ function VerifiedConversions() {
                     </td>
                     <td className={adminTableCell}>
                       <Badge>{item.commission_status ?? 'unreported'}</Badge>
-                      <p className="mt-1 text-xs text-ink/55">
+                      <p className="mt-1 text-xs text-ink/70">
                         {formatMoney(
                           item.commission_amount_minor,
                           item.commission_currency,

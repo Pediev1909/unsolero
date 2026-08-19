@@ -193,13 +193,13 @@ export function AdminEvidenceDetailPage() {
                       </Badge>
                     </div>
                     <h3 className="mt-4 font-semibold">{item.source.title}</h3>
-                    <p className="mt-1 text-sm text-ink/55">
+                    <p className="mt-1 text-sm text-ink/70">
                       {item.source.publisher}
                     </p>
                     {item.rationale && (
                       <p className="mt-4 text-sm leading-6">{item.rationale}</p>
                     )}
-                    <p className="mt-4 text-xs text-ink/45">
+                    <p className="mt-4 text-xs text-ink/65">
                       Observed {formatDate(item.observation.observed_at)} ·
                       Confidence {item.observation.confidence}/100
                     </p>
@@ -223,7 +223,7 @@ export function AdminEvidenceDetailPage() {
                 Audit history
               </h2>
               {query.data.audit.length === 0 ? (
-                <p className="mt-4 text-sm text-ink/55">
+                <p className="mt-4 text-sm text-ink/70">
                   No audit events recorded.
                 </p>
               ) : (
@@ -234,7 +234,7 @@ export function AdminEvidenceDetailPage() {
                       key={`${event.occurred_at}-${event.action}-${index}`}
                     >
                       <span className="font-semibold">{event.action}</span>
-                      <span className="text-ink/50">
+                      <span className="text-ink/68">
                         {' '}
                         · {event.actor_email ?? 'System migration'} ·{' '}
                         {formatDate(event.occurred_at)}

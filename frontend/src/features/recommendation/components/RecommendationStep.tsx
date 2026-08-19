@@ -69,7 +69,7 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
           render={({ field }) => (
             <Slider
               formatValue={(value) => formatMinorCurrency(value, 'USD')}
-              hint="This is the total equipment budget, not a per-item limit."
+              hint="This is the total monthly spend for the whole stack, not a limit per tool."
               label="Complete setup budget"
               max={500_000}
               min={10_000}
@@ -127,7 +127,7 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
             )
           })}
         </div>
-        <p className="mt-5 text-sm text-ink/55">
+        <p className="mt-5 text-sm text-ink/70">
           Nothing yet? Leave every option unselected and continue.
         </p>
       </div>

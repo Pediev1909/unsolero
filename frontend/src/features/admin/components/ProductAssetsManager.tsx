@@ -58,7 +58,7 @@ function ImageManager({ product }: { product: AdminProduct }) {
   return (
     <section className="border border-ink/10 bg-surface p-5 sm:p-7">
       <h2 className="font-editorial text-xl">Images</h2>
-      <p className="mt-1 text-xs leading-5 text-ink/50">
+      <p className="mt-1 text-xs leading-5 text-ink/68">
         Upload JPEG, PNG, or WebP files, or attach an existing HTTPS asset.
       </p>
       <div className="mt-5 space-y-3">
@@ -74,7 +74,7 @@ function ImageManager({ product }: { product: AdminProduct }) {
             />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{image.alt_text}</p>
-              <p className="truncate text-xs text-ink/40">{image.url}</p>
+              <p className="truncate text-xs text-ink/65">{image.url}</p>
             </div>
             <Button
               aria-label={`Delete ${image.alt_text}`}
@@ -169,7 +169,7 @@ function AttributeManager({ product }: { product: AdminProduct }) {
   return (
     <section className="border border-ink/10 bg-surface p-5 sm:p-7">
       <h2 className="font-editorial text-xl">Structured attributes</h2>
-      <p className="mt-1 text-xs text-ink/50">
+      <p className="mt-1 text-xs text-ink/68">
         Typed product facts remain separate from recommendation-critical
         columns.
       </p>
@@ -181,7 +181,7 @@ function AttributeManager({ product }: { product: AdminProduct }) {
           >
             <div className="flex-1">
               <p className="text-sm font-medium">{attribute.key}</p>
-              <p className="text-xs text-ink/45">
+              <p className="text-xs text-ink/65">
                 {attribute.text_value ??
                   attribute.numeric_value?.toString() ??
                   String(attribute.boolean_value)}{' '}

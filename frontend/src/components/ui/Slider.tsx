@@ -85,7 +85,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
         value={value}
       />
       {hint && (
-        <p className="mt-2 text-xs leading-5 text-ink/55" id={`${id}-hint`}>
+        <p className="mt-2 text-xs leading-5 text-ink/70" id={`${id}-hint`}>
           {hint}
         </p>
       )}

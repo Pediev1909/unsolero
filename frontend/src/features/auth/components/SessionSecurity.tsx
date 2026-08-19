@@ -23,7 +23,7 @@ export function SessionSecurity() {
           <h3 className="text-xl font-semibold" id="sessions-heading">
             Active sessions
           </h3>
-          <p className="mt-2 text-sm text-ink/60">
+          <p className="mt-2 text-sm text-ink/70">
             Only stable session IDs and safe timestamps are shown.
           </p>
         </div>
@@ -63,11 +63,11 @@ export function SessionSecurity() {
                 <p className="font-semibold">
                   {session.current ? 'Current session' : 'Signed-in session'}
                 </p>
-                <p className="mt-1 text-xs text-ink/55">
+                <p className="mt-1 text-xs text-ink/70">
                   Created {dateTime.format(new Date(session.created_at))} · Last
                   used {dateTime.format(new Date(session.last_seen_at))}
                 </p>
-                <p className="mt-1 font-mono text-[11px] text-ink/45">
+                <p className="mt-1 font-mono text-[11px] text-ink/65">
                   {session.id}
                 </p>
               </div>

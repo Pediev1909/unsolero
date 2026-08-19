@@ -45,7 +45,7 @@ export function CatalogProductCard({
             width={product.primary_image.width_px}
           />
         ) : (
-          <div className="grid size-full place-items-center text-sm text-ink/45">
+          <div className="grid size-full place-items-center text-sm text-ink/65">
             Image unavailable
           </div>
         )}
@@ -60,7 +60,7 @@ export function CatalogProductCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <Link
-              className="text-[0.625rem] font-bold uppercase tracking-[0.13em] text-ink/45 hover:text-bronze-dark"
+              className="text-[0.625rem] font-bold uppercase tracking-[0.13em] text-ink/65 hover:text-bronze-dark"
               to={`/brands/${product.brand.slug}`}
             >
               {product.brand.name}
@@ -102,7 +102,7 @@ export function CatalogProductCard({
             size="md"
           />
           <div className="text-right">
-            <p className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/40">
+            <p className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
               {product.key_specification.label}
             </p>
             <p className="mt-1 text-xs font-semibold">
@@ -120,7 +120,7 @@ export function CatalogProductCard({
         </div>
 
         <Link
-          className="mt-4 text-xs font-semibold text-ink/55 hover:text-bronze-dark"
+          className="mt-4 text-xs font-semibold text-ink/70 hover:text-bronze-dark"
           to={`/categories/${product.category.slug}`}
         >
           {product.category.name}

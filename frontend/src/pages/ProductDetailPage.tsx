@@ -101,7 +101,7 @@ export function ProductDetailPage() {
         <Container className="py-6 sm:py-8">
           <nav
             aria-label="Breadcrumb"
-            className="flex flex-wrap items-center gap-2 text-xs text-ink/50"
+            className="flex flex-wrap items-center gap-2 text-xs text-ink/68"
           >
             <Link className="hover:text-ink" to="/products">
               Equipment
@@ -143,7 +143,7 @@ export function ProductDetailPage() {
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-between gap-5 border-y border-ink/15 py-6">
                 <div>
-                  <p className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-ink/45">
+                  <p className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
                     Reference price
                   </p>
                   <PriceDisplay
@@ -182,7 +182,7 @@ export function ProductDetailPage() {
                     </Badge>
                   ))}
                 </div>
-                <p className="mt-4 text-xs leading-5 text-ink/45">
+                <p className="mt-4 text-xs leading-5 text-ink/65">
                   Scores are derived from structured catalog facts. They are not
                   customer ratings or reviews.
                 </p>
@@ -245,7 +245,7 @@ export function ProductDetailPage() {
             <Heading className="mt-4" level={2} size="title">
               Where these product facts come from.
             </Heading>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/60">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
               Published facts are tied to reviewed sources and immutable
               revisions. Commercial terms are kept outside this evidence and
               never affect recommendation scores.
@@ -267,10 +267,10 @@ export function ProductDetailPage() {
                   <h3 className="mt-4 text-sm font-semibold capitalize">
                     {evidence.fact_key.replaceAll('_', ' ')}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-ink/60">
+                  <p className="mt-2 text-sm leading-6 text-ink/70">
                     {evidence.source_title}
                   </p>
-                  <p className="mt-3 text-xs text-ink/45">
+                  <p className="mt-3 text-xs text-ink/65">
                     Observed{' '}
                     {new Date(evidence.observed_at).toLocaleDateString()}
                     {' · '}Confidence {evidence.confidence}/100
@@ -289,7 +289,7 @@ export function ProductDetailPage() {
                 </article>
               ))}
             </div>
-            <p className="mt-5 text-xs text-ink/40">
+            <p className="mt-5 text-xs text-ink/65">
               Fact revision {item.fact_revision_id.slice(0, 8)} · Score revision{' '}
               {item.score_revision_id.slice(0, 8)}
             </p>
@@ -304,7 +304,7 @@ export function ProductDetailPage() {
             <Heading className="mt-4" level={2} size="title">
               Available offers
             </Heading>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/60">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
               Compare the landed price and merchant status. The purchase button
               uses our tracked redirect; merchant destination URLs are never
               exposed by the API.
@@ -344,7 +344,7 @@ export function ProductDetailPage() {
                   savePending={actions.savePending}
                 />
               ) : (
-                <p className="border-y border-ink/15 py-8 text-sm text-ink/60">
+                <p className="border-y border-ink/15 py-8 text-sm text-ink/70">
                   No comparable alternatives are available in this category.
                 </p>
               )}
@@ -447,7 +447,7 @@ function InsightList({
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-ink/50">{empty}</p>
+        <p className="mt-3 text-sm leading-6 text-ink/68">{empty}</p>
       )}
     </div>
   )
