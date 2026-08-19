@@ -202,6 +202,11 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 			UNION ALL SELECT '/products', catalog_updated_at FROM public_updates
 			UNION ALL SELECT '/guides', editorial_updated_at FROM public_updates
 			UNION ALL SELECT '/articles', editorial_updated_at FROM public_updates
+			-- The legal pages are static, so they carry the site timestamp.
+			-- They belong here because affiliate programme reviews and search
+			-- engines both look for them on a commercial site.
+			UNION ALL SELECT '/privacy', site_updated_at FROM public_updates
+			UNION ALL SELECT '/affiliate-disclosure', site_updated_at FROM public_updates
 			UNION ALL
 			SELECT '/categories/' || slug, updated_at
 			FROM catalog.categories WHERE is_active = true
