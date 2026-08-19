@@ -220,24 +220,29 @@ func (product Product) UseCases() []SuitabilityInsight {
 // dimension at or below 60, so leaving the inapplicable physical dimensions in
 // would make every software product look like it had three serious weaknesses.
 func (product Product) scoreInsights() []SuitabilityInsight {
-	insights := []SuitabilityInsight{
+	// The dimensions are shared; what they are called is not. A subscription
+	// listed under "Build quality" and "Durability" reads as a page written
+	// about something else, which is what these labels were written about.
+	if !product.IsPhysical {
+		return []SuitabilityInsight{
+			{Key: "quality", Label: "Product quality", Score: product.Scores.Quality},
+			{Key: "value", Label: "Value for money", Score: product.Scores.Value},
+			{Key: "durability", Label: "Vendor stability", Score: product.Scores.Durability},
+			{Key: "beginner", Label: "Easy to adopt", Score: product.Scores.Beginner},
+			{Key: "advanced", Label: "Depth for power users", Score: product.Scores.Advanced},
+			{Key: "portable", Label: "Data portability", Score: product.Scores.Portability},
+		}
+	}
+	return []SuitabilityInsight{
 		{Key: "quality", Label: "Build quality", Score: product.Scores.Quality},
 		{Key: "value", Label: "Value", Score: product.Scores.Value},
 		{Key: "durability", Label: "Durability", Score: product.Scores.Durability},
 		{Key: "beginner", Label: "Beginner suitability", Score: product.Scores.Beginner},
 		{Key: "advanced", Label: "Advanced suitability", Score: product.Scores.Advanced},
+		{Key: "apartment", Label: "Apartment suitability", Score: product.Scores.Apartment},
+		{Key: "quiet", Label: "Quiet operation", Score: product.Scores.Noise},
+		{Key: "portable", Label: "Portability", Score: product.Scores.Portability},
 	}
-	if product.IsPhysical {
-		insights = append(insights,
-			SuitabilityInsight{Key: "apartment", Label: "Apartment suitability", Score: product.Scores.Apartment},
-			SuitabilityInsight{Key: "quiet", Label: "Quiet operation", Score: product.Scores.Noise},
-			SuitabilityInsight{Key: "portable", Label: "Portability", Score: product.Scores.Portability},
-		)
-		return insights
-	}
-	return append(insights,
-		SuitabilityInsight{Key: "portable", Label: "Data portability", Score: product.Scores.Portability},
-	)
 }
 
 func filterInsights(

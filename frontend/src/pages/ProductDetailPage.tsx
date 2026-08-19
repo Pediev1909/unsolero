@@ -24,6 +24,7 @@ import { ProductComparison } from '../features/catalog/components/ProductCompari
 import { ProductGallery } from '../features/catalog/components/ProductGallery'
 import { ProductOffers } from '../features/catalog/components/ProductOffers'
 import { ProductSpecifications } from '../features/catalog/components/ProductSpecifications'
+import { specifications } from '../features/catalog/specifications'
 import { suitabilityVariant } from '../features/catalog/model'
 import { useProduct } from '../features/catalog/queries'
 import type { ProductInsight } from '../features/catalog/schemas'
@@ -226,17 +227,22 @@ export function ProductDetailPage() {
                   />
                 </div>
               </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
-                  Product facts
-                </p>
-                <Heading className="mt-4" level={2} size="title">
-                  Specifications
-                </Heading>
-                <div className="mt-9">
-                  <ProductSpecifications product={item} />
+              {/* A heading that promises facts and then lists nothing is worse
+                  than no heading. Software answers none of the physical rows,
+                  so on those products the whole column is absent. */}
+              {specifications(item).length > 0 && (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
+                    Product facts
+                  </p>
+                  <Heading className="mt-4" level={2} size="title">
+                    Specifications
+                  </Heading>
+                  <div className="mt-9">
+                    <ProductSpecifications product={item} />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </Container>
         </section>

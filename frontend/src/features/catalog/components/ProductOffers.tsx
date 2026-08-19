@@ -63,13 +63,14 @@ export function ProductOffers({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-semibold">{offer.merchant.name}</h3>
-                <Badge
-                  variant={
-                    offer.availability === 'in_stock' ? 'success' : 'warning'
-                  }
-                >
-                  {offer.availability.replace('_', ' ')}
-                </Badge>
+                {/* "In stock" is a warehouse's answer. A subscription is
+                    always available, so the badge only earns its place when it
+                    is saying something the reader does not already assume. */}
+                {offer.availability !== 'in_stock' && (
+                  <Badge variant="warning">
+                    {offer.availability.replace('_', ' ')}
+                  </Badge>
+                )}
                 {offer.disclosure_label && (
                   <Badge variant="sponsored">Affiliate link</Badge>
                 )}
@@ -80,20 +81,36 @@ export function ProductOffers({
                   currency={offer.price.currency}
                   size="md"
                 />
-                <span className="inline-flex items-center gap-1 text-xs text-ink/70">
-                  <Truck aria-hidden="true" size={14} />{' '}
-                  {offer.shipping_minor
-                    ? `${formatMinorCurrency(offer.shipping_minor, offer.price.currency)} shipping`
-                    : 'Shipping included'}
-                </span>
+                {/* Nothing is shipped to anyone. A lorry icon and the words
+                    "Shipping included" under a monthly subscription price is
+                    the equipment catalog talking. */}
+                {offer.shipping_minor > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs text-ink/70">
+                    <Truck aria-hidden="true" size={14} />{' '}
+                    {formatMinorCurrency(
+                      offer.shipping_minor,
+                      offer.price.currency,
+                    )}{' '}
+                    shipping
+                  </span>
+                )}
               </div>
               <p className="mt-2 text-xs text-ink/65">
-                Estimated total{' '}
-                {formatMinorCurrency(
-                  offer.landed_price_minor,
-                  offer.price.currency,
-                )}{' '}
-                · {offer.condition} · Checked{' '}
+                {/* A landed price that equals the price, and a condition of
+                    "new", are both answers to questions nobody asks about
+                    software. */}
+                {offer.landed_price_minor !== offer.price.amount_minor && (
+                  <>
+                    Estimated total{' '}
+                    {formatMinorCurrency(
+                      offer.landed_price_minor,
+                      offer.price.currency,
+                    )}{' '}
+                    ·{' '}
+                  </>
+                )}
+                {offer.condition !== 'new' && <>{offer.condition} · </>}
+                Checked{' '}
                 {new Intl.DateTimeFormat('en-US', {
                   dateStyle: 'medium',
                 }).format(new Date(offer.last_checked_at))}

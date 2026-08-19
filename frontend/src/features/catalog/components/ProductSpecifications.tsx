@@ -1,39 +1,14 @@
-import { attributeLabel, attributeValue, formatMeasurement } from '../model'
+import { specifications } from '../specifications'
 import type { ProductDetail } from '../schemas'
 
 export function ProductSpecifications({ product }: { product: ProductDetail }) {
-  const facts: Array<readonly [string, string]> = [
-    [
-      'Dimensions',
-      `${product.dimensions.length_mm} × ${product.dimensions.width_mm} × ${product.dimensions.height_mm} mm`,
-    ],
-    ['Weight', formatMeasurement(product.weight_grams)],
-    [
-      'Maximum capacity',
-      product.max_capacity_grams
-        ? formatMeasurement(product.max_capacity_grams)
-        : 'Not applicable',
-    ],
-    ['Material', product.material],
-    [
-      'Warranty',
-      product.warranty_months
-        ? `${product.warranty_months} months`
-        : 'Not specified',
-    ],
-  ]
+  const facts = specifications(product)
+  if (facts.length === 0) return null
 
   return (
     <dl className="border-t border-ink/15">
       {facts.map(([label, value]) => (
         <SpecificationRow key={label} label={label} value={value} />
-      ))}
-      {product.attributes.map((attribute) => (
-        <SpecificationRow
-          key={attribute.key}
-          label={attributeLabel(attribute.key)}
-          value={attributeValue(attribute)}
-        />
       ))}
     </dl>
   )

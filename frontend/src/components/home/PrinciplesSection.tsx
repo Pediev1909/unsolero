@@ -13,7 +13,7 @@ const principles = [
     number: '01',
     icon: ListChecks,
     title: 'Fit before features',
-    copy: 'A great product is still the wrong product when it misses your goals, dimensions, or experience level.',
+    copy: 'A great tool is still the wrong tool when it misses your goals, your budget, or the team that has to run it.',
   },
   {
     number: '02',

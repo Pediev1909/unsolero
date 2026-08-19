@@ -30,7 +30,7 @@ const guides: HubConfig = {
 const articles: HubConfig = {
   section: 'articles',
   eyebrow: 'Planning library',
-  title: 'Make the room work first.',
+  title: 'Fewer tools, better chosen.',
   description:
     'Editorial field notes for planning and tightening a software stack before another subscription joins it.',
   emptyTitle: 'No published articles yet',
