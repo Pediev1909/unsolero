@@ -18,6 +18,19 @@ export const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
+        path: '/privacy',
+        lazy: async () => ({
+          Component: (await import('../pages/PrivacyPage')).PrivacyPage,
+        }),
+      },
+      {
+        path: '/affiliate-disclosure',
+        lazy: async () => ({
+          Component: (await import('../pages/AffiliateDisclosurePage'))
+            .AffiliateDisclosurePage,
+        }),
+      },
+      {
         path: '/login',
         lazy: async () => ({
           Component: (await import('../pages/LoginPage')).LoginPage,
