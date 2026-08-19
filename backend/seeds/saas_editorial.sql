@@ -9,8 +9,11 @@
 -- Entries are inserted as drafts. Review each one, supply the hero images, and
 -- publish through the admin interface. Nothing here goes live on its own.
 --
--- Hero images are referenced by path and are not included; supply files at
--- frontend/public/images/ with the names below before publishing.
+-- Hero images are simple SVG diagrams committed alongside the frontend. They
+-- illustrate the idea rather than decorate: a list of jobs before any tool is
+-- chosen, a stack whose parts connect, and facts entering scoring while
+-- commercial data is kept out. Replace them with better artwork when there is
+-- any; the entries do not depend on these specific files.
 
 INSERT INTO editorial.authors (name, slug, bio)
 VALUES (
@@ -39,7 +42,7 @@ FROM author CROSS JOIN (VALUES
     'How to choose business software without overbuying',
     'how-to-choose-business-software',
     'A method for assembling a software stack around the jobs your business actually has, instead of collecting tools one landing page at a time.',
-    '/images/saas-stack-planning.webp',
+    '/images/saas-stack-planning.svg',
     'A desk with a notebook showing a simple list of business tasks before any software is chosen',
     $json$[
       {"type":"paragraph","text":"Most software gets bought one tool at a time. Each purchase looks reasonable on its own, and the result is still a mess: three products that overlap, two that will not talk to each other, and a monthly bill nobody has added up. The problem is not that any single choice was wrong. It is that a stack is a portfolio decision disguised as a series of product decisions."},
@@ -72,7 +75,7 @@ FROM author CROSS JOIN (VALUES
     'Building a software stack for a small client services agency',
     'software-stack-small-agency',
     'What a two to ten person agency actually needs to run client work, what can wait, and how the pieces should fit together.',
-    '/images/saas-agency-stack.webp',
+    '/images/saas-agency-stack.svg',
     'A small team workspace with two people reviewing a project board together',
     $json$[
       {"type":"paragraph","text":"A small agency runs the same loop every month: win work, do the work, invoice for the work, and keep everyone informed while it happens. A stack is worth its cost when it makes that loop shorter. This guide walks the loop and says what each stage needs, and what it does not."},
@@ -104,7 +107,7 @@ FROM author CROSS JOIN (VALUES
     'How UNSOLERO ranks software, and why commission never moves it',
     'how-unsolero-ranks-software',
     'Our recommendations are produced by a deterministic engine that cannot read commercial data. This page explains the mechanism and how to check it.',
-    '/images/saas-methodology.webp',
+    '/images/saas-methodology.svg',
     'A diagram showing product facts entering a scoring process separately from commercial data',
     $json$[
       {"type":"paragraph","text":"Every site that recommends software earns money when you click through. That is not a scandal by itself. The question is whether the money changes the advice. On UNSOLERO it cannot, and this page explains the mechanism rather than asking you to take it on faith."},
