@@ -257,7 +257,7 @@ test('catalog failures provide bounded recovery instead of fabricated data', asy
 
 test('server errors remain honest and recoverable', async ({ page }) => {
   await page.route(
-    '**/api/catalog/products/demo-northline-nest-24-pair',
+    '**/api/catalog/products/clickup-unlimited',
     async (route) => {
       await route.fulfill({
         status: 500,
@@ -268,7 +268,7 @@ test('server errors remain honest and recoverable', async ({ page }) => {
       })
     },
   )
-  await page.goto('/products/demo-northline-nest-24-pair')
+  await page.goto('/products/clickup-unlimited')
   await expect(
     page.getByRole('heading', { name: 'Product unavailable' }),
   ).toBeVisible()
