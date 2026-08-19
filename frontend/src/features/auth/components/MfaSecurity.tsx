@@ -10,6 +10,7 @@ import {
   useVerifyMfa,
 } from '../securityQueries'
 import type { MFAEnrollment } from '../securitySchemas'
+import { EnrollmentQrCode } from './EnrollmentQrCode'
 
 export function MfaSecurity({ user }: { user: AuthUser }) {
   const begin = useBeginMfa()
@@ -79,11 +80,19 @@ export function MfaSecurity({ user }: { user: AuthUser }) {
         <div className="mt-5 border border-ink/15 p-5">
           <p className="font-semibold">Add UNSOLERO to your authenticator</p>
           <p className="mt-2 text-sm text-ink/70">
-            Enter this secret manually. It disappears after verification.
+            Scan this with your authenticator app. It disappears after
+            verification, and anyone who sees it can generate your codes, so do
+            not photograph or forward it.
           </p>
-          <code className="mt-4 block break-all bg-paper p-3 text-sm">
-            {enrollment.secret}
-          </code>
+          <EnrollmentQrCode uri={enrollment.provisioning_uri} />
+          <details className="mt-4">
+            <summary className="cursor-pointer text-sm text-ink/70">
+              Cannot scan? Enter the key by hand
+            </summary>
+            <code className="mt-3 block break-all bg-paper p-3 text-sm">
+              {enrollment.secret}
+            </code>
+          </details>
           <form
             className="mt-5 flex max-w-lg flex-col gap-4 sm:flex-row sm:items-end"
             onSubmit={(event) => void verifyEnrollment(event)}
