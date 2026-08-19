@@ -30,8 +30,12 @@ compose() {
 # ON CONFLICT DO NOTHING keeps a repeat run harmless. The RETURNING clause is
 # what confirms the grant landed: a silent success would otherwise be
 # indistinguishable from an email that matched no account.
-result=$(compose exec -T postgres psql -U rigmark -d rigmark -qtAX -v ON_ERROR_STOP=1 \
-    -v email="$EMAIL" -v role="$ROLE" <<'SQL'
+# The database and role names come from .env, so they are read back out of
+# the running container rather than repeated here, where a stale copy would
+# fail with a confusing "role does not exist".
+result=$(compose exec -T -e GRANT_EMAIL="$EMAIL" -e GRANT_ROLE="$ROLE" postgres \
+    sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -qtAX -v ON_ERROR_STOP=1 \
+        -v email="$GRANT_EMAIL" -v role="$GRANT_ROLE"' <<'SQL'
 WITH target AS (
     SELECT id FROM identity.users WHERE lower(email) = lower(:'email')
 ), granted AS (
