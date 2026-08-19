@@ -6,8 +6,9 @@
 -- within months and belong in the catalog behind the evidence workflow, while
 -- method does not go stale and is what the pages can honestly assert.
 --
--- Entries are inserted as drafts. Review each one, supply the hero images, and
--- publish through the admin interface. Nothing here goes live on its own.
+-- Entries are published with the diagrams below. They were held as drafts
+-- while the artwork did not exist, which had the effect of keeping the site's
+-- main organic-search asset off the site to protect a decorative element.
 --
 -- Hero images are simple SVG diagrams committed alongside the frontend. They
 -- illustrate the idea rather than decorate: a list of jobs before any tool is
@@ -31,11 +32,12 @@ WITH author AS (
 )
 INSERT INTO editorial.entries (
     author_id, content_type, status, title, slug, description,
-    hero_image_url, hero_image_alt, content, seo_title, seo_description
+    hero_image_url, hero_image_alt, content, seo_title, seo_description,
+    published_at
 )
-SELECT author.id, entry.content_type, 'draft', entry.title, entry.slug,
+SELECT author.id, entry.content_type, 'published', entry.title, entry.slug,
        entry.description, entry.hero_image_url, entry.hero_image_alt,
-       entry.content::jsonb, entry.seo_title, entry.seo_description
+       entry.content::jsonb, entry.seo_title, entry.seo_description, now()
 FROM author CROSS JOIN (VALUES
 (
     'buying_guide',
