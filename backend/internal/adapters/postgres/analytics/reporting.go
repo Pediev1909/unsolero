@@ -14,6 +14,7 @@ func (repository *Repository) Report(ctx context.Context, query domain.ReportQue
 	report := domain.Report{
 		MostRecommended: []domain.RankedEntity{}, MostViewed: []domain.RankedEntity{},
 		MostClicked: []domain.RankedEntity{}, TopMerchants: []domain.RankedEntity{},
+		Daily: []domain.DailyPoint{},
 		TopCategories: []domain.RankedEntity{}, TrafficSources: []domain.TrafficSource{},
 		Window: domain.ReportingWindow{From: query.From, To: query.To, Layer: "validated_filtered", MinimumSampleSize: minimumRateSampleSize},
 	}
@@ -24,6 +25,9 @@ func (repository *Repository) Report(ctx context.Context, query domain.ReportQue
 		return domain.Report{}, err
 	}
 	if err := repository.loadCoverage(ctx, &report.Window); err != nil {
+		return domain.Report{}, err
+	}
+	if err := repository.loadDaily(ctx, &report.Daily, query); err != nil {
 		return domain.Report{}, err
 	}
 	queries := []struct {
@@ -168,4 +172,51 @@ func (repository *Repository) loadTrafficSources(ctx context.Context, target *[]
 		*target = append(*target, item)
 	}
 	return rows.Err()
+}
+
+// loadDaily returns one row per day in the window, including days with no
+// activity. Generating the calendar in SQL rather than filling gaps afterwards
+// keeps a quiet day visible as a zero instead of vanishing from the series,
+// which is the difference between a flat line and a misleadingly short one.
+func (repository *Repository) loadDaily(ctx context.Context, target *[]domain.DailyPoint, query domain.ReportQuery) error {
+	rows, err := repository.pool.Query(ctx, `
+		WITH days AS (
+			SELECT generate_series(
+				date_trunc('day', $1::timestamptz),
+				date_trunc('day', $2::timestamptz - interval '1 microsecond'),
+				interval '1 day') AS day
+		), views AS (
+			SELECT date_trunc('day', occurred_at) AS day, count(*) AS total
+			FROM analytics.events
+			WHERE is_reportable AND event_name = 'product_viewed'
+				AND occurred_at >= $1 AND occurred_at < $2
+			GROUP BY 1
+		), clicks AS (
+			SELECT date_trunc('day', occurred_at) AS day, count(*) AS total
+			FROM commerce.affiliate_clicks
+			WHERE is_countable AND occurred_at >= $1 AND occurred_at < $2
+			GROUP BY 1
+		)
+		SELECT days.day, COALESCE(views.total, 0), COALESCE(clicks.total, 0)
+		FROM days
+		LEFT JOIN views ON views.day = days.day
+		LEFT JOIN clicks ON clicks.day = days.day
+		ORDER BY days.day`, query.From, query.To)
+	if err != nil {
+		return fmt.Errorf("load daily analytics: %w", err)
+	}
+	defer rows.Close()
+	points := make([]domain.DailyPoint, 0)
+	for rows.Next() {
+		var point domain.DailyPoint
+		if err := rows.Scan(&point.Day, &point.ProductViews, &point.AffiliateClicks); err != nil {
+			return fmt.Errorf("scan daily analytics: %w", err)
+		}
+		points = append(points, point)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate daily analytics: %w", err)
+	}
+	*target = points
+	return nil
 }

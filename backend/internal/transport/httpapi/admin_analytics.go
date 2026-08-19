@@ -28,6 +28,7 @@ type analyticsReportResponse struct {
 	TopMerchants    []rankedEntityResponse  `json:"top_merchants"`
 	TopCategories   []rankedEntityResponse  `json:"top_categories"`
 	TrafficSources  []trafficSourceResponse `json:"traffic_sources"`
+	Daily           []dailyPointResponse    `json:"daily"`
 	Window          struct {
 		From              time.Time `json:"from"`
 		To                time.Time `json:"to"`
@@ -52,6 +53,12 @@ type rankedEntityResponse struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Count int64  `json:"count"`
+}
+
+type dailyPointResponse struct {
+	Day             string `json:"day"`
+	ProductViews    int64  `json:"product_views"`
+	AffiliateClicks int64  `json:"affiliate_clicks"`
 }
 
 type trafficSourceResponse struct {
@@ -121,6 +128,16 @@ func analyticsReportDTO(report analytics.Report) analyticsReportResponse {
 	result.TrafficSources = make([]trafficSourceResponse, 0, len(report.TrafficSources))
 	for _, source := range report.TrafficSources {
 		result.TrafficSources = append(result.TrafficSources, trafficSourceResponse{Source: source.Source, Count: source.Count})
+	}
+	result.Daily = make([]dailyPointResponse, 0, len(report.Daily))
+	for _, point := range report.Daily {
+		// Date only: the point is a day, and a timestamp would invite a reader
+		// to believe it carries an hour.
+		result.Daily = append(result.Daily, dailyPointResponse{
+			Day:             point.Day.UTC().Format("2006-01-02"),
+			ProductViews:    point.ProductViews,
+			AffiliateClicks: point.AffiliateClicks,
+		})
 	}
 	result.Window.From = report.Window.From
 	result.Window.To = report.Window.To

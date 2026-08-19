@@ -18,12 +18,12 @@
 
 -- A named person rather than a faceless masthead. Search engines weigh
 -- attribution to a real, identifiable author, and a reader deciding whether to
--- trust a ranking is entitled to know who produced it. The slug is unchanged so
--- existing entries keep their author.
+-- trust a ranking is entitled to know who produced it. The slug is the author
+-- page's address, so it has to match what is already published.
 INSERT INTO editorial.authors (name, slug, bio)
 VALUES (
     'Andon Pediev',
-    'unsolero-editorial',
+    'andon-pediev',
     'Andon Pediev builds and runs UNSOLERO on his own: the scoring engine, the catalog, and the record of where every published fact came from. Prices and plan limits are read from vendor documentation and carry the date they were read. Suitability scores are editorial judgements and are labelled separately from anything a vendor claims.'
 )
 ON CONFLICT (slug) DO UPDATE SET
@@ -32,7 +32,7 @@ WHERE (editorial.authors.name, editorial.authors.bio)
     IS DISTINCT FROM (EXCLUDED.name, EXCLUDED.bio);
 
 WITH author AS (
-    SELECT id FROM editorial.authors WHERE slug = 'unsolero-editorial'
+    SELECT id FROM editorial.authors WHERE slug = 'andon-pediev'
 )
 INSERT INTO editorial.entries (
     author_id, content_type, status, title, slug, description,

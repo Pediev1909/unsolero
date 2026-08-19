@@ -57,6 +57,13 @@ export const analyticsReportSchema = z.object({
       count: z.number().int().nonnegative(),
     }),
   ),
+  daily: z.array(
+    z.object({
+      day: z.string(),
+      product_views: z.number().int().nonnegative(),
+      affiliate_clicks: z.number().int().nonnegative(),
+    }),
+  ),
   window: z.object({
     from: timestamp,
     to: timestamp,

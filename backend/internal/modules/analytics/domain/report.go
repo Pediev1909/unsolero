@@ -10,8 +10,18 @@ type Report struct {
 	TopMerchants    []RankedEntity
 	TopCategories   []RankedEntity
 	TrafficSources  []TrafficSource
-	Window          ReportingWindow
-	Ingestion       IngestionSummary
+	// Daily carries one point per day in the window. A total answers "how
+	// many"; only a series answers "is this growing", which is the question
+	// anyone watching a new site actually has.
+	Daily     []DailyPoint
+	Window    ReportingWindow
+	Ingestion IngestionSummary
+}
+
+type DailyPoint struct {
+	Day             time.Time
+	ProductViews    int64
+	AffiliateClicks int64
 }
 
 type ReportQuery struct {

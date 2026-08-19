@@ -20,6 +20,7 @@ import { BrandMark } from '../../../components/layout/BrandMark'
 import { SkipLink } from '../../../components/ui/SkipLink'
 import { cn } from '../../../lib/styles/cn'
 import { useCurrentUser } from '../../auth/queries'
+import { AdminSearch } from './AdminSearch'
 
 const catalogReaders = [
   'catalog_editor',
@@ -208,6 +209,11 @@ export function AdminLayout() {
           className="mx-auto min-h-screen max-w-[100rem] px-4 py-8 sm:px-6 lg:px-10 lg:py-10"
           id="main-content"
         >
+          <div className="mb-8 max-w-xl">
+            <AdminSearch
+              sections={visibleItems.map(({ label, to }) => ({ label, to }))}
+            />
+          </div>
           <Outlet />
         </main>
       </div>

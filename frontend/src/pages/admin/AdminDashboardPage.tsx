@@ -9,6 +9,7 @@ import {
 } from '../../features/admin/queries'
 import type { AnalyticsReportData } from '../../features/admin/schemas'
 import { usePageMetadata } from '../../lib/seo/usePageMetadata'
+import { DailyTrend } from '../../features/admin/components/DailyTrend'
 
 export function AdminDashboardPage() {
   usePageMetadata({
@@ -48,6 +49,7 @@ export function AdminDashboardPage() {
             />
             <ReportingStatus data={analytics.data} />
             <AnalyticsSummary data={analytics.data} />
+            <DailyTrend daily={analytics.data.daily} />
             <IngestionSummary data={analytics.data} />
             <RankingGrid data={analytics.data} />
             <UnavailableMetrics />
