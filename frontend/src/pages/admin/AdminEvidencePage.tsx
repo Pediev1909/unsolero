@@ -28,7 +28,7 @@ export function AdminEvidencePage() {
         empty={query.data?.items.length === 0}
         emptyDescription="Create evidence before publishing catalog facts."
         emptyTitle="No governed products"
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >
@@ -115,7 +115,7 @@ export function AdminEvidenceDetailPage() {
       </Link>
       <AdminQueryState
         empty={false}
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >

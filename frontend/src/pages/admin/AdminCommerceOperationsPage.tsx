@@ -179,7 +179,7 @@ function ProviderConfiguration() {
       <AdminQueryState
         empty={providers.data?.items.length === 0}
         emptyDescription="No merchant provider is configured. No automated offer imports can run."
-        error={providers.isError}
+        error={providers.error}
         onRetry={() => void providers.refetch()}
         pending={providers.isPending}
       >
@@ -306,7 +306,7 @@ function ImportHistory() {
       <AdminQueryState
         empty={imports.data?.items.length === 0}
         emptyDescription="No provider import has run. This is expected while every provider is disabled."
-        error={imports.isError}
+        error={imports.error}
         onRetry={() => void imports.refetch()}
         pending={imports.isPending}
       >
@@ -424,7 +424,7 @@ function ImportFailures({
     >
       <AdminQueryState
         empty={query.data?.items.length === 0}
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >

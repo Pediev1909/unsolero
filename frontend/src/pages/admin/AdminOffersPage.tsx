@@ -88,7 +88,7 @@ export function AdminOffersPage() {
       />
       <AdminQueryState
         empty={query.data?.items.length === 0}
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >

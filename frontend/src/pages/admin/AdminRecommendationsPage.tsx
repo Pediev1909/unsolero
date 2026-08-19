@@ -34,7 +34,7 @@ export function AdminRecommendationsPage() {
       />
       <AdminQueryState
         empty={query.data?.items.length === 0}
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >
@@ -129,7 +129,7 @@ export function AdminRecommendationDetailPage() {
       />
       <AdminQueryState
         empty={false}
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >

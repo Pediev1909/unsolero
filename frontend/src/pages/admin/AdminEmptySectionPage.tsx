@@ -31,7 +31,7 @@ export function AdminContentPage() {
         empty={content.data?.length === 0}
         emptyDescription="No reviewed editorial entries have been published."
         emptyTitle="No published content"
-        error={content.isError}
+        error={content.error}
         onRetry={() => void content.refetch()}
         pending={content.isPending}
       >

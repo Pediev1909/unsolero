@@ -59,7 +59,7 @@ export function AdminEventsPage() {
       <AdminQueryState
         empty={query.data?.items.length === 0}
         emptyDescription="No real events match this filter."
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >

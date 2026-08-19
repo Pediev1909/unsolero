@@ -1,9 +1,27 @@
 import type { ReactNode } from 'react'
 
+import { ApiError } from '../../../lib/api/client'
 import { Button } from '../../../components/ui/Button'
 import { EmptyState } from '../../../components/ui/EmptyState'
 import { ErrorState } from '../../../components/ui/ErrorState'
 import { LoadingState } from '../../../components/ui/LoadingState'
+
+// Administration is gated on a verified address and a recent second factor.
+// Both refusals arrived here as a bare "something went wrong", which told an
+// administrator locked out of every page nothing about how to get in. The API
+// names the reason; these turn it into the action that resolves it.
+const accessRequirements: Record<string, { title: string; description: string }> = {
+  email_verification_required: {
+    title: 'Verify your email address first',
+    description:
+      'Administration needs a verified address. Open the verification email sent when you registered and follow its link, then reload this page. You can request a new one from your account settings.',
+  },
+  mfa_step_up_required: {
+    title: 'Two-factor authentication required',
+    description:
+      'Administration needs two-factor authentication, confirmed recently. Enable it in your account security settings, then sign in again. If it is already enabled, your confirmation has expired — sign in again to renew it.',
+  },
+}
 
 export function AdminQueryState({
   pending,
@@ -15,7 +33,9 @@ export function AdminQueryState({
   emptyDescription = 'No records exist for this section yet.',
 }: {
   pending: boolean
-  error: boolean
+  // The error itself rather than a flag, so a refusal that names its cause can
+  // be reported as the step that fixes it.
+  error: unknown
   empty: boolean
   onRetry: () => void
   children: ReactNode
@@ -29,7 +49,17 @@ export function AdminQueryState({
         title="Loading"
       />
     )
-  if (error)
+  if (error) {
+    const requirement =
+      error instanceof ApiError ? accessRequirements[error.code] : undefined
+    if (requirement)
+      return (
+        <ErrorState
+          description={requirement.description}
+          onRetry={onRetry}
+          title={requirement.title}
+        />
+      )
     return (
       <ErrorState
         description="The administrative data could not be loaded."
@@ -37,6 +67,7 @@ export function AdminQueryState({
         title="Something went wrong"
       />
     )
+  }
   if (empty)
     return <EmptyState description={emptyDescription} title={emptyTitle} />
   return children

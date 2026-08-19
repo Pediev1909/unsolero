@@ -58,7 +58,7 @@ export function AdminProductsPage() {
       />
       <AdminQueryState
         empty={products.data?.items.length === 0}
-        error={products.isError}
+        error={products.error}
         onRetry={() => void products.refetch()}
         pending={products.isPending}
       >

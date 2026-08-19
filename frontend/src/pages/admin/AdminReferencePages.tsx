@@ -154,7 +154,9 @@ function ReferencePage<T>({
   query: {
     data: T[] | undefined
     isPending: boolean
-    isError: boolean
+    // The error itself, so AdminQueryState can name the access requirement
+    // behind a refusal rather than reporting it as an unexplained failure.
+    error: unknown
     refetch: () => Promise<unknown>
   }
   render: (item: T) => ReactNode
@@ -169,7 +171,7 @@ function ReferencePage<T>({
       />
       <AdminQueryState
         empty={query.data?.length === 0}
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >

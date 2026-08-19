@@ -56,7 +56,7 @@ function MonetizationMetrics() {
       </h3>
       <AdminQueryState
         empty={false}
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >
@@ -137,7 +137,7 @@ function ConversionProviders() {
       <AdminQueryState
         empty={query.data?.items.length === 0}
         emptyDescription="No provider is configured. Conversion ingestion is disabled."
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >
@@ -239,7 +239,7 @@ function VerifiedConversions() {
       <AdminQueryState
         empty={query.data?.items.length === 0}
         emptyDescription="No data. No provider-verified conversion has been ingested."
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >
@@ -323,7 +323,7 @@ function ConversionImports() {
       <AdminQueryState
         empty={query.data?.items.length === 0}
         emptyDescription="No data. Conversion imports have not run."
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >
@@ -419,7 +419,7 @@ function ReconciliationHistory() {
       <AdminQueryState
         empty={query.data?.items.length === 0}
         emptyDescription="No data. No complete provider snapshot has been reconciled."
-        error={query.isError}
+        error={query.error}
         onRetry={() => void query.refetch()}
         pending={query.isPending}
       >

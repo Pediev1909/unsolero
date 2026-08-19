@@ -28,7 +28,7 @@ export function AdminDashboardPage() {
       />
       <AdminQueryState
         empty={false}
-        error={dashboard.isError || analytics.isError}
+        error={dashboard.error ?? analytics.error}
         onRetry={() => {
           void dashboard.refetch()
           void analytics.refetch()
