@@ -1,5 +1,5 @@
 import { ArrowRight, Layers3, LogOut } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 
 import { SiteFooter } from '../components/layout/SiteFooter'
 import { SiteHeader } from '../components/layout/SiteHeader'
@@ -17,7 +17,16 @@ import { formatMinorCurrency } from '../lib/money/format'
 export function AccountPage() {
   const account = useCurrentUser()
   const logout = useLogout()
-  const setups = useSetups()
+  // Only ask for saved setups once we know there is a session. Without a
+  // session the request 401s and throws, and the error boundary replaced the
+  // whole page with "Something interrupted this page" — a visitor following a
+  // stale link saw a crash where a sign-in prompt belongs.
+  const signedIn = account.isSuccess && account.data !== null
+  const setups = useSetups(signedIn)
+
+  if (account.isSuccess && account.data === null) {
+    return <Navigate replace to="/login" />
+  }
 
   return (
     <>
