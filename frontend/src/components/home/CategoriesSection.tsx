@@ -78,8 +78,8 @@ export function CategoriesSection() {
             </Heading>
           </div>
           <p className="max-w-2xl text-lg leading-8 text-ink/65">
-            Eight practical categories cover the demo catalog. The right setup
-            may use only two or three of them.
+            Eight practical categories cover the catalog. A working stack
+            usually needs only two or three of them.
           </p>
         </div>
 

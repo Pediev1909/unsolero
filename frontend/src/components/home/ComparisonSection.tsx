@@ -93,7 +93,7 @@ export function ComparisonSection() {
         <div className="mt-14 hidden overflow-x-auto border border-ink/15 bg-surface md:block lg:mt-20">
           <table className="w-full min-w-[760px] border-collapse text-left">
             <caption className="sr-only">
-              Comparison of three fictional demo business tools
+              Comparison of three business tools
             </caption>
             <thead>
               <tr className="border-b border-ink/15 text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/45">
@@ -172,8 +172,9 @@ export function ComparisonSection() {
           </table>
         </div>
         <p className="mt-4 text-xs leading-5 text-ink/50">
-          Scores and prices come from fictional demo seed records. They
-          illustrate the decision model and are not claims about real products.
+          Prices are the entry paid tier at monthly billing, read from each
+          vendor&apos;s own pricing page and recorded with the date. Suitability
+          scores are our editorial assessment, not vendor claims.
         </p>
       </Container>
     </Section>

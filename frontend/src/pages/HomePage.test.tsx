@@ -38,9 +38,9 @@ describe('HomePage', () => {
     ).toHaveAttribute('href', '/categories/crm')
     expect(
       screen.getByRole('link', {
-        name: /view details for demo northwind crm/i,
+        name: /view details for clickup unlimited/i,
       }),
-    ).toHaveAttribute('href', '/products/saas-northwind-crm')
+    ).toHaveAttribute('href', '/products/clickup-unlimited')
   })
 
   it('labels illustrative catalog content and exposes comparison context', () => {
@@ -51,11 +51,11 @@ describe('HomePage', () => {
     )
 
     expect(
-      screen.getByText(/fictional demo products shown/i),
+      screen.getByText(/read from each vendor/i),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('table', {
-        name: /comparison of three fictional demo business tools/i,
+        name: /comparison of three business tools/i,
       }),
     ).toBeInTheDocument()
     expect(screen.queryByText(/testimonial/i)).not.toBeInTheDocument()

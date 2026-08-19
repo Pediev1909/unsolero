@@ -28,11 +28,11 @@ export function ExampleSetupSection() {
           <div>
             <p className="eyebrow text-bronze-soft">Example plan</p>
             <Heading className="mt-5 max-w-lg" level={2} size="section">
-              A useful setup—not a shopping spree.
+              A working stack—not a pile of subscriptions.
             </Heading>
             <p className="mt-7 max-w-md text-base leading-7 text-canvas/65">
-              One possible plan for the brief below, using fictional products
-              from the UNSOLERO demo catalog.
+              One plan for the brief below, drawn from the live catalog. The
+              engine produces it from your own answers, not from ours.
             </p>
 
             <dl className="mt-10 border-t border-canvas/15">
@@ -64,7 +64,7 @@ export function ExampleSetupSection() {
               <div>
                 <Badge variant="success">Within budget</Badge>
                 <h3 className="mt-3 font-display text-2xl font-medium tracking-[-0.04em] sm:text-3xl">
-                  Compact strength foundation
+                  Client services foundation
                 </h3>
               </div>
               <div className="sm:text-right">

@@ -32,7 +32,7 @@ export function MethodSection() {
           <div>
             <p className="eyebrow">How it works</p>
             <Heading className="mt-5 max-w-xl" level={2} size="section">
-              From an empty room to a clear plan.
+              From a blank slate to a working stack.
             </Heading>
           </div>
           <p className="max-w-2xl text-lg leading-8 text-ink/70 lg:pt-10 lg:text-xl">
