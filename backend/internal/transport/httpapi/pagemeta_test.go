@@ -132,3 +132,25 @@ func TestTruncateDescriptionCutsOnAWordBoundary(t *testing.T) {
 		t.Fatalf("multibyte truncation is %d characters, want at most 21", count)
 	}
 }
+
+// Serving the shell from the API moved the document out from behind nginx,
+// which used to attach the document policy. The API's own policy is
+// "default-src 'none'", which blocks every script and stylesheet the page
+// references and renders a blank page. This asserts the document policy admits
+// what an HTML page actually needs.
+func TestDocumentPolicyAllowsTheAssetsThePageLoads(t *testing.T) {
+	for _, directive := range []string{
+		"default-src 'self'",
+		"script-src 'self'",
+		"style-src 'self'",
+		"connect-src 'self'",
+		"frame-ancestors 'none'",
+	} {
+		if !strings.Contains(documentContentSecurityPolicy, directive) {
+			t.Fatalf("document policy is missing %q:\n%s", directive, documentContentSecurityPolicy)
+		}
+	}
+	if strings.Contains(documentContentSecurityPolicy, "default-src 'none'") {
+		t.Fatal("the document policy is the API's JSON policy, which blocks all page assets")
+	}
+}

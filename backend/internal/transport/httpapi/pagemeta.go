@@ -30,6 +30,21 @@ const (
 	pageMetaEndMarker   = "<!--PAGE_META_END-->"
 )
 
+// documentContentSecurityPolicy is the policy an HTML document needs, as
+// opposed to the "default-src 'none'" the API applies to its JSON responses.
+//
+// This matters because serving the shell from the API moved the document out
+// from behind nginx, which used to attach this header. Without it the browser
+// blocks every script and stylesheet the page references and renders nothing:
+// the API's policy is correct for JSON and fatal for HTML.
+//
+// It must stay in step with frontend/nginx-static-security.conf, which applies
+// the same policy on the fallback path.
+const documentContentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline'; " +
+	"style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self'; " +
+	"font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; " +
+	"frame-ancestors 'none'; upgrade-insecure-requests"
+
 type pageMetadata struct {
 	Title        string
 	Description  string

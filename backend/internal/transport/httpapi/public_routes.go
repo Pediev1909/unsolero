@@ -91,6 +91,10 @@ func (h *Handler) publicRouteStatus(response http.ResponseWriter, request *http.
 	if h.shell != nil {
 		if shell, ok := h.shell.Shell(request.Context()); ok {
 			if rendered, rendered_ok := renderShell(shell, meta); rendered_ok {
+				// This response is a document, not an API payload, so it needs
+				// the document policy. The API-wide header would block every
+				// script the page loads.
+				response.Header().Set("Content-Security-Policy", documentContentSecurityPolicy)
 				response.Header().Set("Content-Type", "text/html; charset=utf-8")
 				response.WriteHeader(http.StatusOK)
 				if _, err := response.Write([]byte(rendered)); err != nil {
