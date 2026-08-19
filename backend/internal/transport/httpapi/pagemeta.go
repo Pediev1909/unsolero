@@ -44,9 +44,14 @@ type pageMetadata struct {
 }
 
 // spaShellProvider fetches the built index.html from the web container and
-// caches it. The shell changes only when a new frontend image is deployed, so
-// a long refresh interval is enough, and a failure falls back to the previous
-// copy rather than breaking the page.
+// caches it briefly.
+//
+// The refresh interval is short on purpose. The shell references asset bundles
+// by content hash, so deploying a new frontend deletes the files the cached
+// copy points at: every second of cache after a deploy is a second of serving
+// HTML whose script and stylesheet return 404, which is a blank page rather
+// than a degraded one. Fetching is a request to nginx on the same Docker
+// network, so a short interval costs effectively nothing.
 type spaShellProvider struct {
 	url     string
 	client  *http.Client
@@ -61,7 +66,7 @@ func newSPAShellProvider(url string) *spaShellProvider {
 	return &spaShellProvider{
 		url:     url,
 		client:  &http.Client{Timeout: 3 * time.Second},
-		refresh: 5 * time.Minute,
+		refresh: 10 * time.Second,
 	}
 }
 
@@ -80,8 +85,10 @@ func (provider *spaShellProvider) Shell(ctx context.Context) (string, bool) {
 
 	fetched, err := provider.fetch(ctx)
 	if err != nil {
-		// A stale shell still carries valid asset URLs; serving it is better
-		// than losing metadata entirely.
+		// The previous copy is the best available answer while web is briefly
+		// unreachable. It may point at assets that no longer exist, but the
+		// alternative is serving no metadata at all, and the edge fallback
+		// would serve the same stale file from disk anyway.
 		return shell, shell != ""
 	}
 	provider.mutex.Lock()
