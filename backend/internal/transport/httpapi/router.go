@@ -221,9 +221,13 @@ type PublicServices struct {
 	OperationalMetrics   OperationalMetricsSource
 	Alerts               alerting.Notifier
 	HandlerTimeout       time.Duration
-	Security             AccountSecurityService
-	DevelopmentEmail     DevelopmentEmailMessages
-	SecurityPolicy       SecurityPolicyConfig
+	// SPAShellURL is where the built index.html can be fetched so per-route
+	// metadata can be injected into it. Empty disables injection and the edge
+	// serves the static shell unchanged.
+	SPAShellURL      string
+	Security         AccountSecurityService
+	DevelopmentEmail DevelopmentEmailMessages
+	SecurityPolicy   SecurityPolicyConfig
 }
 
 type Handler struct {
@@ -251,6 +255,7 @@ type Handler struct {
 	metrics              observability.Recorder
 	metricsToken         string
 	operationalSource    OperationalMetricsSource
+	shell                *spaShellProvider
 }
 
 func NewRouter(
@@ -282,6 +287,9 @@ func NewRouter(
 		handler.metrics = publicServices[0].Metrics
 		handler.metricsToken = publicServices[0].MetricsToken
 		handler.operationalSource = publicServices[0].OperationalMetrics
+		if publicServices[0].SPAShellURL != "" {
+			handler.shell = newSPAShellProvider(publicServices[0].SPAShellURL)
+		}
 	}
 	mux := http.NewServeMux()
 

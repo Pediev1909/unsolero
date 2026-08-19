@@ -29,6 +29,9 @@ x-production-environment: &production-application-environment
   APP_ENV: production
   APP_VERSION: ${APP_VERSION:?Set APP_VERSION}
   PUBLIC_SITE_URL: https://${PUBLIC_HOSTNAME:?Set PUBLIC_HOSTNAME}
+  # The API fetches the built shell from the web container so it can inject
+  # per-route titles, descriptions and structured data before serving it.
+  SPA_SHELL_URL: http://web:8080/__unsolero_shell.html
   RECOMMENDATION_VERTICAL: ${RECOMMENDATION_VERTICAL:-saas}
 
   # sslmode=require encrypts without verifying the server certificate, which is

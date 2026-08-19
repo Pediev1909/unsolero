@@ -103,7 +103,11 @@ type Commerce struct {
 }
 
 type Site struct {
-	PublicURL string
+	// SPAShellURL is where the built index.html can be fetched so per-route
+	// metadata can be injected. Empty disables injection and the edge serves
+	// the static shell unchanged.
+	SPAShellURL string
+	PublicURL   string
 }
 
 type AI struct {
@@ -498,7 +502,10 @@ func Load() (Config, error) {
 			S3Region:              os.Getenv("MEDIA_S3_REGION"),
 			S3Secure:              s3Secure,
 		},
-		Site:           Site{PublicURL: strings.TrimRight(valueOrDefault("PUBLIC_SITE_URL", "http://localhost:5173"), "/")},
+		Site: Site{
+			PublicURL:   strings.TrimRight(valueOrDefault("PUBLIC_SITE_URL", "http://localhost:5173"), "/"),
+			SPAShellURL: os.Getenv("SPA_SHELL_URL"),
+		},
 		Recommendation: Recommendation{Vertical: valueOrDefault("RECOMMENDATION_VERTICAL", "fitness")},
 		AI: AI{
 			Provider:         valueOrDefault("AI_PROVIDER", "disabled"),

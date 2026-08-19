@@ -60,7 +60,7 @@ func (h *Handler) publicRouteStatus(response http.ResponseWriter, request *http.
 		return
 	}
 
-	indexable, known, canonicalURL, lookupErr := h.resolvePublicRoute(request, parsed.Path)
+	meta, known, lookupErr := h.resolvePublicRoute(request, parsed.Path)
 	if lookupErr != nil {
 		if errors.Is(lookupErr, catalogports.ErrNotFound) || errors.Is(lookupErr, contentports.ErrNotFound) {
 			h.writeRouteStatusError(response, http.StatusNotFound)
@@ -75,14 +75,32 @@ func (h *Handler) publicRouteStatus(response http.ResponseWriter, request *http.
 		return
 	}
 	if parsed.RawQuery != "" {
-		indexable = false
+		meta.Indexable = false
 	}
 	response.Header().Set("Cache-Control", "no-store")
-	if !indexable {
+	if !meta.Indexable {
 		response.Header().Set("X-Robots-Tag", "noindex, nofollow")
-	} else if canonicalURL != "" {
-		response.Header().Set("Link", "<"+canonicalURL+">; rel=\"canonical\"")
+	} else if meta.CanonicalURL != "" {
+		response.Header().Set("Link", "<"+meta.CanonicalURL+">; rel=\"canonical\"")
 	}
+
+	// Serving the shell with this route's metadata is what makes search
+	// results and social previews specific to the page. If the shell cannot be
+	// fetched the edge serves the static file instead: losing metadata is a
+	// degradation, losing the page is an outage.
+	if h.shell != nil {
+		if shell, ok := h.shell.Shell(request.Context()); ok {
+			if rendered, rendered_ok := renderShell(shell, meta); rendered_ok {
+				response.Header().Set("Content-Type", "text/html; charset=utf-8")
+				response.WriteHeader(http.StatusOK)
+				if _, err := response.Write([]byte(rendered)); err != nil {
+					h.logger.Error("write public route html", "error", err)
+				}
+				return
+			}
+		}
+	}
+
 	response.Header().Set("X-Accel-Redirect", spaIndexRedirect)
 	response.WriteHeader(http.StatusOK)
 }
@@ -101,65 +119,137 @@ func containsInvalidPathRune(path string) bool {
 	return false
 }
 
-func (h *Handler) resolvePublicRoute(request *http.Request, path string) (bool, bool, string, error) {
+// resolvePublicRoute reports whether a browser route exists and describes it.
+// The catalog and content lookups it performs to answer the first question are
+// the same ones that answer the second, so metadata costs no extra queries.
+func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMetadata, bool, error) {
+	meta := pageMetadata{Indexable: false, CanonicalURL: h.absolutePublicRoute(path)}
+
 	if indexable, ok := staticPublicRoutes[path]; ok {
-		return indexable, true, h.absolutePublicRoute(path), nil
+		meta.Indexable = indexable
+		meta.Title, meta.Description = staticRouteMetadata(path)
+		return meta, true, nil
 	}
 	segments := strings.Split(strings.TrimPrefix(path, "/"), "/")
 	if len(segments) == 3 && segments[0] == "admin" &&
 		(segments[1] == "products" || segments[1] == "evidence" || segments[1] == "recommendations") &&
 		uuidRoutePattern.MatchString(segments[2]) {
-		return false, true, "", nil
+		return pageMetadata{}, true, nil
 	}
 	if len(segments) != 2 {
-		return false, false, "", nil
+		return pageMetadata{}, false, nil
 	}
 	section, value := segments[0], segments[1]
 	if !publicRouteSlugPattern.MatchString(value) {
 		if (section == "setups" || section == "admin") && uuidRoutePattern.MatchString(value) {
-			return false, section == "setups", "", nil
+			return pageMetadata{}, section == "setups", nil
 		}
-		return false, false, "", nil
+		return pageMetadata{}, false, nil
 	}
 	switch section {
 	case "products":
 		if h.catalog == nil {
-			return false, false, "", nil
+			return pageMetadata{}, false, nil
 		}
-		_, err := h.catalog.GetProduct(request.Context(), value)
-		return true, err == nil, h.absolutePublicRoute(path), err
+		detail, err := h.catalog.GetProduct(request.Context(), value)
+		if err != nil {
+			return pageMetadata{}, false, err
+		}
+		meta.Indexable = true
+		meta.Title = detail.Product.Name + " — " + detail.Product.BrandName + " | UNSOLERO"
+		meta.Description = truncateDescription(detail.Product.Description, 160)
+		if len(detail.Product.Images) > 0 {
+			meta.ImageURL = h.absoluteImageURL(detail.Product.Images[0].URL)
+		}
+		meta.StructuredData = productStructuredData(detail.Product, meta.CanonicalURL)
+		return meta, true, nil
 	case "categories":
 		if h.catalog == nil {
-			return false, false, "", nil
+			return pageMetadata{}, false, nil
 		}
-		_, err := h.catalog.GetCategory(request.Context(), value)
-		return true, err == nil, h.absolutePublicRoute(path), err
+		category, err := h.catalog.GetCategory(request.Context(), value)
+		if err != nil {
+			return pageMetadata{}, false, err
+		}
+		meta.Indexable = true
+		meta.Title = category.Name + " | UNSOLERO"
+		meta.Description = truncateDescription(defaultText(category.Description,
+			"Compare "+category.Name+" on structured facts, with no commission-driven ranking."), 160)
+		return meta, true, nil
 	case "brands":
 		if h.catalog == nil {
-			return false, false, "", nil
+			return pageMetadata{}, false, nil
 		}
-		_, err := h.catalog.GetBrand(request.Context(), value)
-		return true, err == nil, h.absolutePublicRoute(path), err
+		brand, err := h.catalog.GetBrand(request.Context(), value)
+		if err != nil {
+			return pageMetadata{}, false, err
+		}
+		meta.Indexable = true
+		meta.Title = brand.Name + " | UNSOLERO"
+		meta.Description = truncateDescription(defaultText(brand.Description,
+			"Products from "+brand.Name+", assessed on structured facts."), 160)
+		return meta, true, nil
 	case "guides", "articles", "compare":
 		if h.content == nil {
-			return false, false, "", nil
+			return pageMetadata{}, false, nil
 		}
 		entry, err := h.content.Get(request.Context(), value)
 		if err != nil {
-			return false, false, "", err
+			return pageMetadata{}, false, err
 		}
 		if entry.Path != path {
-			return false, false, "", contentports.ErrNotFound
+			return pageMetadata{}, false, contentports.ErrNotFound
 		}
-		return true, true, entry.CanonicalURL, nil
+		meta.Indexable = true
+		meta.CanonicalURL = entry.CanonicalURL
+		meta.Title = defaultText(entry.SEOTitle, entry.Title+" | UNSOLERO")
+		meta.Description = truncateDescription(defaultText(entry.SEODescription, entry.Description), 160)
+		meta.ImageURL = h.absoluteImageURL(entry.HeroImageURL)
+		meta.StructuredData = articleStructuredData(entry, meta.CanonicalURL)
+		return meta, true, nil
 	case "setups":
-		return false, uuidRoutePattern.MatchString(value), "", nil
+		return pageMetadata{}, uuidRoutePattern.MatchString(value), nil
 	case "admin":
 		// Only the UUID-bearing admin detail routes are dynamic. Static admin
 		// routes are enumerated above so typos still receive a real 404.
-		return false, false, "", nil
+		return pageMetadata{}, false, nil
 	default:
-		return false, false, "", nil
+		return pageMetadata{}, false, nil
+	}
+}
+
+func defaultText(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
+}
+
+// absoluteImageURL turns a site-relative image path into the absolute URL that
+// social preview scrapers require; they do not resolve relative paths.
+func (h *Handler) absoluteImageURL(value string) string {
+	if value == "" || strings.HasPrefix(value, "https://") {
+		return value
+	}
+	return h.absolutePublicRoute(value)
+}
+
+func staticRouteMetadata(path string) (string, string) {
+	switch path {
+	case "/":
+		return "UNSOLERO — Build the right software stack",
+			"Tell us what your business does, what you already run, and what you can spend. We work out what you actually need."
+	case "/products":
+		return "Business software, judged on what matters | UNSOLERO",
+			"Structured facts, suitability scores and comparable offers, with commission excluded from the ranking."
+	case "/guides":
+		return "Software stack guides | UNSOLERO",
+			"Practical guides for planning a software stack around real constraints rather than feature lists."
+	case "/articles":
+		return "Software stack articles | UNSOLERO",
+			"Editorial notes on choosing, combining and replacing the tools a business runs on."
+	default:
+		return "UNSOLERO", "Independent business software recommendations built around your real constraints."
 	}
 }
 

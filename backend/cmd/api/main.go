@@ -265,6 +265,7 @@ func run(logger *slog.Logger) error {
 				MetricsToken: cfg.Operations.MetricsToken, Alerts: notifier,
 				OperationalMetrics: observability.NewPostgresSource(db),
 				HandlerTimeout:     cfg.HTTP.HandlerTimeout,
+				SPAShellURL:        cfg.Site.SPAShellURL,
 				Security:           securityService,
 				DevelopmentEmail:   developmentEmail,
 				SecurityPolicy: httpapi.SecurityPolicyConfig{EnforcePrivilegedMFA: cfg.Security.EnforcePrivilegedMFA,
