@@ -49,10 +49,10 @@ export function ProductDetailPage() {
   usePageMetadata({
     title: product.data
       ? `${product.data.name} by ${product.data.brand.name} | UNSOLERO`
-      : 'Equipment details | UNSOLERO',
+      : 'Product details | UNSOLERO',
     description:
       product.data?.description ??
-      'Structured equipment specifications, suitability, alternatives, and merchant offers.',
+      'Structured product facts, suitability, alternatives, and current offers.',
     imagePath:
       product.data?.primary_image?.url ?? '/images/unsolero-saas-hero.svg',
     robots:

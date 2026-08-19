@@ -22,7 +22,7 @@ export function WishlistPage() {
   const loading =
     wishlist.isPending || (wishlist.productIDs.length > 0 && products.isPending)
   usePageMetadata({
-    title: 'Saved Equipment | UNSOLERO',
+    title: 'Saved software | UNSOLERO',
     description: 'Review saved software and current offers.',
     robots: 'noindex, follow',
   })
@@ -40,15 +40,15 @@ export function WishlistPage() {
             you open this page. Guest saves stay on this device.
           </p>
           <div className="mt-10">
-            {loading && <LoadingState title="Loading saved equipment" />}
+            {loading && <LoadingState title="Loading saved software" />}
             {(wishlist.isError || products.isError) && (
               <ErrorState
-                description="Your saved equipment could not be loaded."
+                description="Your saved software could not be loaded."
                 onRetry={() => {
                   void wishlist.refetch()
                   void products.refetch()
                 }}
-                title="Saved equipment unavailable"
+                title="Saved software unavailable"
               />
             )}
             {!loading &&
@@ -56,7 +56,7 @@ export function WishlistPage() {
               wishlist.productIDs.length === 0 && (
                 <EmptyState
                   action={
-                    <ButtonLink to="/products">Explore equipment</ButtonLink>
+                    <ButtonLink to="/products">Explore software</ButtonLink>
                   }
                   description="Save products from the catalog to keep a focused shortlist."
                   title="Nothing saved yet"

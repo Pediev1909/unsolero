@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '../../components/ui/Button'
 import { Container } from '../../components/ui/Container'
@@ -13,12 +13,38 @@ export function AnalyticsConsentBanner() {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
 
+  const banner = useRef<HTMLElement>(null)
+
   useEffect(() => {
     const showPreferences = () => setOpen(true)
     window.addEventListener(openAnalyticsConsentEvent, showPreferences)
     return () =>
       window.removeEventListener(openAnalyticsConsentEvent, showPreferences)
   }, [])
+
+  // The banner is pinned to the bottom of the viewport, where the comparison
+  // bar also lives. It sat on top of it and swallowed the clicks, so selecting
+  // products appeared to do nothing. Publishing its height lets anything else
+  // anchored to the bottom sit clear of it, and the height is measured rather
+  // than assumed because the text wraps to two lines on a narrow screen.
+  useEffect(() => {
+    const root = document.documentElement
+    if (!open) {
+      root.style.removeProperty('--bottom-bar-offset')
+      return
+    }
+    const publishHeight = () => {
+      const height = banner.current?.offsetHeight ?? 0
+      root.style.setProperty('--bottom-bar-offset', `${height}px`)
+    }
+    publishHeight()
+    const observer = new ResizeObserver(publishHeight)
+    if (banner.current) observer.observe(banner.current)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--bottom-bar-offset')
+    }
+  }, [open])
 
   if (!open) return null
 
@@ -40,6 +66,7 @@ export function AnalyticsConsentBanner() {
   return (
     <aside
       aria-label="Analytics preferences"
+      ref={banner}
       className="fixed inset-x-0 bottom-0 z-50 border-t border-ink/15 bg-canvas py-4 shadow-elevated"
       role="region"
     >

@@ -7,7 +7,7 @@ export function ProductSpecifications({ product }: { product: ProductDetail }) {
       'Dimensions',
       `${product.dimensions.length_mm} × ${product.dimensions.width_mm} × ${product.dimensions.height_mm} mm`,
     ],
-    ['Equipment weight', formatMeasurement(product.weight_grams)],
+    ['Weight', formatMeasurement(product.weight_grams)],
     [
       'Maximum capacity',
       product.max_capacity_grams

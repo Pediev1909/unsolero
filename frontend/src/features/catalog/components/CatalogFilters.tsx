@@ -70,7 +70,7 @@ export function CatalogFilters({
       }}
     >
       <Input
-        label="Search equipment"
+        label="Search software"
         placeholder="Product or brand"
         type="search"
         {...register('q')}

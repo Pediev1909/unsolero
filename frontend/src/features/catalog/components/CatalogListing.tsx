@@ -34,7 +34,7 @@ interface CatalogListingProps {
 }
 
 export function CatalogListing({
-  eyebrow = 'Equipment intelligence',
+  eyebrow = 'Software intelligence',
   title,
   description,
   categorySlug,
@@ -126,7 +126,7 @@ export function CatalogListing({
             <aside aria-label="Catalog filters" className="hidden lg:block">
               <div className="sticky top-28">
                 <h2 className="mb-6 text-xs font-bold uppercase tracking-[0.14em]">
-                  Refine equipment
+                  Refine results
                 </h2>
                 {filters}
               </div>
@@ -144,7 +144,7 @@ export function CatalogListing({
                 {products.isPending && <CatalogLoadingGrid />}
                 {products.isError && (
                   <ErrorState
-                    description="The equipment catalog could not be loaded."
+                    description="The software catalog could not be loaded."
                     onRetry={() => void products.refetch()}
                     title="Catalog unavailable"
                   />
@@ -160,7 +160,7 @@ export function CatalogListing({
                       </Button>
                     }
                     description="Try a broader search, another brand, or a wider price range."
-                    title="No equipment matches these filters"
+                    title="No software matches these filters"
                   />
                 )}
                 {products.data && products.data.products.length > 0 && (
@@ -193,7 +193,12 @@ export function CatalogListing({
       </main>
 
       {actions.comparedIDs.size > 0 && (
-        <div className="fixed inset-x-0 bottom-4 z-30 mx-auto flex w-[min(calc(100%-2rem),32rem)] items-center justify-between gap-4 border border-ink/15 bg-ink px-4 py-3 text-canvas shadow-overlay">
+        <div
+          className="fixed inset-x-0 z-30 mx-auto flex w-[min(calc(100%-2rem),32rem)] items-center justify-between gap-4 border border-ink/15 bg-ink px-4 py-3 text-canvas shadow-overlay"
+          // Sits above the consent banner while that is showing, rather than
+          // underneath it where its Compare button could not be clicked.
+          style={{ bottom: 'calc(var(--bottom-bar-offset, 0px) + 1rem)' }}
+        >
           <p className="text-sm">
             <strong>{actions.comparedIDs.size}</strong> of 4 selected
           </p>

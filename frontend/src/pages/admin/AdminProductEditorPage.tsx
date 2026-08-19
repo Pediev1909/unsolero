@@ -34,14 +34,18 @@ const formSchema = z.object({
   description: z.string().trim().min(1),
   price_minor: number,
   currency: z.string().trim().length(3),
-  length_mm: positive,
-  width_mm: positive,
-  height_mm: positive,
-  weight_grams: positive,
+  // Zero rather than positive, and material may be blank: a software product
+  // has no physical form, and demanding one here would have made every entry
+  // in the catalog impossible to save. The backend enforces real measurements
+  // on products in physical categories.
+  length_mm: number,
+  width_mm: number,
+  height_mm: number,
+  weight_grams: number,
   max_capacity_grams: z
     .union([positive, z.nan()])
     .transform((value) => (Number.isNaN(value) ? null : value)),
-  material: z.string().trim().min(1).max(160),
+  material: z.string().trim().max(160),
   warranty_months: number,
   quality_score: score,
   value_score: score,

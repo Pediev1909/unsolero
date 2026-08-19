@@ -62,13 +62,20 @@ const attributeSchema = z.object({
 export const productDetailSchema = productSummarySchema.extend({
   description: z.string(),
   images: z.array(imageSchema),
+  // Software has no length, weight or material, so the API reports zero for
+  // these. Requiring a positive number was left over from the equipment
+  // vertical and made every product in the catalog fail to parse: the detail
+  // page showed "Product unavailable" and the comparison refused to open,
+  // while the request itself returned 200 with correct metadata, so nothing
+  // upstream registered a fault. Nothing public renders these fields; they
+  // are carried for physical products, which the backend gates separately.
   dimensions: z.object({
-    length_mm: z.number().int().positive(),
-    width_mm: z.number().int().positive(),
-    height_mm: z.number().int().positive(),
+    length_mm: z.number().int().nonnegative(),
+    width_mm: z.number().int().nonnegative(),
+    height_mm: z.number().int().nonnegative(),
   }),
-  weight_grams: z.number().int().positive(),
-  max_capacity_grams: z.number().int().positive().nullable(),
+  weight_grams: z.number().int().nonnegative(),
+  max_capacity_grams: z.number().int().nonnegative().nullable(),
   material: z.string(),
   warranty_months: z.number().int().nonnegative(),
   attributes: z.array(attributeSchema),

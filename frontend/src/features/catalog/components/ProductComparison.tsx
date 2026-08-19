@@ -30,7 +30,7 @@ export function ProductComparison({
       onOpenChange={onOpenChange}
       open={open}
       size="lg"
-      title="Compare equipment"
+      title="Compare software"
     >
       {loading && <LoadingState compact title="Loading comparison" />}
       {error && !loading && (

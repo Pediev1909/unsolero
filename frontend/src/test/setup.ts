@@ -18,3 +18,14 @@ if (!HTMLDialogElement.prototype.close) {
     this.dispatchEvent(new Event('close'))
   }
 }
+
+// jsdom does not implement ResizeObserver, which components use to measure
+// themselves. Every browser has it, so the stub belongs here rather than as a
+// guard in component code.
+if (!('ResizeObserver' in globalThis)) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}

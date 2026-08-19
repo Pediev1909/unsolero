@@ -34,7 +34,7 @@ export function useCatalogActions() {
   function save(product: ProductSummary) {
     if (!wishlist.toggle(product.id)) {
       showToast({
-        title: 'Saved equipment is unavailable',
+        title: 'Saved software is unavailable',
         description: 'Wait a moment, then try again.',
         variant: wishlist.isError ? 'error' : 'neutral',
       })
