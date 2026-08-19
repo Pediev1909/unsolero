@@ -34,9 +34,12 @@ stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup_name="unsolero-${stamp}"
 
 echo "==> Dumping the database"
+# Both profiles are needed: the backup service lives in "tools", but the
+# production overlay wires api to clamav, and Compose rejects a project where a
+# referenced service is not in any active profile.
 BACKUP_NAME="$backup_name" docker compose \
     -f compose.yaml -f compose.production.yaml \
-    --profile tools run --rm backup
+    --profile production --profile tools run --rm backup
 
 dump_path="${backup_dir}/${backup_name}.dump"
 if [ ! -f "$dump_path" ]; then
