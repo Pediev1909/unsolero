@@ -99,22 +99,26 @@ export function ProductDetailPage() {
     <PageFrame>
       <main id="main-content">
         <Container className="py-6 sm:py-8">
+          {/* "Equipment" was the first crumb until now: a label left behind by
+              the fitness catalog this site was before it sold software, sitting
+              on every product page. The crumbs are also the smallest links on
+              the page, so they carry a 24px hit box. */}
           <nav
             aria-label="Breadcrumb"
-            className="flex flex-wrap items-center gap-2 text-xs text-ink/68"
+            className="flex flex-wrap items-center gap-x-2 text-xs text-ink/68"
           >
-            <Link className="hover:text-ink" to="/products">
-              Equipment
+            <Link className="flex min-h-6 items-center hover:text-ink" to="/products">
+              Software
             </Link>
             <span aria-hidden="true">/</span>
             <Link
-              className="hover:text-ink"
+              className="flex min-h-6 items-center hover:text-ink"
               to={`/categories/${item.category.slug}`}
             >
               {item.category.name}
             </Link>
             <span aria-hidden="true">/</span>
-            <span aria-current="page" className="text-ink">
+            <span aria-current="page" className="flex min-h-6 items-center text-ink">
               {item.name}
             </span>
           </nav>
@@ -126,7 +130,7 @@ export function ProductDetailPage() {
             <div className="lg:pt-5">
               <div className="flex flex-wrap items-center gap-2">
                 <Link
-                  className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark hover:text-ink"
+                  className="inline-flex min-h-6 items-center text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark hover:text-ink"
                   to={`/brands/${item.brand.slug}`}
                 >
                   {item.brand.name}

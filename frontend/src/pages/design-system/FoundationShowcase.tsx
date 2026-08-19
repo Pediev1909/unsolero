@@ -48,13 +48,13 @@ export function FoundationShowcase() {
           <div>
             <p className="eyebrow">Display / 92% line height</p>
             <Heading className="mt-4" level={3} size="display">
-              Strength, considered.
+              Clarity, considered.
             </Heading>
           </div>
           <div className="grid gap-8 border-t border-ink/15 pt-8 md:grid-cols-2">
             <p className="text-body-lg text-ink/75">
-              Equipment should earn its footprint through utility, quality, and
-              long-term fit.
+              Software should earn its place in a stack through utility, cost
+              and long-term fit.
             </p>
             <blockquote className="font-editorial text-2xl leading-8 text-ink/75">
               “The quietest luxury is knowing exactly what belongs.”
