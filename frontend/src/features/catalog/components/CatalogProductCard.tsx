@@ -45,8 +45,12 @@ export function CatalogProductCard({
             width={product.primary_image.width_px}
           />
         ) : (
-          <div className="grid size-full place-items-center text-sm text-ink/65">
-            Image unavailable
+          // Software has no product photograph, so the absence is the normal
+          // case rather than a fault. Naming the vendor reads as a deliberate
+          // mark and still says whose product this is; "Image unavailable"
+          // made every card look broken.
+          <div className="grid size-full place-items-center px-4 text-center text-sm font-semibold text-ink/70">
+            {product.brand.name}
           </div>
         )}
         {product.is_demo && (

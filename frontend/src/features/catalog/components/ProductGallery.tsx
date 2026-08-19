@@ -21,8 +21,11 @@ export function ProductGallery({ product }: { product: ProductDetail }) {
             width={image.width_px}
           />
         ) : (
-          <div className="grid size-full place-items-center text-sm text-ink/65">
-            Image unavailable
+          // Software has no product photograph, so the absence is the normal
+          // case rather than a fault. Naming the vendor reads as a deliberate
+          // mark; "Image unavailable" made the page look broken.
+          <div className="grid size-full place-items-center px-6 text-center text-xl font-semibold tracking-[-0.01em] text-ink/70">
+            {product.brand.name}
           </div>
         )}
       </div>
