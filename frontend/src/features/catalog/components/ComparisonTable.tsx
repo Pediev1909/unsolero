@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
@@ -11,7 +12,16 @@ interface ComparisonTableProps {
 }
 
 export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
-  const rows = [
+  // Rows that describe a physical object are meaningless for software, and
+  // printing "0 cm × 0 cm × 0 cm" and an empty Materials cell made a working
+  // comparison look broken. Each such row declares when it has something to
+  // say; a row no selected product can answer is left out entirely rather than
+  // filled with zeroes.
+  const rows: {
+    label: string
+    render: (product: ProductDetail) => ReactNode
+    applies?: (products: ProductDetail[]) => boolean
+  }[] = [
     {
       label: 'Price',
       render: (p: ProductDetail) => (
@@ -26,10 +36,18 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
       label: 'Dimensions',
       render: (p: ProductDetail) =>
         `${millimeters(p.dimensions.length_mm)} × ${millimeters(p.dimensions.width_mm)} × ${millimeters(p.dimensions.height_mm)}`,
+      applies: (all: ProductDetail[]) =>
+        all.some(
+          (p) =>
+            p.dimensions.length_mm > 0 ||
+            p.dimensions.width_mm > 0 ||
+            p.dimensions.height_mm > 0,
+        ),
     },
     {
       label: 'Weight',
       render: (p: ProductDetail) => kilograms(p.weight_grams),
+      applies: (all: ProductDetail[]) => all.some((p) => p.weight_grams > 0),
     },
     {
       label: 'Capacity',
@@ -37,19 +55,29 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
         p.max_capacity_grams
           ? kilograms(p.max_capacity_grams)
           : 'Not applicable',
+      applies: (all: ProductDetail[]) =>
+        all.some((p) => (p.max_capacity_grams ?? 0) > 0),
     },
-    { label: 'Materials', render: (p: ProductDetail) => p.material },
+    {
+      label: 'Materials',
+      render: (p: ProductDetail) => p.material,
+      applies: (all: ProductDetail[]) => all.some((p) => p.material !== ''),
+    },
     {
       label: 'Warranty',
       render: (p: ProductDetail) => warranty(p.warranty_months),
+      applies: (all: ProductDetail[]) => all.some((p) => p.warranty_months > 0),
     },
     {
       label: 'Portability',
       render: (p: ProductDetail) => score(p.scores.portability),
+      applies: (all: ProductDetail[]) =>
+        all.some((p) => p.scores.portability > 0),
     },
     {
       label: 'Apartment suitability',
       render: (p: ProductDetail) => score(p.scores.apartment),
+      applies: (all: ProductDetail[]) => all.some((p) => p.scores.apartment > 0),
     },
     {
       label: 'Beginner suitability',
@@ -61,7 +89,7 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
     },
     { label: 'Value', render: (p: ProductDetail) => score(p.scores.value) },
     { label: 'Quality', render: (p: ProductDetail) => score(p.scores.quality) },
-  ]
+  ].filter((row) => !row.applies || row.applies(products))
 
   return (
     <div
