@@ -21,7 +21,10 @@ ROLE="${2:-admin}"
 cd "$(dirname "$0")/.."
 
 compose() {
-    docker compose -f compose.yaml -f compose.production.yaml "$@"
+    # Without the profile, Compose refuses to build the project at all: api
+    # declares a dependency on clamav, which only exists inside the profile.
+    docker compose -f compose.yaml -f compose.production.yaml \
+        --profile production "$@"
 }
 
 # ON CONFLICT DO NOTHING keeps a repeat run harmless. The RETURNING clause is
