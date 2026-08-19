@@ -5,25 +5,25 @@ import { Container } from '../ui/Container'
 import { Heading } from '../ui/Heading'
 export function Hero() {
   return (
-    <section className="relative min-h-[600px] overflow-hidden bg-canvas pt-20 sm:min-h-[680px] lg:min-h-[820px]">
-      <div className="absolute inset-x-0 bottom-0 top-20 lg:left-[44%]">
+    <section className="relative overflow-hidden bg-canvas pt-20 lg:min-h-[820px]">
+      {/* The illustration is a wireframe of a dashboard. Beside the copy on a
+          wide screen it reads as what the site is about; behind it on a phone
+          it reads as artefacts, and no amount of scrim fixes that — a fade
+          heavy enough to protect the text leaves grey bars crossing the
+          buttons, and a lighter one puts panels under the headline. A phone
+          gets the type and the two things to do, which is the stronger first
+          screen anyway. */}
+      <div className="absolute inset-x-0 bottom-0 top-20 hidden lg:left-[44%] lg:block">
         <img
           className="size-full object-cover object-[66%_center]"
           src="/images/unsolero-saas-hero.svg"
           alt="A small team reviewing the tools their business runs on"
           fetchPriority="high"
         />
-        {/* On a wide screen the illustration sits beside the copy and a
-            left-to-right fade is enough. On a phone it sits behind it, and a
-            fade that reaches transparent halfway down put the illustration's
-            panels and crosses directly under the headline and the paragraph.
-            The mobile scrim stays opaque for as long as there is text over it
-            and only opens up at the bottom, where the illustration is the only
-            thing there. */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,var(--color-canvas)_0%,var(--color-canvas)_64%,color-mix(in_srgb,var(--color-canvas)_45%,transparent)_100%)] lg:bg-gradient-to-r lg:from-canvas lg:via-canvas/25 lg:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/25 to-transparent" />
       </div>
 
-      <Container className="relative z-10 flex min-h-[520px] items-start pt-14 sm:min-h-[600px] sm:pt-24 lg:min-h-[740px] lg:items-center lg:py-20">
+      <Container className="relative z-10 flex items-start pb-16 pt-14 sm:pb-20 sm:pt-24 lg:min-h-[740px] lg:items-center lg:py-20">
         <div className="max-w-3xl lg:max-w-[720px]">
           <p className="eyebrow">Software stack intelligence</p>
           <Heading className="mt-5 max-w-2xl" level={1} size="hero">
