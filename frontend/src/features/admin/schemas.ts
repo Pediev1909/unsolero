@@ -141,11 +141,15 @@ export const productSchema = z.object({
   description: z.string(),
   price_minor: z.number().int().nonnegative(),
   currency: z.string(),
-  length_mm: z.number().positive(),
-  width_mm: z.number().positive(),
-  height_mm: z.number().positive(),
-  weight_grams: z.number().positive(),
-  max_capacity_grams: z.number().positive().nullable(),
+  // Zero, not positive: software has no physical form and the API reports it
+  // as such. Demanding a measurement made the entire product list fail to
+  // parse, so the admin products page showed "Something went wrong" while the
+  // API behind it returned 200 with the data intact.
+  length_mm: z.number().nonnegative(),
+  width_mm: z.number().nonnegative(),
+  height_mm: z.number().nonnegative(),
+  weight_grams: z.number().nonnegative(),
+  max_capacity_grams: z.number().nonnegative().nullable(),
   material: z.string(),
   warranty_months: z.number().int().nonnegative(),
   scores: scoresSchema,
