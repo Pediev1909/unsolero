@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { NavigationType, useLocation, useNavigationType } from 'react-router-dom'
 
+import { claimScrollControl } from './scrollControl'
+
 // React Router's own ScrollRestoration restores a position the moment the
 // route renders. This catalog fetches through React Query inside its
 // components, so at that moment the listing is still a loading grid and the
@@ -17,7 +19,11 @@ import { NavigationType, useLocation, useNavigationType } from 'react-router-dom
 // at the top, and a back or forward navigation keeps reaching for the stored
 // position while the document is still growing.
 const STORAGE_KEY = 'unsolero:scroll-positions'
-const RETRY_WINDOW_MS = 1500
+// Long enough for a catalog page to fetch its products and lay them out on a
+// slow connection. The retry stops early the moment it succeeds, and abandons
+// immediately if the reader takes over.
+const RETRY_WINDOW_MS = 3000
+
 
 function readPositions(): Record<string, number> {
   try {
@@ -59,7 +65,7 @@ export function ScrollRestoration() {
   }, [location.key])
 
   useEffect(() => {
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+    claimScrollControl()
 
     // A link followed, or an address typed: this page has not been seen at
     // this position before, so it starts where a page starts.
@@ -78,8 +84,20 @@ export function ScrollRestoration() {
     // is tall enough to honour the request, or until the window closes and the
     // reader is left wherever the content actually reaches.
     let frame = 0
+    let abandoned = false
     const deadline = performance.now() + RETRY_WINDOW_MS
+    // Someone who starts reading before the content settles has decided where
+    // they want to be, and must not be dragged away from it.
+    const abandon = () => {
+      abandoned = true
+    }
+    const events = ['wheel', 'touchstart', 'keydown'] as const
+    for (const event of events) {
+      window.addEventListener(event, abandon, { passive: true })
+    }
+
     const attempt = () => {
+      if (abandoned) return
       window.scrollTo(0, target)
       const reached = Math.abs(window.scrollY - target) < 2
       if (!reached && performance.now() < deadline) {
@@ -87,7 +105,11 @@ export function ScrollRestoration() {
       }
     }
     attempt()
-    return () => window.cancelAnimationFrame(frame)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      for (const event of events) window.removeEventListener(event, abandon)
+    }
   }, [location.key, location.hash, navigationType])
 
   return null
