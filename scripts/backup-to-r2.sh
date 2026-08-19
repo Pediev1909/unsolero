@@ -50,14 +50,21 @@ upload_path="$dump_path"
 # exposure, not a theoretical one.
 if [ -n "${BACKUP_AGE_RECIPIENT:-}" ]; then
     echo "==> Encrypting"
-    ./scripts/encrypt-backup-age.sh "$dump_path" "$BACKUP_AGE_RECIPIENT"
-    upload_path="${dump_path}.age"
+    # encrypt-backup-age.sh takes its input through the environment and writes
+    # a .tar.age archive that also carries the checksum and metadata files.
+    BACKUP_FILE="$dump_path" \
+    ARCHIVE_DIRECTORY="$backup_dir" \
+    AGE_RECIPIENT="$BACKUP_AGE_RECIPIENT" \
+        ./scripts/encrypt-backup-age.sh
+    upload_path="${backup_dir}/${backup_name}.tar.age"
     if [ ! -f "$upload_path" ]; then
         echo "Encryption did not produce ${upload_path}." >&2
         exit 1
     fi
-    # The plaintext dump must not linger next to the encrypted one.
-    shred -u "$dump_path" 2>/dev/null || rm -f "$dump_path"
+    # The plaintext dump must not linger next to the encrypted archive; the
+    # archive already contains it along with its checksum and metadata.
+    shred -u "$dump_path" "${dump_path}.sha256" "${dump_path}.metadata" 2>/dev/null \
+        || rm -f "$dump_path" "${dump_path}.sha256" "${dump_path}.metadata"
 else
     echo "WARNING: BACKUP_AGE_RECIPIENT is not set, so the dump is uploaded unencrypted." >&2
     echo "         It contains all user data. Set a recipient key before relying on this." >&2
@@ -76,11 +83,15 @@ run_aws() {
 }
 
 run_aws s3 cp "/backups/$(basename "$upload_path")" "s3://${BACKUP_S3_BUCKET}/$(basename "$upload_path")"
-# The checksum travels with the dump so a restore can prove the object arrived intact.
-if [ -f "${dump_path}.sha256" ]; then
-    run_aws s3 cp "/backups/$(basename "${dump_path}.sha256")" \
-        "s3://${BACKUP_S3_BUCKET}/$(basename "${dump_path}.sha256")"
-fi
+# The checksum travels with the object so a restore can prove it arrived intact.
+# The encrypted archive carries its own checksum file alongside it.
+for companion in "${upload_path}.sha256" "${dump_path}.sha256"; do
+    if [ -f "$companion" ]; then
+        run_aws s3 cp "/backups/$(basename "$companion")" \
+            "s3://${BACKUP_S3_BUCKET}/$(basename "$companion")"
+        break
+    fi
+done
 
 echo "==> Verifying the upload is listed"
 if ! run_aws s3 ls "s3://${BACKUP_S3_BUCKET}/$(basename "$upload_path")" | grep -q .; then
