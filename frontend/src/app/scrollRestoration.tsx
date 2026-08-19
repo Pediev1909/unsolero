@@ -57,13 +57,33 @@ export function ScrollRestoration() {
   // exists to prevent. A document that has just loaded has no position of its
   // own to return to.
   const hasNavigated = useRef(false)
+  // Reading window.scrollY when the route changes is too late. Swapping a tall
+  // listing for a product page that is still loading shrinks the document, and
+  // the browser clamps the offset to whatever now fits: leaving the catalog at
+  // 2922 recorded 957, and that is what "back" returned to. The offset is
+  // therefore tracked as the reader moves, and a scroll that only happened
+  // because the document got shorter is not a place the reader chose.
+  const lastPosition = useRef(0)
+
+  useEffect(() => {
+    let height = document.documentElement.scrollHeight
+    const onScroll = () => {
+      const next = document.documentElement.scrollHeight
+      const shrank = next < height
+      height = next
+      if (shrank) return
+      lastPosition.current = window.scrollY
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   // Record where the reader was before the route changes, and again if they
   // close or hide the tab from a scrolled position.
   useEffect(() => {
     const key = location.key
     currentKey.current = key
-    const save = () => writePosition(key, window.scrollY)
+    const save = () => writePosition(key, lastPosition.current)
     window.addEventListener('pagehide', save)
     return () => {
       save()
@@ -80,7 +100,10 @@ export function ScrollRestoration() {
     // A link followed, or an address typed: this page has not been seen at
     // this position before, so it starts where a page starts.
     if (navigationType !== NavigationType.Pop || isFirstRender) {
-      if (!location.hash) window.scrollTo(0, 0)
+      if (!location.hash) {
+        window.scrollTo(0, 0)
+        lastPosition.current = 0
+      }
       return
     }
 
