@@ -13,7 +13,12 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   forbidOnly: true,
-  retries: 0,
+  // A local target is deterministic, so a failure there is a real one and must
+  // not be retried away. A remote target crosses the public internet, where a
+  // dropped connection says nothing about the site: those runs failed on
+  // net::ERR_NETWORK_CHANGED often enough to train the reader to skim red
+  // output, which costs more than the noise it hides.
+  retries: externalBaseURL ? 2 : 0,
   reporter: 'list',
   use: {
     baseURL: externalBaseURL ?? 'http://127.0.0.1:4173',

@@ -380,6 +380,12 @@ test('interactive controls expose accessible names and keyboard focus', async ({
         }).length,
     )
   expect(unnamed).toBe(0)
+
+  // Tab has nowhere to land until the page is interactive. Pressing it against
+  // a still-hydrating document put focus on the body and left ":focus"
+  // matching nothing, which read as a keyboard-accessibility failure rather
+  // than the race it was.
+  await expect(page.getByLabel('Email')).toBeVisible()
   await page.keyboard.press('Tab')
   await expect(page.locator(':focus')).toBeVisible()
   await expectNoSeriousAccessibilityViolations(page)
