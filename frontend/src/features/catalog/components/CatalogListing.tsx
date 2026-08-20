@@ -203,9 +203,9 @@ export function CatalogListing({
             <strong>{actions.comparedIDs.size}</strong> of 4 selected
           </p>
           <Button
-            className="border-canvas bg-canvas text-ink hover:border-bronze hover:bg-bronze"
             onClick={() => actions.setComparisonOpen(true)}
             size="sm"
+            variant="inverse"
           >
             <Scale aria-hidden="true" size={16} /> Compare
           </Button>

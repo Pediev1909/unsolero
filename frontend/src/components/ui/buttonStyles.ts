@@ -1,6 +1,11 @@
 import { cn } from '../../lib/styles/cn'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger'
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'quiet'
+  | 'danger'
+  | 'inverse'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 const variants: Record<ButtonVariant, string> = {
@@ -11,6 +16,13 @@ const variants: Record<ButtonVariant, string> = {
   quiet: 'border border-transparent bg-transparent text-ink hover:bg-paper',
   danger:
     'border border-ember bg-ember text-surface hover:border-ink hover:bg-ink',
+  // For a button sitting on an ink surface. A variant rather than a className
+  // override, because cn() concatenates: passing bg-canvas alongside the
+  // variant's bg-ink left both on the element and let the stylesheet's own
+  // order pick. On the compare bar bg-ink won — a black button on a black
+  // bar, 1.00:1 contrast, invisible.
+  inverse:
+    'border border-canvas bg-canvas text-ink hover:border-bronze-soft hover:bg-bronze-soft',
 }
 
 const sizes: Record<ButtonSize, string> = {
