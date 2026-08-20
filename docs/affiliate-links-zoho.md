@@ -8,8 +8,27 @@ Every link below is `https://go.zoho.com/<code>`. They are public by design —
 they end up on product pages — so they live in the repository rather than in a
 password manager.
 
-**Row 17 (Zoho CRM Plus) was cut off in the source screenshot and is missing.**
-Read it from the portal before using it.
+## Verification, 2026-08-20
+
+All 91 rows reconciled. No two products share a code. 90 codes were readable;
+84 of them resolve to the product page they name.
+
+Two are missing or wrong and must be re-copied from the portal with its Copy
+button rather than read off a screenshot — both are cases where a capital I and
+a lowercase l are the same shape in the portal's font:
+
+- **Row 17, Zoho CRM Plus** — cut off in the source screenshot, never recorded.
+- **Zoho Invoice, recorded as `dlhl`** — resolves to the affiliate portal login
+  instead of zoho.com/invoice, so at least one character is wrong.
+
+Five more resolve correctly but land on a 404 at Zoho's own end. The redirect
+works; the destination page does not exist. Nothing to fix here, and none of
+them belongs in the catalog:
+`20Xj` greythr · `iRzH` RouteIQ Live Tracker · `1kwG` Ulaa ·
+`UnVg` ZiaAgents · `s8o3` Zoho Classes
+
+`g74O` Office Integrator returns 403 to an automated request, which is
+bot-blocking rather than a broken link.
 
 ## Mapped to UNSOLERO categories
 
