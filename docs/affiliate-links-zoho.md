@@ -10,20 +10,19 @@ password manager.
 
 ## Verification, 2026-08-20
 
-All 91 rows reconciled. No two products share a code. 90 codes were readable;
-84 of them resolve to the product page they name.
+All 91 rows reconciled and every code followed to its destination. No two
+products share a code. 86 of the 91 resolve to the product page they name.
 
-Two are missing or wrong and must be re-copied from the portal with its Copy
-button rather than read off a screenshot — both are cases where a capital I and
-a lowercase l are the same shape in the portal's font:
+Both gaps are now closed, with the codes copied from the portal rather than
+read off a screenshot:
 
-- **Row 17, Zoho CRM Plus** — cut off in the source screenshot, never recorded.
-- **Zoho Invoice** — was recorded as `dlhl`, which resolves to the affiliate
-  portal login instead of zoho.com/invoice, so at least one character is wrong.
-  The wrong code has been removed rather than left in the table looking
-  correct. It is not guessed at: every Zoho affiliate's Invoice link lands on
-  the same page, so a code that resolves proves nothing about whose it is, and
-  a stranger's code on this site would pay a stranger.
+- **Row 17, Zoho CRM Plus** — `uLek`, resolves to zoho.com/crm/crmplus/.
+- **Zoho Invoice** — `dIhI`, resolves to zoho.com/invoice/. This was first
+  recorded as `dlhl`: two capital I read as two lowercase l. Never transcribe
+  these by eye. The portal's font renders I, l and 1 identically, and a wrong
+  code either dead-ends or, worse, could belong to another affiliate — every
+  Zoho affiliate's Invoice link lands on the same page, so "it resolves" is no
+  proof of whose it is.
 
 Five more resolve correctly but land on a 404 at Zoho's own end. Checked three
 ways — through the affiliate link, directly, and with a trailing slash — and
@@ -44,7 +43,7 @@ completeness, not because the site should carry them.
 | Category | Zoho product | Code | Landing page |
 |---|---|---|---|
 | accounting-invoicing | Zoho Books | `K0nf` | /books |
-| accounting-invoicing | Zoho Invoice | **WRONG — re-copy** | /invoice |
+| accounting-invoicing | Zoho Invoice | `dIhI` | /invoice |
 | crm | Zoho CRM | `dNbV` | /crm |
 | crm | Bigin | `SsgT` | bigin.com |
 | project-management | Zoho Projects | `PCoS` | /projects |
@@ -78,7 +77,7 @@ unless a category is created for them.
 `BjBQ` Writer Add-ons · `3VkT` PeoplePlus · `ALjS` Bugtracker ·
 `Ddlw` Marketing Automation · `OIWY` Assist · `5Shn` Zakya POS · `LEnZ` Practice ·
 `V43B` LeadChain · `txm9` FinancePlus · `hcxm` Projects Plus · `lFQ8` People ·
-`bV2H` DataPrep · `Rrqo` QEngine · `GdHz` Contracts · `4b10` Workplace ·
+`bV2H` DataPrep · `Rrqo` QEngine · `dIhI` Invoice · `uLek` CRM Plus · `GdHz` Contracts · `4b10` Workplace ·
 `HdlH` Workerly · `1kwG` Ulaa · `rfe3` CommunitySpaces · `FVBl` ShowTime ·
 `J7yB` PageSense · `20Xj` greythr · `UnVg` ZiaAgents · `NN4r` Spend ·
 `fdme` TeamInbox · `ckOU` Expense · `Z8SA` Sheet · `IukA` Creator · `vz60` FSM ·
