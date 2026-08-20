@@ -49,3 +49,49 @@ ON CONFLICT (merchant_offer_id, provider) DO UPDATE SET
     external_reference = EXCLUDED.external_reference,
     is_active = EXCLUDED.is_active,
     updated_at = now();
+
+-- Zoho CRM Standard ---------------------------------------------------------
+INSERT INTO commerce.merchant_offers (
+    merchant_id, product_id, merchant_sku, product_url,
+    price_minor, shipping_minor, currency, availability, condition, last_checked_at
+)
+SELECT m.id, p.id, 'zoho-crm-standard', 'https://www.zoho.com/crm/zohocrm-pricing.html',
+       2000, 0, 'USD', 'in_stock', 'new', now()
+FROM commerce.merchants m, catalog.products p
+WHERE m.slug = 'zoho' AND p.slug = 'zoho-crm-standard'
+ON CONFLICT (merchant_id, merchant_sku) DO UPDATE SET
+    product_url = EXCLUDED.product_url, price_minor = EXCLUDED.price_minor,
+    last_checked_at = EXCLUDED.last_checked_at, updated_at = now();
+
+INSERT INTO commerce.affiliate_links (
+    merchant_offer_id, provider, destination_url, external_reference, disclosure_label, is_active
+)
+SELECT o.id, 'zoho', 'https://go.zoho.com/dNbV', 'PE2263909', 'Affiliate link', true
+FROM commerce.merchant_offers o
+JOIN commerce.merchants m ON m.id = o.merchant_id
+WHERE m.slug = 'zoho' AND o.merchant_sku = 'zoho-crm-standard'
+ON CONFLICT (merchant_offer_id, provider) DO UPDATE SET
+    destination_url = EXCLUDED.destination_url, is_active = EXCLUDED.is_active, updated_at = now();
+
+-- Bigin Express -------------------------------------------------------------
+INSERT INTO commerce.merchant_offers (
+    merchant_id, product_id, merchant_sku, product_url,
+    price_minor, shipping_minor, currency, availability, condition, last_checked_at
+)
+SELECT m.id, p.id, 'bigin-express', 'https://www.bigin.com/pricing.html',
+       900, 0, 'USD', 'in_stock', 'new', now()
+FROM commerce.merchants m, catalog.products p
+WHERE m.slug = 'zoho' AND p.slug = 'bigin-express'
+ON CONFLICT (merchant_id, merchant_sku) DO UPDATE SET
+    product_url = EXCLUDED.product_url, price_minor = EXCLUDED.price_minor,
+    last_checked_at = EXCLUDED.last_checked_at, updated_at = now();
+
+INSERT INTO commerce.affiliate_links (
+    merchant_offer_id, provider, destination_url, external_reference, disclosure_label, is_active
+)
+SELECT o.id, 'zoho', 'https://go.zoho.com/SsgT', 'PE2263909', 'Affiliate link', true
+FROM commerce.merchant_offers o
+JOIN commerce.merchants m ON m.id = o.merchant_id
+WHERE m.slug = 'zoho' AND o.merchant_sku = 'bigin-express'
+ON CONFLICT (merchant_offer_id, provider) DO UPDATE SET
+    destination_url = EXCLUDED.destination_url, is_active = EXCLUDED.is_active, updated_at = now();
