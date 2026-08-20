@@ -18,17 +18,23 @@ button rather than read off a screenshot — both are cases where a capital I an
 a lowercase l are the same shape in the portal's font:
 
 - **Row 17, Zoho CRM Plus** — cut off in the source screenshot, never recorded.
-- **Zoho Invoice, recorded as `dlhl`** — resolves to the affiliate portal login
-  instead of zoho.com/invoice, so at least one character is wrong.
+- **Zoho Invoice** — was recorded as `dlhl`, which resolves to the affiliate
+  portal login instead of zoho.com/invoice, so at least one character is wrong.
+  The wrong code has been removed rather than left in the table looking
+  correct. It is not guessed at: every Zoho affiliate's Invoice link lands on
+  the same page, so a code that resolves proves nothing about whose it is, and
+  a stranger's code on this site would pay a stranger.
 
-Five more resolve correctly but land on a 404 at Zoho's own end. The redirect
-works; the destination page does not exist. Nothing to fix here, and none of
-them belongs in the catalog:
+Five more resolve correctly but land on a 404 at Zoho's own end. Checked three
+ways — through the affiliate link, directly, and with a trailing slash — and
+all three 404, while a known-good link returns 200 the same three ways. The
+redirect works; the destination page does not exist. Nothing to fix on this
+side, and none of these products belongs in the catalog anyway:
 `20Xj` greythr · `iRzH` RouteIQ Live Tracker · `1kwG` Ulaa ·
 `UnVg` ZiaAgents · `s8o3` Zoho Classes
 
-`g74O` Office Integrator returns 403 to an automated request, which is
-bot-blocking rather than a broken link.
+`g74O` Office Integrator returns 403 through the link and 403 directly, which
+is bot-blocking rather than a broken link.
 
 ## Mapped to UNSOLERO categories
 
@@ -38,7 +44,7 @@ completeness, not because the site should carry them.
 | Category | Zoho product | Code | Landing page |
 |---|---|---|---|
 | accounting-invoicing | Zoho Books | `K0nf` | /books |
-| accounting-invoicing | Zoho Invoice | `dlhl` | /invoice |
+| accounting-invoicing | Zoho Invoice | **WRONG — re-copy** | /invoice |
 | crm | Zoho CRM | `dNbV` | /crm |
 | crm | Bigin | `SsgT` | bigin.com |
 | project-management | Zoho Projects | `PCoS` | /projects |
