@@ -326,10 +326,15 @@ export function ProductDetailPage() {
             <Heading className="mt-4" level={2} size="title">
               Available offers
             </Heading>
+            {/* Written for a reader, not for an engineer. "Landed price" is
+                what a shipped object costs on your doorstep, and whether the
+                API exposes a destination URL is nobody's question. What a
+                reader needs to know before clicking is whose price this is,
+                when it was checked, and who gets paid. */}
             <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
-              Compare the landed price and merchant status. The purchase button
-              uses our tracked redirect; merchant destination URLs are never
-              exposed by the API.
+              The price each vendor lists today, with the date it was last
+              checked. A link marked as an affiliate link earns us a commission
+              — it never changes where a product ranks.
             </p>
             <div className="mt-9">
               <ProductOffers isDemo={item.is_demo} slug={item.slug} />
