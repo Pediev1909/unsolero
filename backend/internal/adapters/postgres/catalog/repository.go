@@ -77,7 +77,10 @@ func (repository *Repository) GetActiveCategoryBySlug(ctx context.Context, slug 
 	var category domain.Category
 	var parentID sql.NullString
 	err := repository.pool.QueryRow(ctx, `
-		SELECT id, parent_id, name, slug, description, sort_order, is_active
+		SELECT id, parent_id, name, slug, description, sort_order, is_active,
+			(SELECT count(*) FROM catalog.products
+			 WHERE products.category_id = categories.id
+			   AND products.status = 'published')
 		FROM catalog.categories
 		WHERE slug = $1 AND is_active = true AND vertical_key = $2`, slug, repository.vertical).Scan(
 		&category.ID,
@@ -87,6 +90,7 @@ func (repository *Repository) GetActiveCategoryBySlug(ctx context.Context, slug 
 		&category.Description,
 		&category.SortOrder,
 		&category.IsActive,
+		&category.PublishedProducts,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Category{}, ports.ErrNotFound
@@ -147,7 +151,10 @@ func (repository *Repository) GetActiveBrandBySlug(ctx context.Context, slug str
 	var websiteURL sql.NullString
 	var countryCode sql.NullString
 	err := repository.pool.QueryRow(ctx, `
-		SELECT id, name, slug, description, website_url, country_code, is_active
+		SELECT id, name, slug, description, website_url, country_code, is_active,
+			(SELECT count(*) FROM catalog.products
+			 WHERE products.brand_id = brands.id
+			   AND products.status = 'published')
 		FROM catalog.brands
 		WHERE slug = $1 AND is_active = true`, slug).Scan(
 		&brand.ID,
@@ -157,6 +164,7 @@ func (repository *Repository) GetActiveBrandBySlug(ctx context.Context, slug str
 		&websiteURL,
 		&countryCode,
 		&brand.IsActive,
+		&brand.PublishedProducts,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Brand{}, ports.ErrNotFound

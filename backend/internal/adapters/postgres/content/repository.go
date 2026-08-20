@@ -217,11 +217,24 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 			UNION ALL SELECT '/privacy', site_updated_at FROM public_updates
 			UNION ALL SELECT '/affiliate-disclosure', site_updated_at FROM public_updates
 			UNION ALL
+			-- A category or brand with nothing published under it is a page
+			-- that promises a listing and delivers an empty state. Twelve of
+			-- fifteen categories were in this sitemap with no products at all,
+			-- which is the exact shape of thin content that 2026 core updates
+			-- penalise. They return to the sitemap when they have something.
 			SELECT '/categories/' || slug, updated_at
-			FROM catalog.categories WHERE is_active = true
+			FROM catalog.categories WHERE is_active = true AND EXISTS (
+				SELECT 1 FROM catalog.products
+				WHERE products.category_id = categories.id
+				  AND products.status = 'published'
+			)
 			UNION ALL
 			SELECT '/brands/' || slug, updated_at
-			FROM catalog.brands WHERE is_active = true AND slug NOT LIKE 'demo-%'
+			FROM catalog.brands WHERE is_active = true AND slug NOT LIKE 'demo-%' AND EXISTS (
+				SELECT 1 FROM catalog.products
+				WHERE products.brand_id = brands.id
+				  AND products.status = 'published'
+			)
 			UNION ALL
 			SELECT '/products/' || slug, updated_at
 			FROM catalog.products WHERE status = 'published' AND slug NOT LIKE 'demo-%'

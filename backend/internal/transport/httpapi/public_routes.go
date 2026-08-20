@@ -179,7 +179,10 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		if err != nil {
 			return pageMetadata{}, false, err
 		}
-		meta.Indexable = true
+		// The page still resolves — someone following an old link gets the
+		// category and its empty state rather than a 404. It is simply not
+		// offered to a search engine until it has something to show.
+		meta.Indexable = category.PublishedProducts > 0
 		meta.Title = category.Name + " | UNSOLERO"
 		meta.Description = truncateDescription(defaultText(category.Description,
 			"Compare "+category.Name+" on structured facts, with no commission-driven ranking."), 160)
@@ -192,7 +195,7 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		if err != nil {
 			return pageMetadata{}, false, err
 		}
-		meta.Indexable = true
+		meta.Indexable = brand.PublishedProducts > 0
 		meta.Title = brand.Name + " | UNSOLERO"
 		meta.Description = truncateDescription(defaultText(brand.Description,
 			"Products from "+brand.Name+", assessed on structured facts."), 160)

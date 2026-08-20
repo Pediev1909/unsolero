@@ -44,6 +44,27 @@ func (routeCatalogStub) GetBrand(_ context.Context, slug string) (catalogdomain.
 	return catalogdomain.Brand{}, nil
 }
 
+// Same contract as routeCatalogStub, but the listings report how much is
+// actually published under them.
+type emptyListingCatalog struct{ routeCatalogStub }
+
+func (emptyListingCatalog) GetCategory(_ context.Context, slug string) (catalogdomain.Category, error) {
+	switch slug {
+	case "crm":
+		return catalogdomain.Category{Slug: slug, Name: "CRM", PublishedProducts: 2}, nil
+	case "analytics":
+		return catalogdomain.Category{Slug: slug, Name: "Analytics"}, nil
+	}
+	return catalogdomain.Category{}, catalogports.ErrNotFound
+}
+
+func (emptyListingCatalog) GetBrand(_ context.Context, slug string) (catalogdomain.Brand, error) {
+	if slug == "nobody" {
+		return catalogdomain.Brand{Slug: slug, Name: "Nobody"}, nil
+	}
+	return catalogdomain.Brand{}, catalogports.ErrNotFound
+}
+
 type routeContentStub struct{}
 
 func (routeContentStub) List(context.Context, string, string, int) ([]contentdomain.Summary, error) {
@@ -144,5 +165,42 @@ func TestPublicRouteStatusRequiresEdgeHeaderAndDoesNotCaptureAPIs(t *testing.T) 
 	router.ServeHTTP(apiResponse, httptest.NewRequest(http.MethodGet, "/api/not-a-route", nil))
 	if apiResponse.Code != http.StatusNotFound {
 		t.Fatalf("unknown API status=%d", apiResponse.Code)
+	}
+}
+
+// Twelve of fifteen categories had no products at all, yet every one of them
+// returned 200 with no robots directive and sat in the sitemap. That is an
+// invitation to index nothing, and it is the shape of thin content that the
+// 2026 core updates penalise hardest on exactly this kind of site.
+func TestEmptyListingsAreNotOfferedToSearchEngines(t *testing.T) {
+	t.Parallel()
+
+	handler := &Handler{catalog: emptyListingCatalog{}, content: nil}
+
+	meta, known, err := handler.resolvePublicRoute(
+		httptest.NewRequest(http.MethodGet, "/", nil), "/categories/analytics")
+	if err != nil || !known {
+		t.Fatalf("category route should resolve: known=%v err=%v", known, err)
+	}
+	if meta.Indexable {
+		t.Error("a category with no published products must not be indexable")
+	}
+
+	meta, known, err = handler.resolvePublicRoute(
+		httptest.NewRequest(http.MethodGet, "/", nil), "/categories/crm")
+	if err != nil || !known {
+		t.Fatalf("category route should resolve: known=%v err=%v", known, err)
+	}
+	if !meta.Indexable {
+		t.Error("a category that has products must stay indexable")
+	}
+
+	meta, known, err = handler.resolvePublicRoute(
+		httptest.NewRequest(http.MethodGet, "/", nil), "/brands/nobody")
+	if err != nil || !known {
+		t.Fatalf("brand route should resolve: known=%v err=%v", known, err)
+	}
+	if meta.Indexable {
+		t.Error("a brand with no published products must not be indexable")
 	}
 }

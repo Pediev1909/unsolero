@@ -325,6 +325,10 @@ type Category struct {
 	Description string
 	SortOrder   int
 	IsActive    bool
+	// A category exists before anything is filed under it. Until something is,
+	// its page is a promise rather than a page, and neither the sitemap nor a
+	// search engine should be told otherwise.
+	PublishedProducts int
 }
 
 type Brand struct {
@@ -332,6 +336,8 @@ type Brand struct {
 	Name        string
 	Slug        string
 	Description string
+	// See Category.PublishedProducts.
+	PublishedProducts int
 	WebsiteURL  *string
 	CountryCode *string
 	IsActive    bool
