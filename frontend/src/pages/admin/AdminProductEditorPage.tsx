@@ -34,10 +34,11 @@ const formSchema = z.object({
   description: z.string().trim().min(1),
   price_minor: number,
   currency: z.string().trim().length(3),
-  // Zero rather than positive, and material may be blank: a software product
-  // has no physical form, and demanding one here would have made every entry
-  // in the catalog impossible to save. The backend enforces real measurements
-  // on products in physical categories.
+  // Kept in the payload, absent from the form. A software product has no
+  // physical form, so these are always zero and asking an editor to type
+  // "0" into seven boxes about length, weight and warranty before they can
+  // save a subscription is asking them to fill in the previous catalog.
+  // The backend still enforces real measurements on physical categories.
   length_mm: number,
   width_mm: number,
   height_mm: number,
@@ -67,10 +68,10 @@ const defaults: ProductForm = {
   description: '',
   price_minor: 0,
   currency: 'USD',
-  length_mm: 1,
-  width_mm: 1,
-  height_mm: 1,
-  weight_grams: 1,
+  length_mm: 0,
+  width_mm: 0,
+  height_mm: 0,
+  weight_grams: 0,
   max_capacity_grams: Number.NaN,
   material: '',
   warranty_months: 0,
@@ -79,8 +80,8 @@ const defaults: ProductForm = {
   durability_score: 50,
   beginner_score: 50,
   advanced_score: 50,
-  apartment_score: 50,
-  noise_score: 50,
+  apartment_score: 0,
+  noise_score: 0,
   portability_score: 50,
 }
 
@@ -222,7 +223,7 @@ export function AdminProductEditorPage() {
               />
             </EditorSection>
 
-            <EditorSection title="Price and construction">
+            <EditorSection title="Price">
               <InputField
                 form={form}
                 label="Price (minor units)"
@@ -230,56 +231,22 @@ export function AdminProductEditorPage() {
                 number
               />
               <InputField form={form} label="Currency" name="currency" />
-              <InputField
-                form={form}
-                label="Length (mm)"
-                name="length_mm"
-                number
-              />
-              <InputField
-                form={form}
-                label="Width (mm)"
-                name="width_mm"
-                number
-              />
-              <InputField
-                form={form}
-                label="Height (mm)"
-                name="height_mm"
-                number
-              />
-              <InputField
-                form={form}
-                label="Weight (grams)"
-                name="weight_grams"
-                number
-              />
-              <InputField
-                form={form}
-                label="Maximum capacity (grams)"
-                name="max_capacity_grams"
-                number
-              />
-              <InputField form={form} label="Material" name="material" />
-              <InputField
-                form={form}
-                label="Warranty (months)"
-                name="warranty_months"
-                number
-              />
             </EditorSection>
 
+            {/* The score names are the ones the product page prints, so what is
+                typed here is what a reader sees. Apartment suitability and
+                quiet operation are not asked for: they describe a machine in a
+                room and stay at zero, which is how the public pages know not
+                to show them. */}
             <EditorSection title="Suitability scores">
               {(
                 [
-                  ['quality_score', 'Quality'],
-                  ['value_score', 'Value'],
-                  ['durability_score', 'Durability'],
-                  ['beginner_score', 'Beginner'],
-                  ['advanced_score', 'Advanced'],
-                  ['apartment_score', 'Apartment'],
-                  ['noise_score', 'Quiet use'],
-                  ['portability_score', 'Portability'],
+                  ['quality_score', 'Product quality'],
+                  ['value_score', 'Value for money'],
+                  ['durability_score', 'Vendor stability'],
+                  ['beginner_score', 'Ease of adoption'],
+                  ['advanced_score', 'Depth for power users'],
+                  ['portability_score', 'Data portability'],
                 ] as const
               ).map(([name, label]) => (
                 <InputField
