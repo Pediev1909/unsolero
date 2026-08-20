@@ -83,7 +83,7 @@ INSERT INTO evidence.sources (
  ('freshbooks-pricing-2026-08','manufacturer_documentation','FreshBooks pricing','FreshBooks',
   'https://www.freshbooks.com/pricing',false,'verified',now(),'Read 2026-08-18. Lite tier, monthly billing; introductory discount excluded.'),
  ('unsolero-editorial-saas-2026-08','editorial_assessment','UNSOLERO suitability assessment','Andon Pediev',
-  'https://unsolero.com/content/how-unsolero-ranks-software',false,'verified',now(),
+  'https://unsolero.com/articles/how-unsolero-ranks-software',false,'verified',now(),
   'Suitability scores are editorial judgements, not vendor claims, and are attributed separately from pricing facts.')
 ON CONFLICT (external_key) DO UPDATE SET
     review_status = 'verified', reviewed_at = COALESCE(evidence.sources.reviewed_at, now()),
