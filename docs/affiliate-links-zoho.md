@@ -65,6 +65,41 @@ completeness, not because the site should carry them.
 | design-tools | — | — | Zoho has no product that fits |
 | seo-tools | — | — | PageSense is CRO, not SEO |
 
+### Which of these are live, and what blocks the rest
+
+Live in the catalog as of 2026-08-21, each attached to a published product:
+Zoho Books, Zoho Invoice, Zoho CRM, Bigin, Zoho Projects, Zoho Bookings, and
+Zoho Campaigns — seven links.
+
+The others are blocked on one thing only: **the price.** Zoho renders every
+price on these pages into an empty `<span>` marked `nosnippet` and fills it
+from a script that does not run for automated reading. It is not a bot block —
+the pages load fine — the numbers simply never arrive. The same wall stopped
+Zoho Desk and Zoho Campaigns earlier, and Campaigns only got past it once a US
+connection was in place.
+
+So these six are ready the moment someone reads the number off the page in a
+normal browser and writes it down:
+
+| Waiting on a price | Code | Page to read |
+|---|---|---|
+| Zoho Sites | `D7ye` | zoho.com/sites/pricing.html |
+| Zoho Commerce | `ooMj` | zoho.com/commerce/pricing.html |
+| Zoho Checkout | `mDpl` | zoho.com/checkout/pricing.html |
+| Zoho Billing | `uTAg` | zoho.com/billing/pricing.html |
+| Zoho Learn | `yEbW` | zoho.com/learn/pricing.html |
+| Zoho Desk | `LrWU` | zoho.com/desk/pricing.html |
+
+What is needed per product is small and exact: the **entry paid tier's name**,
+its **price in USD**, and whether that figure is **per user per month billed
+monthly or billed annually**. Read it with the currency set to USD — the page
+switches on location, so a Bulgarian connection shows euro and a euro figure
+published as a dollar one is simply a wrong number with a source beside it.
+
+Nothing here should be guessed. Every one of these categories already ships
+with three competitors whose prices were read directly, so adding the Zoho
+entry is a gain, not a gap being papered over.
+
 ## The rest
 
 Recorded so the list does not have to be transcribed again. Not for the catalog

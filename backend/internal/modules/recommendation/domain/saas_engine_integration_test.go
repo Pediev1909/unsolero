@@ -144,3 +144,68 @@ func TestSaaSPolicyRejectsUndeclaredPriority(t *testing.T) {
 		t.Fatalf("undeclared priority error = %v, want ErrInvalidInput", err)
 	}
 }
+
+// TestEveryRequiredRoleHasAProvider guards the failure that made two of the
+// five goals unanswerable for weeks without anything logging an error.
+//
+// A goal declares required setup roles; a role declares the capabilities that
+// can fill it. If no published product provides any of them, the engine
+// correctly returns no_suitable_products -- for that goal, forever, for every
+// visitor. Nothing is broken, so nothing complains. The catalog is simply
+// missing a category, and the only symptom is a wizard that says no.
+func TestEveryRequiredRoleHasAProvider(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("create pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+
+	policy, err := recommendationpostgres.NewForVertical(pool, "saas").ActivePolicy(ctx)
+	if errors.Is(err, recommendationports.ErrNotFound) {
+		t.Skip("the saas vertical is not seeded in this database")
+	}
+	if err != nil {
+		t.Fatalf("load active saas policy: %v", err)
+	}
+
+	products, err := catalogpostgres.NewForVertical(pool, "saas").
+		ListPublished(ctx, ports.ProductFilter{Limit: 200})
+	if err != nil {
+		t.Fatalf("load saas catalog: %v", err)
+	}
+	provided := make(map[recommendation.Capability]bool)
+	for _, product := range products {
+		candidate, candidateErr := policy.Candidate(product)
+		if candidateErr != nil {
+			continue
+		}
+		for _, capability := range candidate.Capabilities {
+			provided[capability] = true
+		}
+	}
+
+	for _, goal := range policy.Config.Goals {
+		for _, role := range goal.Roles {
+			if !role.Required {
+				continue
+			}
+			filled := false
+			for _, capability := range role.Capabilities {
+				if provided[capability] {
+					filled = true
+					break
+				}
+			}
+			if !filled {
+				t.Errorf("goal %q requires role %q, and no published product provides any of %v",
+					goal.Goal, role.Key, role.Capabilities)
+			}
+		}
+	}
+}
