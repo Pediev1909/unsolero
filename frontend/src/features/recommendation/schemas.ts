@@ -160,7 +160,13 @@ export const recommendationResultSchema = z.object({
   ),
   policy_version: z.string(),
   engine_version: z.string(),
-  input: recommendationInputSchema,
+  // The permissive schema, deliberately. This field is the engine echoing back
+  // what it was given, and a description of what happened must not be stricter
+  // than what the engine accepts. Validating it with the submit schema meant a
+  // preview -- which legitimately carries no preferences or priorities yet --
+  // came back 200 and then failed to parse, so the panel silently rendered
+  // nothing while the network tab showed everything working.
+  input: recommendationPreviewInputSchema,
 })
 
 export const setupListSchema = z.object({
