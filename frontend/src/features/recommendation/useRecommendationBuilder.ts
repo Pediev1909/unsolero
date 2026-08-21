@@ -14,6 +14,7 @@ import {
 import {
   useGenerateRecommendation,
   useRecommendationDraft,
+  useRecommendationPreview,
   useSaveRecommendationDraft,
 } from './queries'
 import {
@@ -117,10 +118,39 @@ export function useRecommendationBuilder(initialInput?: RecommendationInput) {
     setStepError(null)
   }
 
+  // The live suggestion. It waits until the goal and the owner question are
+  // answered, because those two are what make an input valid at all -- the
+  // budget already carries a visible default the visitor is about to touch.
+  // Nothing here is invented on their behalf.
+  //
+  // Debounced hard: this fires while somebody drags a slider, and a request
+  // per frame would be rude to the server and useless to the reader.
+  const [previewValues, setPreviewValues] = useState<BuilderValues | null>(null)
+  const previewActive = currentStep >= 2 && !result
+  useEffect(() => {
+    if (!previewActive) return
+    const timeout = window.setTimeout(() => setPreviewValues(values), 500)
+    return () => window.clearTimeout(timeout)
+  }, [previewActive, values])
+
+  // Gated on previewActive rather than cleared when it turns off, so the
+  // effect never sets state synchronously. Whatever the last preview held
+  // stays put and is simply not used until the preview is live again.
+  const previewInput =
+    previewActive && previewValues ? toRecommendationInput(previewValues) : null
+  const parsedPreview = previewInput
+    ? recommendationInputSchema.safeParse(previewInput)
+    : null
+  const preview = useRecommendationPreview(
+    parsedPreview?.success ? parsedPreview.data : null,
+    previewActive,
+  )
+
   return {
     form,
     values,
     currentStep,
+    preview,
     stepError,
     result,
     account,
@@ -138,7 +168,9 @@ function validateStep(step: number, values: BuilderValues): string | null {
     case 0:
       return values.goal ? null : 'Choose your primary goal.'
     case 1:
-      return values.experience ? null : 'Choose who will look after these tools.'
+      return values.experience
+        ? null
+        : 'Choose who will look after these tools.'
     case 2:
       return values.budget_minor >= 10_000
         ? null
@@ -151,10 +183,6 @@ function validateStep(step: number, values: BuilderValues): string | null {
       return values.priorities.length > 0
         ? null
         : 'Choose at least one priority.'
-    case 6:
-      return values.free_text.length <= 1000
-        ? null
-        : 'Keep the description under 1,000 characters.'
     default:
       return null
   }
@@ -171,7 +199,10 @@ function readLocalProgress(): {
     const parsed = builderValuesSchema.safeParse(value.values)
     if (!parsed.success || typeof value.currentStep !== 'number') return null
     return {
-      currentStep: Math.min(steps.length - 1, Math.max(0, Math.floor(value.currentStep))),
+      currentStep: Math.min(
+        steps.length - 1,
+        Math.max(0, Math.floor(value.currentStep)),
+      ),
       values: parsed.data,
     }
   } catch {

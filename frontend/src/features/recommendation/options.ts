@@ -56,13 +56,30 @@ export const experienceOptions = [
   },
 ] as const
 
+// Every category in the catalog, because excluding what somebody already runs
+// is the strongest thing this engine does and it can only exclude what it was
+// told about. This list covered six of fifteen categories, so a visitor
+// already paying for a store, a scheduler or an analytics tool had no way to
+// say so and got recommended a second one.
+//
+// Ordered by how commonly a small business already owns the thing, not
+// alphabetically: the first few should let most people tick and move on.
 export const existingToolOptions = [
-  { name: 'Team chat', category_slug: 'team-communication' },
-  { name: 'CRM', category_slug: 'crm' },
-  { name: 'Project management', category_slug: 'project-management' },
-  { name: 'Invoicing or accounting', category_slug: 'accounting-invoicing' },
   { name: 'Email marketing', category_slug: 'email-marketing' },
+  { name: 'CRM', category_slug: 'crm' },
+  { name: 'Invoicing or accounting', category_slug: 'accounting-invoicing' },
   { name: 'Website builder', category_slug: 'website-builder' },
+  { name: 'Team chat', category_slug: 'team-communication' },
+  { name: 'Project management', category_slug: 'project-management' },
+  { name: 'Online store', category_slug: 'ecommerce-platform' },
+  { name: 'Payments', category_slug: 'payments' },
+  { name: 'Scheduling and bookings', category_slug: 'scheduling' },
+  { name: 'Help desk or live chat', category_slug: 'help-desk' },
+  { name: 'Website analytics', category_slug: 'analytics' },
+  { name: 'Automation', category_slug: 'automation' },
+  { name: 'Design tools', category_slug: 'design-tools' },
+  { name: 'SEO tools', category_slug: 'seo-tools' },
+  { name: 'Course platform', category_slug: 'course-platform' },
 ] as const
 
 export const preferenceOptions = [
@@ -84,14 +101,19 @@ export const priorityOptions = [
   { value: 'data_portability', label: 'Data portability' },
 ] as const
 
-// Seven steps. A software stack has no room to measure, so the physical space
-// question that the equipment vertical asks does not exist here.
+// Six steps. A software stack has no room to measure, so the physical space
+// question the equipment vertical asks does not exist here.
+//
+// There were seven. The last one collected free text under "Anything else we
+// should know?" and the honest answer was: nothing, because the engine never
+// read it. It was validated for length and ignored by every filter, every
+// score and the optimizer. Asking somebody to write a paragraph that changes
+// nothing is worse than not asking.
 export const steps = [
   {
     label: 'Goal',
     title: 'What does your business do?',
-    supporting:
-      'We use this to decide which jobs your stack has to cover.',
+    supporting: 'We use this to decide which jobs your stack has to cover.',
   },
   {
     label: 'Team',
@@ -122,12 +144,6 @@ export const steps = [
     title: 'What matters most in the decision?',
     supporting:
       'Choose at least one. These priorities adjust transparent, configurable weights.',
-  },
-  {
-    label: 'Context',
-    title: 'Anything else we should know?',
-    supporting:
-      'Optional context is saved with your brief. It does not invent or override product facts.',
   },
 ] as const
 

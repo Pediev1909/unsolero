@@ -2,7 +2,6 @@ import { Controller, type UseFormReturn } from 'react-hook-form'
 
 import { Input } from '../../../components/ui/Input'
 import { Slider } from '../../../components/ui/Slider'
-import { Textarea } from '../../../components/ui/Textarea'
 import { formatMinorCurrency } from '../../../lib/money/format'
 import type { BuilderValues } from '../schemas'
 import {
@@ -144,28 +143,19 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
       />
     )
   }
-  if (step === 5) {
-    return (
-      <MultiChoice
-        options={priorityOptions}
-        selected={values.priorities}
-        onChange={(selected) =>
-          form.setValue('priorities', selected, { shouldDirty: true })
-        }
-      />
-    )
-  }
+  // Priorities is the last step. There was a seventh that collected free text,
+  // and its own hint admitted the engine "does not interpret this note yet" --
+  // which was true and had been true since the vertical changed. A question
+  // that changes nothing is worse than no question, because the reader spends
+  // real effort on it and reasonably assumes it counted.
   return (
-    <div className="max-w-2xl">
-      <Textarea
-        {...form.register('free_text')}
-        hint={`${values.free_text.length}/1,000 characters. Saved with your request; the deterministic engine does not interpret this note yet.`}
-        label="Describe your ideal setup"
-        maxLength={1000}
-        placeholder="For example: we bill hourly, everything has to reach our invoicing, and nobody has time to configure a new tool."
-        rows={7}
-      />
-    </div>
+    <MultiChoice
+      options={priorityOptions}
+      selected={values.priorities}
+      onChange={(selected) =>
+        form.setValue('priorities', selected, { shouldDirty: true })
+      }
+    />
   )
 }
 

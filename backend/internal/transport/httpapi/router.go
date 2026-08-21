@@ -456,6 +456,7 @@ func NewRouter(
 	}
 	if handler.recommendations != nil {
 		mux.Handle("POST /api/recommendations/generate", handler.attachAuthentication(http.HandlerFunc(handler.generateRecommendation)))
+		mux.Handle("POST /api/recommendations/preview", handler.attachAuthentication(http.HandlerFunc(handler.previewRecommendation)))
 		mux.Handle("GET /api/recommendations/draft", handler.requireAuthentication(http.HandlerFunc(handler.getRecommendationDraft)))
 		mux.Handle("PUT /api/recommendations/draft", handler.requireAuthentication(http.HandlerFunc(handler.saveRecommendationDraft)))
 		mux.Handle("DELETE /api/recommendations/draft", handler.requireAuthentication(http.HandlerFunc(handler.deleteRecommendationDraft)))

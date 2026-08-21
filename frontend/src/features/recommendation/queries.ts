@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
   generateRecommendation,
+  previewRecommendation,
   deleteSetup,
   getDraft,
   getSetup,
@@ -14,6 +15,8 @@ import { completeOnboarding, trackEvent } from '../analytics/tracking'
 
 export const recommendationKeys = {
   draft: ['recommendations', 'draft'] as const,
+  preview: (input: RecommendationInput | null) =>
+    ['recommendations', 'preview', input] as const,
   setups: ['account', 'setups'] as const,
   setup: (id: string) => ['account', 'setups', id] as const,
 }
@@ -104,5 +107,29 @@ export function useDeleteSetup() {
         queryKey: recommendationKeys.setups,
       })
     },
+  })
+}
+
+/**
+ * A live suggestion while the visitor is still answering.
+ *
+ * The point is the payoff: after two questions there is a real set of tools on
+ * screen, and every question after that visibly changes it. Asking somebody to
+ * fill in six forms and hope is a worse trade than showing them the answer and
+ * offering to sharpen it.
+ *
+ * Keyed on the whole input, so React Query caches each distinct brief and
+ * going back a step costs nothing.
+ */
+export function useRecommendationPreview(
+  input: RecommendationInput | null,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: recommendationKeys.preview(input),
+    queryFn: () => previewRecommendation(input as RecommendationInput),
+    enabled: enabled && input !== null,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   })
 }

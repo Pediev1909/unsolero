@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, Check, CircleUserRound } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 
+import { LivePreview } from '../features/recommendation/components/LivePreview'
 import { SiteFooter } from '../components/layout/SiteFooter'
 import { SiteHeader } from '../components/layout/SiteHeader'
 import { Button } from '../components/ui/Button'
@@ -158,6 +159,12 @@ export function RecommendationBuilderPage() {
                               : 'Progress saves securely to your account.'
                       : 'Guest progress stays in this browser session. Sign in to save it to your account.'}
               </p>
+
+              <LivePreview
+                isError={builder.preview.isError}
+                isPending={builder.preview.isFetching}
+                result={builder.preview.data}
+              />
             </aside>
 
             <form

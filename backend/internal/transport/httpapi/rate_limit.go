@@ -150,6 +150,13 @@ func rateLimitRule(request *http.Request, config RateLimitConfig) (string, int, 
 		return "account-security", config.AuthenticationPerMinute, true
 	case request.Method == http.MethodPost && path == "/api/recommendations/generate":
 		return "recommendation", config.RecommendationPerMinute, true
+	// Preview gets its own bucket, and a far larger one. It fires while a
+	// visitor is still choosing, so sharing the generate quota of twenty a
+	// minute would mean moving a budget slider could exhaust their right to
+	// the answer they are moving it towards. It persists nothing and reads the
+	// same cached policy, so it costs about what a catalog query costs.
+	case request.Method == http.MethodPost && path == "/api/recommendations/preview":
+		return "recommendation-preview", config.MutationPerMinute, true
 	case request.Method == http.MethodPost && path == "/api/analytics/events":
 		return "analytics", config.AnalyticsPerMinute, true
 	case request.Method == http.MethodGet &&

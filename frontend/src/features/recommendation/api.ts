@@ -29,6 +29,17 @@ export function generateRecommendation(input: RecommendationInput) {
   )
 }
 
+// Same answer, saved nowhere. The builder calls this while the visitor is
+// still choosing, and routing that through generate would file a
+// recommendation and a named setup in their account on every change.
+export function previewRecommendation(input: RecommendationInput) {
+  return apiRequest(
+    '/recommendations/preview',
+    { method: 'POST', body: input },
+    (value) => recommendationResultSchema.parse(value),
+  )
+}
+
 export async function getSetups() {
   const setups: SetupList['setups'] = []
   let page = 1

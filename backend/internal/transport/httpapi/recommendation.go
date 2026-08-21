@@ -155,6 +155,28 @@ type setupSummaryResponse struct {
 	UpdatedAt           time.Time     `json:"updated_at"`
 }
 
+// previewRecommendation answers the same question as generateRecommendation and
+// deliberately persists nothing.
+//
+// The builder shows a live suggestion from the second question onward, so this
+// runs on every change a visitor makes. Routing that through the saving path
+// would file a recommendation and a named setup in their account on every
+// keystroke, and they would return to a saved-setups page full of rubbish they
+// never asked to keep. Passing a nil user is the whole difference.
+func (h *Handler) previewRecommendation(response http.ResponseWriter, request *http.Request) {
+	var body recommendationInputRequest
+	if !h.decodeRecommendationJSON(response, request, &body) {
+		return
+	}
+	generated, err := h.recommendations.Generate(request.Context(), nil, recommendationInput(body))
+	if err != nil {
+		h.writeRecommendationError(response, err)
+		return
+	}
+	response.Header().Set("Cache-Control", "no-store")
+	writeJSON(response, http.StatusOK, recommendationDTO(generated), h.logger)
+}
+
 func (h *Handler) generateRecommendation(response http.ResponseWriter, request *http.Request) {
 	var body recommendationInputRequest
 	if !h.decodeRecommendationJSON(response, request, &body) {

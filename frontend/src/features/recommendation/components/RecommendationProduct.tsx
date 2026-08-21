@@ -96,7 +96,10 @@ export function RecommendationProduct({
           />
           <Spec label="Goal fit" value={`${item.breakdown.goal_match}/100`} />
           {verticalHasSpatialConstraints && (
-            <Spec label="Space fit" value={`${item.breakdown.space_match}/100`} />
+            <Spec
+              label="Space fit"
+              value={`${item.breakdown.space_match}/100`}
+            />
           )}
         </div>
 
