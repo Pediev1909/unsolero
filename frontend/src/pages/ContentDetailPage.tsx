@@ -1,5 +1,4 @@
 import { Scale } from 'lucide-react'
-import { useMemo } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 
 import { SiteFooter } from '../components/layout/SiteFooter'
@@ -21,33 +20,12 @@ import {
 } from '../features/content/model'
 import { useContentEntry } from '../features/content/queries'
 import { usePageMetadata } from '../lib/seo/usePageMetadata'
-import { useStructuredData } from '../lib/seo/useStructuredData'
 
 export function ContentDetailPage() {
   const { slug = '' } = useParams()
   const location = useLocation()
   const entry = useContentEntry(slug)
   const actions = useCatalogActions()
-  const structuredData = useMemo(() => {
-    if (!entry.data) return null
-    return {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: entry.data.title,
-      description: entry.data.seo.description,
-      image: new URL(entry.data.hero_image.url, window.location.origin).href,
-      datePublished: entry.data.published_at,
-      dateModified: entry.data.updated_at,
-      mainEntityOfPage: entry.data.seo.canonical_url,
-      author: {
-        '@type': 'Person',
-        name: entry.data.author.name,
-        url: `${window.location.origin}/author/${entry.data.author.slug}`,
-      },
-      publisher: { '@type': 'Organization', name: 'UNSOLERO' },
-      articleSection: contentTypeLabel(entry.data.type),
-    }
-  }, [entry.data])
 
   usePageMetadata({
     title: entry.data?.seo.title ?? 'Editorial guide | UNSOLERO',
@@ -61,7 +39,9 @@ export function ContentDetailPage() {
     publishedAt: entry.data?.published_at,
     updatedAt: entry.data?.updated_at,
   })
-  useStructuredData('editorial-article', structuredData)
+  // The server emits schema.org/Article into the shell already, with the
+  // author as a Person and both dates. Emitting a second one here duplicated
+  // the page's own description of itself.
 
   if (entry.isPending) return <ContentState loading />
   if (entry.isError) {

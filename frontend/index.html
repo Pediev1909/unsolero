@@ -21,6 +21,10 @@
       content="Tell us what your business does, what you run, and what you can spend. We'll work out what you actually need."
     />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image" content="https://unsolero.com/images/og-default.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:image" content="https://unsolero.com/images/og-default.png" />
     <meta
       name="twitter:title"
       content="UNSOLERO — Build the right software stack"
@@ -29,16 +33,21 @@
       name="twitter:description"
       content="Independent business software recommendations built around your real constraints."
     />
+    <title>UNSOLERO — Build the right software stack</title>
+    <!--PAGE_META_END-->
+    <!-- Outside the PAGE_META markers on purpose. The server rewrites
+         everything between them per route, which was deleting this from every
+         page including the homepage, so the site had no WebSite entity at all
+         while appearing to declare one. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "UNSOLERO",
-        "description": "A business software intelligence and recommendation platform."
+        "url": "https://unsolero.com",
+        "description": "Independent comparisons of business software, with every price read from the vendor and dated."
       }
     </script>
-    <title>UNSOLERO — Build the right software stack</title>
-    <!--PAGE_META_END-->
     <!-- Impact.com site ownership checks. Placed outside the PAGE_META markers
          because the server rewrites everything between them per route, which
          would drop these on every request. The non-standard "value" attribute

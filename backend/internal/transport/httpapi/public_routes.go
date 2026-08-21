@@ -13,6 +13,15 @@ import (
 
 const spaIndexRedirect = "/__unsolero_spa/index.html"
 
+// defaultSocialImage backs every page that has no image of its own.
+//
+// The metadata block promises a summary_large_image card, so one has to exist.
+// Two things kept breaking that promise: products carry no images at all, and
+// every editorial hero is an SVG, which LinkedIn, X and Facebook all refuse to
+// render. Both fell through to no og:image and produced a bare grey card on
+// exactly the platforms this site gets shared on.
+const defaultSocialImage = "/images/og-default.png"
+
 var (
 	publicRouteSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 	uuidRoutePattern       = regexp.MustCompile(`^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$`)
@@ -99,6 +108,13 @@ func (h *Handler) publicRouteStatus(response http.ResponseWriter, request *http.
 	// results and social previews specific to the page. If the shell cannot be
 	// fetched the edge serves the static file instead: losing metadata is a
 	// degradation, losing the page is an outage.
+	// Resolved here rather than inside renderShell, which has no handler and so
+	// no way to make a site-relative path absolute. Social scrapers do not
+	// resolve relative image paths.
+	if meta.ImageURL == "" || strings.HasSuffix(strings.ToLower(meta.ImageURL), ".svg") {
+		meta.ImageURL = h.absoluteImageURL(defaultSocialImage)
+	}
+
 	if h.shell != nil {
 		if shell, ok := h.shell.Shell(request.Context()); ok {
 			if rendered, rendered_ok := renderShell(shell, meta); rendered_ok {

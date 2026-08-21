@@ -165,8 +165,16 @@ func renderShell(shell string, meta pageMetadata) (string, bool) {
 		block.WriteString("\n    <link rel=\"canonical\" href=\"" + html.EscapeString(meta.CanonicalURL) + "\" />")
 		writeProperty(&block, "og:url", meta.CanonicalURL)
 	}
-	if meta.ImageURL != "" {
-		writeProperty(&block, "og:image", meta.ImageURL)
+	// A card is promised below as summary_large_image, so one has to exist.
+	// Two things kept breaking that promise: products carry no images at all,
+	// and every editorial hero is an SVG, which LinkedIn, X and Facebook all
+	// refuse to render. Both cases fell through to no og:image and produced a
+	// bare grey card on exactly the platforms the site is shared on.
+	if image := meta.ImageURL; image != "" {
+		writeProperty(&block, "og:image", image)
+		writeProperty(&block, "og:image:width", "1200")
+		writeProperty(&block, "og:image:height", "630")
+		writeNamedMeta(&block, "twitter:image", image)
 	}
 	writeNamedMeta(&block, "twitter:card", "summary_large_image")
 	writeNamedMeta(&block, "twitter:title", meta.Title)
@@ -296,6 +304,7 @@ func (h *Handler) articleStructuredData(entry content.Entry, canonicalURL string
 	if !entry.UpdatedAt.IsZero() {
 		data["dateModified"] = entry.UpdatedAt.UTC().Format(time.RFC3339)
 	}
+	data["publisher"] = map[string]any{"@type": "Organization", "name": "UNSOLERO"}
 	return data
 }
 

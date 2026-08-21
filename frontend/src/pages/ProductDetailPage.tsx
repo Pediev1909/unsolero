@@ -34,7 +34,6 @@ import { useProduct } from '../features/catalog/queries'
 import type { ProductInsight } from '../features/catalog/schemas'
 import { useCatalogActions } from '../features/catalog/useCatalogActions'
 import { usePageMetadata } from '../lib/seo/usePageMetadata'
-import { useStructuredData } from '../lib/seo/useStructuredData'
 import { trackEvent } from '../features/analytics/tracking'
 
 export function ProductDetailPage() {
@@ -64,23 +63,10 @@ export function ProductDetailPage() {
       product.data?.is_demo === false ? 'index, follow' : 'noindex, follow',
     type: 'product',
   })
-  useStructuredData(
-    'product',
-    product.data?.is_demo === false
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'Product',
-          name: product.data.name,
-          description: product.data.description,
-          image: product.data.images.map(
-            (image) => new URL(image.url, window.location.origin).href,
-          ),
-          brand: { '@type': 'Brand', name: product.data.brand.name },
-          category: product.data.category.name,
-          url: window.location.href,
-        }
-      : null,
-  )
+  // The server already emits schema.org/Product into the shell, with the
+  // offer attached and no invented ratings. A second block here described the
+  // same product differently and left crawlers to pick one. The server's is
+  // what they see without running any JavaScript, so it wins.
 
   if (product.isPending) return <ProductLoading />
   if (product.isError) {
