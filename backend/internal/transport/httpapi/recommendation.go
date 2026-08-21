@@ -324,11 +324,18 @@ func draftFromRequest(body draftRequest) recommendationports.Draft {
 		value := planning.ExperienceLevel(*body.Experience)
 		draft.Experience = &value
 	}
-	if body.AvailableSpace != nil {
+	// A room of nothing by nothing is not a room, it is the absence of one.
+	// A non-spatial vertical never asks for measurements, so its client sends
+	// the field zeroed rather than omitted -- and a zeroed space was reaching
+	// the database, where a check constraint written for the physical vertical
+	// rejected it and turned every draft save into a 500. Treating it as
+	// absent here fixes it for any client, not just the one we ship.
+	if space := body.AvailableSpace; space != nil &&
+		(space.LengthMM > 0 || space.WidthMM > 0 || space.HeightMM > 0) {
 		draft.AvailableSpace = &recommendationdomain.AvailableSpace{
-			LengthMM: body.AvailableSpace.LengthMM, WidthMM: body.AvailableSpace.WidthMM,
-			HeightMM: body.AvailableSpace.HeightMM, AccessWidthMM: body.AvailableSpace.AccessWidthMM,
-			ApartmentLiving: body.AvailableSpace.ApartmentLiving}
+			LengthMM: space.LengthMM, WidthMM: space.WidthMM,
+			HeightMM: space.HeightMM, AccessWidthMM: space.AccessWidthMM,
+			ApartmentLiving: space.ApartmentLiving}
 	}
 	for _, value := range body.TrainingPreferences {
 		draft.TrainingPreferences = append(draft.TrainingPreferences, recommendationdomain.TrainingPreference(value))

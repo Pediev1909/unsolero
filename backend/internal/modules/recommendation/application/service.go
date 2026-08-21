@@ -272,11 +272,17 @@ func validateDraft(draft ports.Draft) error {
 		len(draft.ExistingEquipment) > 50 || len(draft.TrainingPreferences) > 20 || len(draft.Priorities) > 20 {
 		return ErrInvalidDraft
 	}
-	if draft.Goal != nil && !map[planning.Goal]bool{
-		planning.GoalBuildMuscle: true, planning.GoalStrength: true,
-		planning.GoalGeneralFitness: true, planning.GoalWeightLoss: true,
-		planning.GoalMobility: true,
-	}[*draft.Goal] {
+	// Shape only, deliberately. This used to check the goal against a hardcoded
+	// list of five fitness goals, which meant that after the vertical changed,
+	// picking any real goal made every draft save fail with 422 -- a signed-in
+	// visitor's progress silently stopped reaching their account from question
+	// one onwards. It is the exact trap the comment further down describes: a
+	// second copy of a vocabulary the policy already owns, left to drift.
+	//
+	// Which goals exist is declared by the active recommendation policy, and
+	// the engine enforces that membership when the draft is used to generate.
+	// A draft is a half-finished form, not a command.
+	if draft.Goal != nil && !draftCodePattern.MatchString(string(*draft.Goal)) {
 		return ErrInvalidDraft
 	}
 	if draft.Experience != nil && !map[planning.ExperienceLevel]bool{
