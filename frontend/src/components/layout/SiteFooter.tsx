@@ -24,6 +24,7 @@ const footerGroups: { heading: string; links: { label: string; to: string }[] }[
     heading: 'Learn',
     links: [
       { label: 'How it works', to: '/how-it-works' },
+      { label: 'Comparisons', to: '/comparisons' },
       { label: 'Guides', to: '/guides' },
       { label: 'Articles', to: '/articles' },
       { label: 'About', to: '/about' },

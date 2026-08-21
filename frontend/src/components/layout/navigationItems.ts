@@ -34,6 +34,7 @@ export const browseShortcuts: NavigationItem[] = [
  * Editorial. Small enough to be a plain list rather than a second mega menu.
  */
 export const learnNavigation: NavigationItem[] = [
+  { label: 'Comparisons', to: '/comparisons' },
   { label: 'Guides', to: '/guides' },
   { label: 'Articles', to: '/articles' },
   { label: 'About UNSOLERO', to: '/about' },

@@ -204,6 +204,7 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 			UNION ALL SELECT '/products', catalog_updated_at FROM public_updates
 			UNION ALL SELECT '/guides', editorial_updated_at FROM public_updates
 			UNION ALL SELECT '/articles', editorial_updated_at FROM public_updates
+			UNION ALL SELECT '/comparisons', editorial_updated_at FROM public_updates
 			-- The two index pages. They carry the catalog timestamp because
 			-- that is what changes them: a new category or vendor appears on
 			-- them the moment its first product publishes.

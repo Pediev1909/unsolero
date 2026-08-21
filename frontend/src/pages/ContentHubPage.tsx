@@ -11,14 +11,16 @@ import { usePageMetadata } from '../lib/seo/usePageMetadata'
 import { useStructuredData } from '../lib/seo/useStructuredData'
 
 interface HubConfig {
-  section: 'articles' | 'guides'
+  section: 'articles' | 'guides' | 'comparisons'
   eyebrow: string
   title: string
   description: string
   emptyTitle: string
+  metaTitle: string
 }
 
 const guides: HubConfig = {
+  metaTitle: 'Software Stack Guides | UNSOLERO',
   section: 'guides',
   eyebrow: 'Editorial guidance',
   title: 'Buy with a clearer brief.',
@@ -28,6 +30,7 @@ const guides: HubConfig = {
 }
 
 const articles: HubConfig = {
+  metaTitle: 'Software Stack Articles | UNSOLERO',
   section: 'articles',
   eyebrow: 'Planning library',
   title: 'Fewer tools, better chosen.',
@@ -36,8 +39,25 @@ const articles: HubConfig = {
   emptyTitle: 'No published articles yet',
 }
 
+// Head-to-heads had no page listing them at all. Eight of them existed, were
+// in the sitemap, and could be reached only from a product page or a search
+// result -- the same gap the category index closed, in a different corner.
+const comparisons: HubConfig = {
+  metaTitle: 'Software Comparisons | UNSOLERO',
+  section: 'comparisons',
+  eyebrow: 'Head to head',
+  title: 'Two tools, one decision.',
+  description:
+    'Direct comparisons of the tools people weigh against each other, with every price read from the vendor and the billing basis stated, so a monthly rate is never set against an annual one.',
+  emptyTitle: 'No published comparisons yet',
+}
+
 export function GuidesPage() {
   return <ContentHub config={guides} />
+}
+
+export function ComparisonsPage() {
+  return <ContentHub config={comparisons} />
 }
 
 export function ArticlesPage() {
@@ -47,7 +67,7 @@ export function ArticlesPage() {
 function ContentHub({ config }: { config: HubConfig }) {
   const content = useContent({ section: config.section, limit: 24 })
   usePageMetadata({
-    title: `${config.section === 'guides' ? 'Software Stack Guides' : 'Software Stack Articles'} | UNSOLERO`,
+    title: config.metaTitle,
     description: config.description,
   })
   useStructuredData('content-collection', {

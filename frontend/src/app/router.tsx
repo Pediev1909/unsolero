@@ -118,6 +118,12 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: '/comparisons',
+        lazy: async () => ({
+          Component: (await import('../pages/ContentHubPage')).ComparisonsPage,
+        }),
+      },
+      {
         path: '/compare',
         lazy: async () => ({
           Component: (await import('../pages/ComparePage')).ComparePage,

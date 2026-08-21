@@ -24,6 +24,9 @@ var staticPublicRoutes = map[string]bool{
 	// brand had a page long before there was anywhere listing them, so a
 	// visitor could reach one only by already knowing its URL.
 	"/categories": true, "/brands": true, "/how-it-works": true,
+	// The head-to-heads had no index either. /compare is the comparison tool
+	// a visitor drives themselves; /comparisons is the writing.
+	"/comparisons": true,
 	// Indexable on purpose. Affiliate programme reviewers and search engines
 	// both look for these two before approving or ranking a commercial site,
 	// so a 404 here is expensive.
@@ -281,6 +284,9 @@ func staticRouteMetadata(path string) (string, string) {
 	case "/articles":
 		return "Software stack articles | UNSOLERO",
 			"Editorial notes on choosing, combining and replacing the tools a business runs on."
+	case "/comparisons":
+		return "Software comparisons, head to head | UNSOLERO",
+			"Direct comparisons of the business software people weigh against each other, with every price read from the vendor and the billing basis stated."
 	case "/categories":
 		return "Every software category we cover | UNSOLERO",
 			"Fifteen categories of business software, from CRM and invoicing to analytics and help desk, each with the tools compared inside it."
