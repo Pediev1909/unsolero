@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { cn } from '../../lib/styles/cn'
@@ -24,6 +24,10 @@ export function HeaderSearch({
 }: HeaderSearchProps) {
   const [term, setTerm] = useState('')
   const navigate = useNavigate()
+  // The drawer's copy of this form is in the DOM at all times, open or not,
+  // so a fixed id put two inputs with the same one on every page and left a
+  // label pointing at the wrong field. Generated per instance instead.
+  const inputId = useId()
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -42,7 +46,7 @@ export function HeaderSearch({
       onSubmit={submit}
       role="search"
     >
-      <label className="sr-only" htmlFor="header-search">
+      <label className="sr-only" htmlFor={inputId}>
         Search software
       </label>
       <Search
@@ -56,13 +60,19 @@ export function HeaderSearch({
           'w-full rounded-sm border border-ink/20 bg-surface pr-3 pl-9 text-sm text-ink placeholder:text-ink/45 focus-visible:border-bronze',
           variant === 'bar' ? 'h-10' : 'h-12',
         )}
-        id="header-search"
+        id={inputId}
         name="q"
         onChange={(event) => setTerm(event.target.value)}
         placeholder="Search software"
         type="search"
         value={term}
       />
+      {/* An explicit submit rather than relying on implicit submission. It
+          costs nothing visually and means Enter, the on-screen keyboard's Go
+          key and a screen reader's forms mode all do the same thing. */}
+      <button className="sr-only" type="submit">
+        Search
+      </button>
     </form>
   )
 }
