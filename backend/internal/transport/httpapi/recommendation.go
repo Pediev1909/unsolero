@@ -482,6 +482,15 @@ func (h *Handler) writeRecommendationError(response http.ResponseWriter, err err
 		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_recommendation_input", "Check your answers and try again.", nil, h.logger)
 	case errors.Is(err, recommendationports.ErrNotFound):
 		writeAPIError(response, http.StatusNotFound, "setup_not_found", "This saved setup could not be found.", nil, h.logger)
+	case errors.Is(err, recommendationdomain.ErrInvalidCandidate):
+		// A 500 is right -- the visitor did nothing wrong, our own catalog data
+		// is what the policy rejected -- but the reason has to survive into the
+		// log. The redaction rule reduces an error attribute to its type name,
+		// which turned a bad price on one product into "*fmt.wrapError" and
+		// nothing else. This message is assembled from product identifiers and
+		// fixed strings only, so it carries nothing private.
+		h.logger.Error("recommendation rejected a catalog candidate", "reason", err.Error())
+		writeAPIError(response, http.StatusInternalServerError, "recommendation_unavailable", "Recommendations are temporarily unavailable.", nil, h.logger)
 	default:
 		h.logger.Error("recommendation request failed", "error", err)
 		writeAPIError(response, http.StatusInternalServerError, "recommendation_unavailable", "Recommendations are temporarily unavailable.", nil, h.logger)

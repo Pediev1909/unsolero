@@ -166,3 +166,41 @@ func TestSetupCannotExceedCombinedFloorArea(t *testing.T) {
 		t.Fatalf("cardio rejection = %#v", rejection)
 	}
 }
+
+// TestFreeCandidateIsValid pins the rule that a zero price is a real price.
+//
+// A free tier is a genuine product in a software vertical, and the engine
+// validates the whole batch at once: one candidate rejected on price failed
+// every recommendation for every visitor, not just the one product. That is
+// how it reached production -- the catalog gained two free products and the
+// recommendation endpoint began returning 500 for everyone.
+//
+// A negative price is still rejected, which is what validMoney is for.
+func TestFreeCandidateIsValid(t *testing.T) {
+	engine := testEngine(t)
+	candidates := []CandidateSnapshot{
+		testCandidate("free-tool", "resistance-bands", 0, balancedScores()),
+		testCandidate("paid-tool", "adjustable-dumbbells", 40000, balancedScores()),
+	}
+	result, err := engine.Recommend(
+		testInput(planning.GoalGeneralFitness, planning.ExperienceBeginner, 200000), candidates)
+	if err != nil {
+		t.Fatalf("Recommend() with a free candidate: %v", err)
+	}
+	if len(result.Ranked) != len(candidates) {
+		t.Fatalf("ranked %d candidates, want %d", len(result.Ranked), len(candidates))
+	}
+}
+
+// TestNegativeCandidatePriceIsRejected keeps the other half of the rule.
+func TestNegativeCandidatePriceIsRejected(t *testing.T) {
+	engine := testEngine(t)
+	candidates := []CandidateSnapshot{
+		testCandidate("broken-tool", "resistance-bands", -1, balancedScores()),
+	}
+	_, err := engine.Recommend(
+		testInput(planning.GoalGeneralFitness, planning.ExperienceBeginner, 200000), candidates)
+	if !errors.Is(err, ErrInvalidCandidate) {
+		t.Fatalf("Recommend() with a negative price = %v, want ErrInvalidCandidate", err)
+	}
+}

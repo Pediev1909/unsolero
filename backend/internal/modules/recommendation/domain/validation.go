@@ -157,8 +157,13 @@ func validateCandidates(candidates []CandidateSnapshot, config Config) error {
 			return fmt.Errorf("%w: duplicate product %q", ErrInvalidCandidate, candidate.ProductID)
 		}
 		seen[candidate.ProductID] = struct{}{}
-		if !validMoney(candidate.Price) || candidate.Price.AmountMinor <= 0 ||
-			candidate.Price.AmountMinor > maxMoneyMinor {
+		// Zero is a real price. A free tier is a genuine product in a software
+		// vertical -- Zoho Invoice and Wave charge nothing at all -- and
+		// rejecting it here rejected the whole request, because one bad
+		// candidate fails the batch. The rule came from a physical vertical,
+		// where a free treadmill meant a data error. validMoney still refuses
+		// a negative amount, and the upper bound still stands.
+		if !validMoney(candidate.Price) || candidate.Price.AmountMinor > maxMoneyMinor {
 			return fmt.Errorf("%w: product %q price", ErrInvalidCandidate, candidate.ProductID)
 		}
 		if config.SpatialConstraints && !validDimensions(candidate.Dimensions) {
