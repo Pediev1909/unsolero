@@ -36,6 +36,15 @@ export const goalOptions = [
     label: 'Work solo as a consultant',
     description: 'Few clients, tight admin, no time for tool maintenance.',
   },
+  // The other five all describe a business that sells remotely. A hairdresser,
+  // a garage or a dentist has a different shape entirely -- be found, be
+  // booked, be paid -- and every tool that shape needs was already in the
+  // catalog with nowhere to point them.
+  {
+    value: 'local_business',
+    label: 'Run a business people visit',
+    description: 'A salon, a workshop, a clinic. Be found, booked, and paid.',
+  },
 ] as const
 
 export const experienceOptions = [

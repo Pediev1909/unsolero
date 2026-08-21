@@ -11,6 +11,7 @@ export const goals = [
   'creator_business',
   'software_product',
   'solo_consulting',
+  'local_business',
 ] as const
 export const experiences = ['beginner', 'intermediate', 'advanced'] as const
 export const trainingPreferences = [
