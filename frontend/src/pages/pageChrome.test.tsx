@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
+import { renderWithProviders } from '../test/renderWithProviders'
 import { AboutPage } from './AboutPage'
 import { AffiliateDisclosurePage } from './AffiliateDisclosurePage'
 import { HomePage } from './HomePage'
@@ -26,11 +27,7 @@ const standalonePages: [string, () => React.JSX.Element][] = [
 
 describe.each(standalonePages)('%s', (_name, Page) => {
   it('offers a way to the rest of the site', () => {
-    render(
-      <MemoryRouter>
-        <Page />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<Page />)
     expect(screen.getByRole('banner')).toBeInTheDocument()
     expect(screen.getByRole('contentinfo')).toBeInTheDocument()
   })

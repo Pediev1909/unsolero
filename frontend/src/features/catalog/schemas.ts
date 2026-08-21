@@ -116,6 +116,10 @@ export const categorySchema = z.object({
   name: z.string(),
   slug: z.string(),
   description: z.string(),
+  // Optional because the single-category endpoint predates it and older
+  // cached responses will not carry it. A missing count renders as no count
+  // rather than as zero, which would read as "we cover nothing here".
+  published_products: z.number().int().nonnegative().optional(),
 })
 
 export const brandSchema = categorySchema.extend({

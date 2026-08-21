@@ -94,6 +94,24 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: '/categories',
+        lazy: async () => ({
+          Component: (await import('../pages/CategoriesPage')).CategoriesPage,
+        }),
+      },
+      {
+        path: '/brands',
+        lazy: async () => ({
+          Component: (await import('../pages/BrandsPage')).BrandsPage,
+        }),
+      },
+      {
+        path: '/how-it-works',
+        lazy: async () => ({
+          Component: (await import('../pages/HowItWorksPage')).HowItWorksPage,
+        }),
+      },
+      {
         path: '/products',
         lazy: async () => ({
           Component: (await import('../pages/ProductsPage')).ProductsPage,

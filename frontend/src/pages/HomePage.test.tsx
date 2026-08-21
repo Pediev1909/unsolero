@@ -1,16 +1,12 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
+import { renderWithProviders } from '../test/renderWithProviders'
 import { HomePage } from './HomePage'
 
 describe('HomePage', () => {
   it('communicates the value proposition and routes both primary actions', () => {
-    render(
-      <MemoryRouter>
-        <HomePage />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<HomePage />)
 
     expect(
       screen.getByRole('heading', {
@@ -27,9 +23,12 @@ describe('HomePage', () => {
     expect(
       screen.getAllByRole('link', { name: /explore categories/i })[0],
     ).toHaveAttribute('href', '/#categories')
+    // "How it works" used to be a hash anchor that scrolled this page. A nav
+    // item that scrolls where every other one navigates is a small trap, and
+    // an anchor cannot be linked to from elsewhere or ranked on its own.
     expect(
       screen.getAllByRole('link', { name: 'How it works' })[0],
-    ).toHaveAttribute('href', '/#method')
+    ).toHaveAttribute('href', '/how-it-works')
     expect(document.getElementById('method')).toBeInTheDocument()
     expect(document.getElementById('categories')).toBeInTheDocument()
     expect(document.getElementById('trust')).toBeInTheDocument()
@@ -44,11 +43,7 @@ describe('HomePage', () => {
   })
 
   it('labels illustrative catalog content and exposes comparison context', () => {
-    render(
-      <MemoryRouter>
-        <HomePage />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<HomePage />)
 
     expect(
       screen.getByText(/read from each vendor/i),

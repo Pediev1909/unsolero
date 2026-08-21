@@ -37,7 +37,10 @@ func NewForVertical(pool *pgxpool.Pool, vertical string) *Repository {
 
 func (repository *Repository) ListActiveCategories(ctx context.Context) ([]domain.Category, error) {
 	rows, err := repository.pool.Query(ctx, `
-		SELECT id, parent_id, name, slug, description, sort_order, is_active
+		SELECT id, parent_id, name, slug, description, sort_order, is_active,
+			(SELECT count(*) FROM catalog.products
+			 WHERE products.category_id = categories.id
+			   AND products.status = 'published')
 		FROM catalog.categories
 		WHERE is_active = true AND vertical_key = $1
 		ORDER BY sort_order, name`, repository.vertical)
@@ -58,6 +61,7 @@ func (repository *Repository) ListActiveCategories(ctx context.Context) ([]domai
 			&category.Description,
 			&category.SortOrder,
 			&category.IsActive,
+			&category.PublishedProducts,
 		); err != nil {
 			return nil, fmt.Errorf("scan category: %w", err)
 		}
@@ -107,7 +111,10 @@ func (repository *Repository) GetActiveCategoryBySlug(ctx context.Context, slug 
 
 func (repository *Repository) ListActiveBrands(ctx context.Context) ([]domain.Brand, error) {
 	rows, err := repository.pool.Query(ctx, `
-		SELECT id, name, slug, description, website_url, country_code, is_active
+		SELECT id, name, slug, description, website_url, country_code, is_active,
+			(SELECT count(*) FROM catalog.products
+			 WHERE products.brand_id = brands.id
+			   AND products.status = 'published')
 		FROM catalog.brands
 		WHERE is_active = true
 		ORDER BY name`)
@@ -129,6 +136,7 @@ func (repository *Repository) ListActiveBrands(ctx context.Context) ([]domain.Br
 			&websiteURL,
 			&countryCode,
 			&brand.IsActive,
+			&brand.PublishedProducts,
 		); err != nil {
 			return nil, fmt.Errorf("scan brand: %w", err)
 		}

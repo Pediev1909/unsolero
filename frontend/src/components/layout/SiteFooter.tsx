@@ -13,7 +13,9 @@ const footerGroups: { heading: string; links: { label: string; to: string }[] }[
     heading: 'Decide',
     links: [
       { label: 'Build my setup', to: '/build' },
-      { label: 'Software', to: '/products' },
+      { label: 'Software categories', to: '/categories' },
+      { label: 'All software', to: '/products' },
+      { label: 'All vendors', to: '/brands' },
       { label: 'Compare', to: '/compare' },
       { label: 'Wishlist', to: '/wishlist' },
     ],
@@ -21,7 +23,7 @@ const footerGroups: { heading: string; links: { label: string; to: string }[] }[
   {
     heading: 'Learn',
     links: [
-      { label: 'How it works', to: '/#method' },
+      { label: 'How it works', to: '/how-it-works' },
       { label: 'Guides', to: '/guides' },
       { label: 'Articles', to: '/articles' },
       { label: 'About', to: '/about' },

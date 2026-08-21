@@ -1,6 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
 
-import { isNavigationItemActive, type NavigationItem } from './navigationItems'
+import { BrowseMenu } from './BrowseMenu'
+import { NavigationMenu } from './NavigationMenu'
+import {
+  isBrowseActive,
+  isLearnActive,
+  isNavigationItemActive,
+  learnNavigation,
+  type NavigationItem,
+} from './navigationItems'
 
 interface NavigationProps {
   items: NavigationItem[]
@@ -13,8 +21,19 @@ export function Navigation({ items, includeAccount = true }: NavigationProps) {
   return (
     <nav
       aria-label="Primary navigation"
-      className="flex items-center gap-4 lg:gap-6 xl:gap-8"
+      className="flex items-center gap-4 lg:gap-6"
     >
+      {/* Browse comes first because it is the catalog, and the catalog is what
+          most people arrived for. The old bar led with the recommendation
+          wizard and never mentioned the categories at all. */}
+      <NavigationMenu
+        active={isBrowseActive(location.pathname)}
+        label="Browse"
+        width="wide"
+      >
+        {(close) => <BrowseMenu onNavigate={close} />}
+      </NavigationMenu>
+
       {items.map((item) => (
         <Link
           aria-current={
@@ -29,6 +48,25 @@ export function Navigation({ items, includeAccount = true }: NavigationProps) {
           {item.label}
         </Link>
       ))}
+
+      <NavigationMenu active={isLearnActive(location.pathname)} label="Learn">
+        {(close) => (
+          <ul className="flex flex-col">
+            {learnNavigation.map((item) => (
+              <li key={item.to}>
+                <Link
+                  className="block rounded-sm py-2 text-sm font-medium transition-colors hover:text-bronze focus-visible:text-bronze"
+                  onClick={close}
+                  to={item.to}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </NavigationMenu>
+
       {includeAccount && (
         <Link
           aria-current={

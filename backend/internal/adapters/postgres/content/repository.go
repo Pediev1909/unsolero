@@ -204,6 +204,12 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 			UNION ALL SELECT '/products', catalog_updated_at FROM public_updates
 			UNION ALL SELECT '/guides', editorial_updated_at FROM public_updates
 			UNION ALL SELECT '/articles', editorial_updated_at FROM public_updates
+			-- The two index pages. They carry the catalog timestamp because
+			-- that is what changes them: a new category or vendor appears on
+			-- them the moment its first product publishes.
+			UNION ALL SELECT '/categories', catalog_updated_at FROM public_updates
+			UNION ALL SELECT '/brands', catalog_updated_at FROM public_updates
+			UNION ALL SELECT '/how-it-works', site_updated_at FROM public_updates
 			-- The legal pages are static, so they carry the site timestamp.
 			-- They belong here because affiliate programme reviews and search
 			-- engines both look for them on a commercial site.

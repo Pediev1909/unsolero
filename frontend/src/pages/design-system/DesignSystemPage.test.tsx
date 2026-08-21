@@ -1,18 +1,16 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { ToastProvider } from '../../components/ui/ToastProvider'
+import { renderWithProviders } from '../../test/renderWithProviders'
 import { DesignSystemPage } from './DesignSystemPage'
 
 describe('DesignSystemPage', () => {
   it('renders the component inventory with honest demo labeling', () => {
-    render(
-      <MemoryRouter>
-        <ToastProvider>
-          <DesignSystemPage />
-        </ToastProvider>
-      </MemoryRouter>,
+    renderWithProviders(
+      <ToastProvider>
+        <DesignSystemPage />
+      </ToastProvider>,
     )
 
     expect(

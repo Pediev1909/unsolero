@@ -124,18 +124,23 @@ type productPageResponse struct {
 }
 
 type categoryResponse struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Slug        string `json:"slug"`
-	Description string `json:"description"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+	// PublishedProducts lets a listing say "6 tools" beside a category
+	// instead of making the reader open it to find out, and lets a category
+	// with nothing in it be left out of an index rather than shown empty.
+	PublishedProducts int    `json:"published_products"`
+	Description       string `json:"description"`
 }
 
 type brandResponse struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Slug        string  `json:"slug"`
-	Description string  `json:"description"`
-	CountryCode *string `json:"country_code,omitempty"`
+	ID                string  `json:"id"`
+	Name              string  `json:"name"`
+	Slug              string  `json:"slug"`
+	PublishedProducts int     `json:"published_products"`
+	Description       string  `json:"description"`
+	CountryCode       *string `json:"country_code,omitempty"`
 }
 
 func (h *Handler) listProducts(response http.ResponseWriter, request *http.Request) {
@@ -412,14 +417,16 @@ func scoreDTO(scores domain.Scores) scoresResponse {
 func categoryDTO(category domain.Category) categoryResponse {
 	return categoryResponse{
 		ID: string(category.ID), Name: category.Name, Slug: category.Slug,
-		Description: category.Description,
+		PublishedProducts: category.PublishedProducts,
+		Description:       category.Description,
 	}
 }
 
 func brandDTO(brand domain.Brand) brandResponse {
 	return brandResponse{
 		ID: string(brand.ID), Name: brand.Name, Slug: brand.Slug,
-		Description: brand.Description, CountryCode: brand.CountryCode,
+		PublishedProducts: brand.PublishedProducts,
+		Description:       brand.Description, CountryCode: brand.CountryCode,
 	}
 }
 

@@ -1,17 +1,18 @@
-import { MemoryRouter } from 'react-router-dom'
-import { render, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
+import { renderWithProviders } from '../../test/renderWithProviders'
 import { SiteHeader } from './SiteHeader'
 
 describe('SiteHeader', () => {
   it('exposes skip navigation and marks the current section', () => {
-    render(
-      <MemoryRouter initialEntries={['/products/demo-product']}>
+    renderWithProviders(
+      <>
         <SiteHeader position="static" />
         <main id="main-content">Product</main>
-      </MemoryRouter>,
+      </>,
+      { route: '/products/demo-product' },
     )
 
     expect(
@@ -20,20 +21,18 @@ describe('SiteHeader', () => {
     expect(
       screen.getByRole('link', { name: 'UNSOLERO home' }),
     ).toHaveTextContent('UNSOLERO')
+    // Browse has no page of its own, so it borrows the state of the catalog
+    // pages it contains. A product page is inside Browse.
     expect(
       within(
         screen.getByRole('navigation', { name: 'Primary navigation' }),
-      ).getByRole('link', { name: 'Software' }),
-    ).toHaveAttribute('aria-current', 'page')
+      ).getByRole('button', { name: /Browse/ }),
+    ).toHaveAttribute('aria-current', 'true')
   })
 
   it('opens and closes the accessible mobile navigation', async () => {
     const user = userEvent.setup()
-    render(
-      <MemoryRouter>
-        <SiteHeader position="static" />
-      </MemoryRouter>,
-    )
+    renderWithProviders(<SiteHeader position="static" />)
 
     const trigger = screen.getByRole('button', { name: 'Open navigation' })
     expect(trigger).toHaveAttribute('aria-expanded', 'false')

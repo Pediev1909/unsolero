@@ -6,6 +6,7 @@ import { Button } from '../ui/Button'
 import { Container } from '../ui/Container'
 import { SkipLink } from '../ui/SkipLink'
 import { BrandMark } from './BrandMark'
+import { HeaderSearch } from './HeaderSearch'
 import { MobileNavigation } from './MobileNavigation'
 import { Navigation } from './Navigation'
 import { primaryNavigation } from './navigationItems'
@@ -41,22 +42,41 @@ export function SiteHeader({
           className,
         )}
       >
-        <Container className="flex h-18 items-center justify-between sm:h-20">
+        <Container className="flex h-18 items-center gap-4 sm:h-20">
           <BrandMark />
 
           {showNavigation && (
-            <div className="hidden md:block">
+            <div className="ml-auto hidden md:block">
               <Navigation items={primaryNavigation} />
             </div>
           )}
 
-          {actions && <div className="ml-auto md:ml-0">{actions}</div>}
+          {/* Search sits last in the bar and first in the reading order of
+              things a lost visitor will try. It is hidden below lg only
+              because the bar cannot hold it; the drawer carries it there. */}
+          {showNavigation && (
+            <div className="hidden lg:block">
+              <HeaderSearch />
+            </div>
+          )}
+
+          {actions && (
+            <div className={cn('ml-auto', showNavigation && 'md:ml-0')}>
+              {actions}
+            </div>
+          )}
 
           {showNavigation && (
             <Button
               aria-expanded={mobileOpen}
               aria-label="Open navigation"
-              className={cn('md:hidden', Boolean(actions) && 'ml-2')}
+              // Written as one branch or the other rather than as two
+              // classes, because cn concatenates and does not merge: ml-auto
+              // and ml-2 would both survive and the winner would be decided
+              // by stylesheet order.
+              className={
+                actions ? 'ml-2 md:hidden' : 'ml-auto md:hidden'
+              }
               onClick={() => setMobileOpen(true)}
               size="sm"
               variant="quiet"
