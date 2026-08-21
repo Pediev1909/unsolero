@@ -37,10 +37,19 @@ export function LivePreview({ result, isPending, isError }: LivePreviewProps) {
         )}
       </div>
 
-      {products.length === 0 && !isPending && (
+      {/* Only when an answer came back and held nothing. Showing this while
+          the first request is still in flight told people their budget was
+          too small when in truth nobody had asked yet. */}
+      {result && products.length === 0 && (
         <p className="mt-3 text-sm leading-6 text-ink/65">
           Nothing fits inside that budget yet. Raising it, or telling us what
           you already run, usually opens things up.
+        </p>
+      )}
+
+      {!result && (
+        <p className="mt-3 text-sm leading-6 text-ink/55">
+          Working out a first suggestion&hellip;
         </p>
       )}
 

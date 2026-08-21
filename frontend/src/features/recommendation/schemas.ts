@@ -58,6 +58,22 @@ export const recommendationInputSchema = z.object({
   free_text: z.string().max(1000),
 })
 
+/**
+ * The same brief, half answered.
+ *
+ * The submit schema insists on a preference and a priority because the wizard
+ * asks for both and a finished brief should carry them. A preview is not a
+ * finished brief: it runs from the third question, before either has been
+ * asked. The engine has always treated them as optional refinements and
+ * returns a complete setup without them, so this drops only the two minimums
+ * and keeps every other rule.
+ */
+export const recommendationPreviewInputSchema =
+  recommendationInputSchema.extend({
+    training_preferences: z.array(z.enum(trainingPreferences)),
+    priorities: z.array(z.enum(priorities)),
+  })
+
 export const draftSchema = z.object({
   current_step: z.number().int().min(1).max(7),
   goal: z.enum(goals).nullable(),

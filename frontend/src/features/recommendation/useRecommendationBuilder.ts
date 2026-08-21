@@ -6,6 +6,7 @@ import { steps } from './options'
 import {
   builderValuesSchema,
   recommendationInputSchema,
+  recommendationPreviewInputSchema,
   recommendationResultSchema,
   type BuilderValues,
   type RecommendationInput,
@@ -139,7 +140,7 @@ export function useRecommendationBuilder(initialInput?: RecommendationInput) {
   const previewInput =
     previewActive && previewValues ? toRecommendationInput(previewValues) : null
   const parsedPreview = previewInput
-    ? recommendationInputSchema.safeParse(previewInput)
+    ? recommendationPreviewInputSchema.safeParse(previewInput)
     : null
   const preview = useRecommendationPreview(
     parsedPreview?.success ? parsedPreview.data : null,
