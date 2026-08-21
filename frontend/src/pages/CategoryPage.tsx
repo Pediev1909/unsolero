@@ -36,6 +36,7 @@ export function CategoryPage() {
     <CatalogListing
       categorySlug={category.data.slug}
       description={category.data.description}
+      breadcrumb={{ parentLabel: 'Categories', parentTo: '/categories' }}
       eyebrow="Software category"
       noindex={false}
       title={category.data.name}

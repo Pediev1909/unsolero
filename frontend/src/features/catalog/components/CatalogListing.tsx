@@ -1,6 +1,6 @@
 import { Scale } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { SiteFooter } from '../../../components/layout/SiteFooter'
 import { SiteHeader } from '../../../components/layout/SiteHeader'
@@ -25,6 +25,8 @@ import { catalogRobots } from './catalogSeo'
 
 interface CatalogListingProps {
   eyebrow?: string
+  /** Renders a trail above the heading. Omit it and none is shown. */
+  breadcrumb?: { parentLabel: string; parentTo: string }
   title: string
   description: string
   categorySlug?: string
@@ -35,6 +37,7 @@ interface CatalogListingProps {
 
 export function CatalogListing({
   eyebrow = 'Software intelligence',
+  breadcrumb,
   title,
   description,
   categorySlug,
@@ -103,10 +106,45 @@ export function CatalogListing({
       <main id="main-content">
         <section className="border-b border-ink/15 py-10 sm:py-16 lg:py-24">
           <Container>
+            {/* Product pages carried breadcrumbs and category and brand pages
+                did not, so a visitor arriving on one from a search result had
+                no way up. The crumbs are the smallest links on the page, so
+                they carry a 24px hit box. */}
+            {breadcrumb && (
+              <nav
+                aria-label="Breadcrumb"
+                className="mb-5 flex flex-wrap items-center gap-x-2 text-xs text-ink/68"
+              >
+                <Link
+                  className="flex min-h-6 items-center hover:text-ink"
+                  to="/products"
+                >
+                  Software
+                </Link>
+                <span aria-hidden="true">/</span>
+                <Link
+                  className="flex min-h-6 items-center hover:text-ink"
+                  to={breadcrumb.parentTo}
+                >
+                  {breadcrumb.parentLabel}
+                </Link>
+                <span aria-hidden="true">/</span>
+                <span
+                  aria-current="page"
+                  className="flex min-h-6 items-center text-ink"
+                >
+                  {title}
+                </span>
+              </nav>
+            )}
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-bronze-dark">
               {eyebrow}
             </p>
-            <Heading className="mt-4 max-w-4xl sm:mt-5" level={1} size="display">
+            <Heading
+              className="mt-4 max-w-4xl sm:mt-5"
+              level={1}
+              size="display"
+            >
               {title}
             </Heading>
             <p className="mt-5 max-w-2xl text-base leading-7 text-ink/70 sm:mt-6 sm:text-lg">

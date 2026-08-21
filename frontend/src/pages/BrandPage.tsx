@@ -19,6 +19,7 @@ export function BrandPage() {
     <CatalogListing
       brandSlug={brand.data.slug}
       description={brand.data.description}
+      breadcrumb={{ parentLabel: 'Vendors', parentTo: '/brands' }}
       eyebrow="Software vendor"
       noindex={false}
       title={brand.data.name}
