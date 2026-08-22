@@ -82,6 +82,7 @@ type CatalogService interface {
 	ListCategories(context.Context) ([]catalogdomain.Category, error)
 	GetCategory(context.Context, string) (catalogdomain.Category, error)
 	ListBrands(context.Context) ([]catalogdomain.Brand, error)
+	ListBrandsInCategory(context.Context, string) ([]catalogdomain.Brand, error)
 	GetBrand(context.Context, string) (catalogdomain.Brand, error)
 }
 

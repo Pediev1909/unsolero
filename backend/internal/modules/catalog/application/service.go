@@ -124,6 +124,17 @@ func (service *Service) ListBrands(ctx context.Context) ([]domain.Brand, error) 
 	return service.repository.ListActiveBrands(ctx)
 }
 
+// ListBrandsInCategory narrows the brand filter to what the category actually
+// holds. An unknown slug returns nothing rather than everything: a filter that
+// silently ignores the constraint it was given is worse than one that returns
+// an empty list, because the reader cannot tell it was ignored.
+func (service *Service) ListBrandsInCategory(ctx context.Context, categorySlug string) ([]domain.Brand, error) {
+	if !validSlug(categorySlug) {
+		return []domain.Brand{}, nil
+	}
+	return service.repository.ListActiveBrandsInCategory(ctx, categorySlug)
+}
+
 func (service *Service) GetBrand(ctx context.Context, slug string) (domain.Brand, error) {
 	if !validSlug(slug) {
 		return domain.Brand{}, ports.ErrNotFound

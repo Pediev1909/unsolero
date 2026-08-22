@@ -1,6 +1,4 @@
 import { Container } from '../../../components/ui/Container'
-import { EmptyState } from '../../../components/ui/EmptyState'
-import { ErrorState } from '../../../components/ui/ErrorState'
 import { Heading } from '../../../components/ui/Heading'
 import { Skeleton } from '../../../components/ui/Skeleton'
 import { useContent } from '../queries'
@@ -16,6 +14,18 @@ export function RelatedContentSection({
     category: categorySlug,
     limit: 3,
   })
+
+  // Nothing at all when there is nothing to show. Five of fifteen categories
+  // have no editorial linked to them yet, and each was rendering a section
+  // heading, a promise about "curated guidance" and then an empty box. An
+  // empty state is for a list a reader emptied themselves by filtering; this
+  // one only ever said that we have not written the piece.
+  //
+  // Errors are silent for the same reason: this sits below the whole catalog
+  // listing, and an error panel there reports a broken page when the page is
+  // fine.
+  if (content.isError || content.data?.length === 0) return null
+
   return (
     <section className="border-t border-ink/15 bg-paper py-14 sm:py-20">
       <Container>
@@ -38,21 +48,6 @@ export function RelatedContentSection({
                 <Skeleton className="h-80" key={item} />
               ))}
             </div>
-          )}
-          {content.isError && (
-            <ErrorState
-              compact
-              description="Related editorial guidance could not be loaded."
-              onRetry={() => void content.refetch()}
-              title="Guidance unavailable"
-            />
-          )}
-          {content.data?.length === 0 && (
-            <EmptyState
-              compact
-              description="No reviewed editorial piece is connected to this category yet."
-              title="No related guidance"
-            />
           )}
           {content.data && content.data.length > 0 && (
             <ContentGrid entries={content.data} />

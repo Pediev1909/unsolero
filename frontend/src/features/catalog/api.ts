@@ -68,8 +68,20 @@ export function getCategory(slug: string) {
   )
 }
 
-export function getBrands() {
-  return apiRequest('/catalog/brands', { method: 'GET' }, (value) =>
+/**
+ * Vendors, optionally narrowed to one category.
+ *
+ * The brand filter on a category page listed all forty-six, so picking one
+ * that sells nothing there returned no products — a dead end the interface
+ * itself had offered. With a category, the counts are also per-category,
+ * because "Zoho (7)" above a page holding one Zoho product is a lie about
+ * what selecting it will do.
+ */
+export function getBrands(categorySlug?: string) {
+  const path = categorySlug
+    ? `/catalog/brands?category=${encodeURIComponent(categorySlug)}`
+    : '/catalog/brands'
+  return apiRequest(path, { method: 'GET' }, (value) =>
     z.array(brandSchema).parse(value),
   )
 }

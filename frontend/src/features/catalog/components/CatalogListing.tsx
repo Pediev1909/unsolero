@@ -53,7 +53,9 @@ export function CatalogListing({
   })
   const products = useProducts(urlState.query)
   const categories = useCategories()
-  const brands = useBrands()
+  // Scoped to the category being viewed, so the filter never offers a brand
+  // that would empty the page.
+  const brands = useBrands(categorySlug)
   const actions = useCatalogActions()
   const displayedProductsAreAllDemo = Boolean(
     products.data &&

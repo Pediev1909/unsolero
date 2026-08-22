@@ -200,7 +200,17 @@ func (h *Handler) getCategory(response http.ResponseWriter, request *http.Reques
 }
 
 func (h *Handler) listBrands(response http.ResponseWriter, request *http.Request) {
-	brands, err := h.catalog.ListBrands(request.Context())
+	// ?category=<slug> narrows the list to brands that actually sell something
+	// there. Without it the filter on a category page offered all forty-six
+	// brands, and choosing one that sells nothing in that category returned no
+	// products -- a dead end the interface had invited the reader into.
+	var brands []domain.Brand
+	var err error
+	if category := request.URL.Query().Get("category"); category != "" {
+		brands, err = h.catalog.ListBrandsInCategory(request.Context(), category)
+	} else {
+		brands, err = h.catalog.ListBrands(request.Context())
+	}
 	if err != nil {
 		h.writeCatalogError(response, err)
 		return

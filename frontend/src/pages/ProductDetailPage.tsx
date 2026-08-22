@@ -304,29 +304,11 @@ export function ProductDetailPage() {
           </section>
         )}
 
-        <section className="py-16 sm:py-24">
-          <Container>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
-              Merchant comparison
-            </p>
-            <Heading className="mt-4" level={2} size="title">
-              Available offers
-            </Heading>
-            {/* Written for a reader, not for an engineer. "Landed price" is
-                what a shipped object costs on your doorstep, and whether the
-                API exposes a destination URL is nobody's question. What a
-                reader needs to know before clicking is whose price this is,
-                when it was checked, and who gets paid. */}
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
-              The price each vendor lists today, with the date it was last
-              checked. A link marked as an affiliate link earns us a commission
-              — it never changes where a product ranks.
-            </p>
-            <div className="mt-9">
-              <ProductOffers isDemo={item.is_demo} slug={item.slug} />
-            </div>
-          </Container>
-        </section>
+        {/* Renders nothing when the vendor has no programme, which is most of
+            them. The heading used to live here and the list inside the
+            component, so a section title sat above an empty state on 45 of 53
+            product pages. */}
+        <ProductOffers slug={item.slug} />
 
         <section className="border-t border-ink/15 py-16 sm:py-24">
           <Container>

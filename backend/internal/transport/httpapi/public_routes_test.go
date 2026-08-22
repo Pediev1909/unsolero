@@ -37,6 +37,9 @@ func (routeCatalogStub) GetCategory(_ context.Context, slug string) (catalogdoma
 	return catalogdomain.Category{}, nil
 }
 func (routeCatalogStub) ListBrands(context.Context) ([]catalogdomain.Brand, error) { return nil, nil }
+func (routeCatalogStub) ListBrandsInCategory(context.Context, string) ([]catalogdomain.Brand, error) {
+	return nil, nil
+}
 func (routeCatalogStub) GetBrand(_ context.Context, slug string) (catalogdomain.Brand, error) {
 	if slug != "known-brand" {
 		return catalogdomain.Brand{}, catalogports.ErrNotFound

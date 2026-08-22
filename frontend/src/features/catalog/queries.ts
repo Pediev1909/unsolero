@@ -67,8 +67,13 @@ export function useCategory(slug: string) {
   })
 }
 
-export function useBrands() {
-  return useQuery({ queryKey: catalogKeys.brands, queryFn: getBrands })
+export function useBrands(categorySlug?: string) {
+  return useQuery({
+    queryKey: categorySlug
+      ? [...catalogKeys.brands, categorySlug]
+      : catalogKeys.brands,
+    queryFn: () => getBrands(categorySlug),
+  })
 }
 
 export function useBrand(slug: string) {

@@ -34,6 +34,11 @@ type CategoryRepository interface {
 
 type BrandRepository interface {
 	ListActiveBrands(context.Context) ([]domain.Brand, error)
+	// ListActiveBrandsInCategory returns only brands that have a published
+	// product in the given category. The filter on a category page listed
+	// every brand in the catalog, so picking one that sells nothing in that
+	// category produced an empty result the interface had invited.
+	ListActiveBrandsInCategory(context.Context, string) ([]domain.Brand, error)
 	GetActiveBrandBySlug(context.Context, string) (domain.Brand, error)
 }
 

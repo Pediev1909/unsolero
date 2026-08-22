@@ -154,6 +154,53 @@ func (repository *Repository) ListActiveBrands(ctx context.Context) ([]domain.Br
 	return brands, nil
 }
 
+// ListActiveBrandsInCategory returns brands with at least one published
+// product in the category. The count it reports is the count *within* that
+// category, not across the catalog, because a filter that says "Zoho (7)" on
+// a page holding one Zoho product is lying about what selecting it will do.
+func (repository *Repository) ListActiveBrandsInCategory(ctx context.Context, categorySlug string) ([]domain.Brand, error) {
+	rows, err := repository.pool.Query(ctx, `
+		SELECT brands.id, brands.name, brands.slug, brands.description,
+			brands.website_url, brands.country_code, brands.is_active,
+			count(products.id)
+		FROM catalog.brands brands
+		JOIN catalog.products products ON products.brand_id = brands.id
+		 AND products.status = 'published'
+		JOIN catalog.categories categories ON categories.id = products.category_id
+		 AND categories.slug = $1 AND categories.vertical_key = $2
+		WHERE brands.is_active = true
+		GROUP BY brands.id, brands.name, brands.slug, brands.description,
+			brands.website_url, brands.country_code, brands.is_active
+		ORDER BY brands.name`, categorySlug, repository.vertical)
+	if err != nil {
+		return nil, fmt.Errorf("list active brands in category: %w", err)
+	}
+	defer rows.Close()
+
+	brands := make([]domain.Brand, 0)
+	for rows.Next() {
+		var brand domain.Brand
+		var websiteURL, countryCode sql.NullString
+		if err := rows.Scan(
+			&brand.ID, &brand.Name, &brand.Slug, &brand.Description,
+			&websiteURL, &countryCode, &brand.IsActive, &brand.PublishedProducts,
+		); err != nil {
+			return nil, fmt.Errorf("scan category brand: %w", err)
+		}
+		if websiteURL.Valid {
+			brand.WebsiteURL = &websiteURL.String
+		}
+		if countryCode.Valid {
+			brand.CountryCode = &countryCode.String
+		}
+		brands = append(brands, brand)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read category brands: %w", err)
+	}
+	return brands, nil
+}
+
 func (repository *Repository) GetActiveBrandBySlug(ctx context.Context, slug string) (domain.Brand, error) {
 	var brand domain.Brand
 	var websiteURL sql.NullString

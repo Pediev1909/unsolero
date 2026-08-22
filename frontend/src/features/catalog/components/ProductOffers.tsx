@@ -1,8 +1,9 @@
 import { ExternalLink, Truck } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import { Badge } from '../../../components/ui/Badge'
-import { ErrorState } from '../../../components/ui/ErrorState'
-import { EmptyState } from '../../../components/ui/EmptyState'
+import { Container } from '../../../components/ui/Container'
+import { Heading } from '../../../components/ui/Heading'
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
 import { Skeleton } from '../../../components/ui/Skeleton'
 import { buttonStyles } from '../../../components/ui/buttonStyles'
@@ -10,50 +11,45 @@ import { formatMinorCurrency } from '../../../lib/money/format'
 import { useOffers } from '../queries'
 import { affiliateClickPath } from '../../analytics/tracking'
 
-export function ProductOffers({
-  slug,
-  isDemo,
-}: {
-  slug: string
-  isDemo: boolean
-}) {
+/**
+ * Where to get the product, when there is somewhere to send people.
+ *
+ * This used to render a "Merchant comparison / Available offers" section on
+ * every product page, and show an empty state on the 45 of 53 where there is
+ * nothing to show. That was the equipment catalog talking: comparing offers
+ * across merchants is what you do for a treadmill five shops sell. Software
+ * has exactly one seller -- the vendor -- so the section can never fill for
+ * a product whose vendor has no programme, and a heading called "Available
+ * offers" comparing a single merchant was never going to make sense either.
+ *
+ * The component owns its whole section now and renders nothing at all when
+ * there is nothing to say.
+ */
+export function ProductOffers({ slug }: { slug: string }) {
   const offers = useOffers(slug)
 
   if (offers.isPending) {
     return (
-      <div
-        aria-label="Loading merchant offers"
-        className="space-y-3"
-        role="status"
-      >
-        {[0, 1].map((item) => (
-          <Skeleton className="h-28 w-full" key={item} />
-        ))}
-      </div>
-    )
-  }
-  if (offers.isError) {
-    return (
-      <ErrorState
-        compact
-        description="Merchant offers could not be loaded."
-        onRetry={() => void offers.refetch()}
-        title="Offers unavailable"
-      />
-    )
-  }
-  if (offers.data.length === 0) {
-    return (
-      <EmptyState
-        compact
-        description={`No verified merchant offers are available for this ${isDemo ? 'demo ' : ''}product.`}
-        title="No current offers"
-      />
+      <Section>
+        <div
+          aria-label="Loading vendor link"
+          className="space-y-3"
+          role="status"
+        >
+          <Skeleton className="h-28 w-full" />
+        </div>
+      </Section>
     )
   }
 
+  // Nothing, on both empty and error. This section is supplementary: the page
+  // it sits on has already delivered the price, the scores and the evidence.
+  // Putting an error panel below all that, for a section most products do not
+  // have, tells the reader something is broken when nothing is.
+  if (offers.isError || offers.data.length === 0) return null
+
   return (
-    <div>
+    <Section>
       <div className="space-y-3">
         {offers.data.map((offer) => (
           <article
@@ -138,11 +134,36 @@ export function ProductOffers({
         ))}
       </div>
       <p className="mt-4 text-xs leading-5 text-ink/68">
-        Only fresh offer observations are shown; prices and availability are not
-        live checkout quotes. Outbound links are tracked for attribution.
-        Affiliate commission never changes product ranking or suitability
-        scores.
+        The price the vendor lists today, with the date it was last checked —
+        not a live checkout quote. Outbound links are tracked so we know a click
+        came from here. Commission never changes where a product ranks or what
+        it scores.
       </p>
-    </div>
+    </Section>
+  )
+}
+
+/**
+ * The section chrome, kept in one place so the heading, the copy and the list
+ * appear and disappear together. Splitting them across the page and this
+ * component is how a heading ended up sitting above an empty state.
+ */
+function Section({ children }: { children: ReactNode }) {
+  return (
+    <section className="py-16 sm:py-24">
+      <Container>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
+          Where to get it
+        </p>
+        <Heading className="mt-4" level={2} size="title">
+          Straight from the vendor
+        </Heading>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-ink/70">
+          Software has one seller, so this is not a price comparison. It is the
+          vendor&rsquo;s own page, and the date we last read the price on it.
+        </p>
+        <div className="mt-9">{children}</div>
+      </Container>
+    </section>
   )
 }
