@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Controller, type UseFormReturn } from 'react-hook-form'
 
 import { Input } from '../../../components/ui/Input'
@@ -82,16 +83,7 @@ export function RecommendationStep({ step, form }: RecommendationStepProps) {
           control={form.control}
           name="budget_minor"
           render={({ field }) => (
-            <Input
-              label="Exact budget in dollars"
-              max={20_000}
-              min={100}
-              onChange={(event) =>
-                field.onChange(Number(event.target.value) * 100)
-              }
-              type="number"
-              value={field.value / 100}
-            />
+            <BudgetInput onChange={field.onChange} valueMinor={field.value} />
           )}
         />
       </div>
@@ -189,5 +181,65 @@ function MultiChoice<T extends string>({
         )
       })}
     </div>
+  )
+}
+
+/**
+ * The exact-budget field.
+ *
+ * It used to derive its text straight from the form value, which meant it
+ * could never be empty: clear it and Number('') became 0, the field redrew as
+ * "0", and typing 4000 after it produced "04000". You could not delete the
+ * zero. On the question that decides everything else.
+ *
+ * The text is local state now, so it can be empty while you type, and only a
+ * value that actually parses is pushed to the form. The clamp happens when you
+ * leave the field rather than on every keystroke — clamping mid-typing is what
+ * turns "1" into "100" before you have finished writing "1500".
+ */
+export function BudgetInput({
+  valueMinor,
+  onChange,
+}: {
+  valueMinor: number
+  onChange: (value: number) => void
+}) {
+  const [text, setText] = useState(() => String(valueMinor / 100))
+  const [editing, setEditing] = useState(false)
+
+  // While the field is not being typed in, it follows the slider.
+  if (!editing && text !== String(valueMinor / 100)) {
+    setText(String(valueMinor / 100))
+  }
+
+  return (
+    <Input
+      hint="Between $100 and $5,000 a month."
+      inputMode="numeric"
+      label="Exact budget in dollars"
+      max={5_000}
+      min={100}
+      onBlur={() => {
+        setEditing(false)
+        const parsed = Number(text)
+        const clamped = Number.isFinite(parsed)
+          ? Math.min(5_000, Math.max(100, Math.round(parsed)))
+          : 100
+        setText(String(clamped))
+        onChange(clamped * 100)
+      }}
+      onChange={(event) => {
+        const next = event.target.value
+        setText(next)
+        setEditing(true)
+        const parsed = Number(next)
+        if (next !== '' && Number.isFinite(parsed) && parsed >= 100) {
+          onChange(Math.min(5_000, Math.round(parsed)) * 100)
+        }
+      }}
+      onFocus={() => setEditing(true)}
+      type="number"
+      value={text}
+    />
   )
 }

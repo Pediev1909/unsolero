@@ -52,6 +52,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
     onChange?.(event)
   }
 
+  const lower = Number(min)
+  const upper = Number(max)
+  const span = upper - lower
+  const filledPercent =
+    span > 0
+      ? Math.min(100, Math.max(0, ((displayValue - lower) / span) * 100))
+      : 0
+
   return (
     <div>
       <div className="mb-3 flex items-baseline justify-between gap-4">
@@ -68,19 +76,27 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
           {formatValue(displayValue)}
         </output>
       </div>
+      {/* appearance-none strips the native track, and nothing was drawn to
+          replace it — so the control rendered as a lone dot floating in white
+          space with no indication it could be dragged. The rail is painted
+          here as a gradient that fills to the current value, which also shows
+          at a glance where in the range you are. */}
       <input
         {...props}
         aria-describedby={hint ? `${id}-hint` : undefined}
-        className={cn(
-          'h-5 w-full cursor-pointer appearance-none bg-transparent accent-bronze disabled:cursor-not-allowed disabled:opacity-50',
-          className,
-        )}
+        className={cn('slider-input', className)}
         defaultValue={defaultValue}
         id={id}
         max={max}
         min={min}
         onChange={handleChange}
         ref={ref}
+        style={{
+          background:
+            `linear-gradient(to right,` +
+            ` var(--color-bronze) 0%, var(--color-bronze) ${filledPercent}%,` +
+            ` var(--color-line) ${filledPercent}%, var(--color-line) 100%)`,
+        }}
         type="range"
         value={value}
       />
