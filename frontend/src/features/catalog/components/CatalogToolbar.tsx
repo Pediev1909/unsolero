@@ -1,4 +1,4 @@
-import { SlidersHorizontal } from 'lucide-react'
+import { Scale, SlidersHorizontal } from 'lucide-react'
 
 import { Button } from '../../../components/ui/Button'
 import { Select } from '../../../components/ui/Select'
@@ -7,14 +7,19 @@ import type { CatalogSort } from '../types'
 interface CatalogToolbarProps {
   count: number
   sort: CatalogSort
+  /** How many products are in the comparison right now. */
+  comparedCount: number
   onOpenFilters: () => void
+  onOpenComparison: () => void
   onSort: (sort: CatalogSort) => void
 }
 
 export function CatalogToolbar({
   count,
   sort,
+  comparedCount,
   onOpenFilters,
+  onOpenComparison,
   onSort,
 }: CatalogToolbarProps) {
   return (
@@ -23,6 +28,18 @@ export function CatalogToolbar({
         {count} {count === 1 ? 'product' : 'products'}
       </p>
       <div className="flex items-end gap-3">
+        {/* The only way to open a comparison used to be a bar fixed to the
+            bottom of the viewport. Anything that covers that corner -- a
+            desktop panel, a browser toolbar, a zoom level -- and the feature
+            becomes unreachable, with no second route and no clue that one is
+            missing. This sits in the normal flow, where scrolling can always
+            reach it. */}
+        {comparedCount > 0 && (
+          <Button onClick={onOpenComparison} size="sm" variant="primary">
+            <Scale aria-hidden="true" size={16} />
+            Compare {comparedCount}
+          </Button>
+        )}
         <Button
           className="lg:hidden"
           onClick={onOpenFilters}

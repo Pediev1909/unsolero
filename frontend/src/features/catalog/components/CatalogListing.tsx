@@ -174,7 +174,9 @@ export function CatalogListing({
 
             <div id="catalog-results">
               <CatalogToolbar
+                comparedCount={actions.comparedIDs.size}
                 count={products.data?.total ?? 0}
+                onOpenComparison={() => actions.setComparisonOpen(true)}
                 onOpenFilters={() => setFilterOpen(true)}
                 onSort={urlState.setSort}
                 sort={urlState.sort}
@@ -236,8 +238,15 @@ export function CatalogListing({
         <div
           className="fixed inset-x-0 z-30 mx-auto flex w-[min(calc(100%-2rem),32rem)] items-center justify-between gap-4 border border-ink/15 bg-ink px-4 py-3 text-canvas shadow-overlay"
           // Sits above the consent banner while that is showing, rather than
-          // underneath it where its Compare button could not be clicked.
-          style={{ bottom: 'calc(var(--bottom-bar-offset, 0px) + 1rem)' }}
+          // underneath it where its Compare button could not be clicked. The
+          // safe-area term keeps it clear of a device's own bottom furniture;
+          // the toolbar carries the same action in normal flow, so this bar
+          // being obscured by anything is an inconvenience rather than a dead
+          // end.
+          style={{
+            bottom:
+              'calc(var(--bottom-bar-offset, 0px) + env(safe-area-inset-bottom, 0px) + 1rem)',
+          }}
         >
           <p className="text-sm">
             <strong>{actions.comparedIDs.size}</strong> of 4 selected
