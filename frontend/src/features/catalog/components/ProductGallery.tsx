@@ -81,7 +81,7 @@ function PriceCard({ product }: { product: ProductDetail }) {
 
   return (
     <aside className="self-start border border-ink/15 bg-surface">
-      <div className="flex items-center gap-3 border-b border-ink/12 bg-paper px-5 py-4">
+      <div className="flex items-center gap-3 border-b border-ink/12 bg-paper px-5 py-3.5">
         <BrandMark
           brandName={product.brand.name}
           brandSlug={product.brand.slug}
@@ -102,7 +102,7 @@ function PriceCard({ product }: { product: ProductDetail }) {
           icon={<Receipt aria-hidden="true" size={16} />}
           label="Entry price"
         >
-          <span className="font-display text-3xl font-medium tracking-[-0.04em]">
+          <span className="font-display text-2xl font-medium tracking-[-0.035em]">
             {free
               ? 'No monthly fee'
               : new Intl.NumberFormat('en-US', {
@@ -136,9 +136,8 @@ function PriceCard({ product }: { product: ProductDetail }) {
         </Row>
       </dl>
 
-      <p className="border-t border-ink/12 bg-paper px-5 py-3 text-xs leading-5 text-ink/70">
-        Not a live quote. Vendors change prices without notice, and this one is
-        as good as its date.
+      <p className="border-t border-ink/12 bg-paper px-5 py-2.5 text-xs leading-5 text-ink/70">
+        Not a live quote — this price is as good as its date.
       </p>
     </aside>
   )
@@ -154,12 +153,12 @@ function Row({
   children: React.ReactNode
 }) {
   return (
-    <div className="px-5 py-4">
+    <div className="px-5 py-3.5">
       <dt className="flex items-center gap-2 text-[0.625rem] font-bold tracking-[0.13em] text-ink/65 uppercase">
         <span className="text-bronze">{icon}</span>
         {label}
       </dt>
-      <dd className="mt-2">{children}</dd>
+      <dd className="mt-1.5">{children}</dd>
     </div>
   )
 }

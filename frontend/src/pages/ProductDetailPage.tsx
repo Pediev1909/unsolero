@@ -17,7 +17,6 @@ import { Button } from '../components/ui/Button'
 import { Container } from '../components/ui/Container'
 import { ErrorState } from '../components/ui/ErrorState'
 import { Heading } from '../components/ui/Heading'
-import { PriceDisplay } from '../components/ui/PriceDisplay'
 import { Skeleton } from '../components/ui/Skeleton'
 import { CatalogProductGrid } from '../features/catalog/components/CatalogProductGrid'
 import { ProductComparison } from '../features/catalog/components/ProductComparison'
@@ -143,21 +142,17 @@ export function ProductDetailPage() {
               <Heading className="mt-5" level={1} size="display">
                 {item.name}
               </Heading>
-              <p className="mt-6 max-w-xl text-base leading-7 text-ink/65">
+              <p className="mt-5 max-w-xl text-base leading-7 text-ink/70">
                 {item.description}
               </p>
-              <div className="mt-8 flex flex-wrap items-center justify-between gap-5 border-y border-ink/15 py-6">
-                <div>
-                  <p className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
-                    Reference price
-                  </p>
-                  <PriceDisplay
-                    amountMinor={item.price.amount_minor}
-                    className="mt-2"
-                    currency={item.price.currency}
-                    size="lg"
-                  />
-                </div>
+              {/* The price used to be printed here as well as in the card
+                  beside it, twice on one screen, and the second copy carried
+                  none of what makes it useful — no billing basis, no date, no
+                  source. The card owns it now; this row is the action. */}
+              <div className="mt-7 flex flex-wrap items-center justify-between gap-4 border-y border-ink/15 py-5">
+                <p className="max-w-xs text-sm leading-6 text-ink/70">
+                  Keep it on a shortlist you can come back to.
+                </p>
                 <Button
                   aria-pressed={saved}
                   loading={actions.savePending}
@@ -173,7 +168,7 @@ export function ProductDetailPage() {
                 </Button>
               </div>
 
-              <div className="mt-7">
+              <div className="mt-6">
                 <h2 className="text-xs font-bold uppercase tracking-[0.14em]">
                   Suitability at a glance
                 </h2>
