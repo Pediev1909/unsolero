@@ -32,7 +32,8 @@ export const exampleSetup = {
   items: [
     {
       name: 'HubSpot Starter Customer Platform',
-      reason: 'Shared client records without a setup project, and a free tier to start on.',
+      reason:
+        'Shared client records without a setup project, and a free tier to start on.',
       priceMinor: 2000,
     },
     {

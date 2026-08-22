@@ -1,30 +1,20 @@
 import { ArrowRight, Search } from 'lucide-react'
 
 import { ButtonLink } from '../ui/ButtonLink'
+import { HeroCatalogPanel } from './HeroCatalogPanel'
 import { Container } from '../ui/Container'
 import { Heading } from '../ui/Heading'
 export function Hero() {
   return (
     <section className="relative overflow-hidden bg-canvas pt-20 lg:min-h-[820px]">
-      {/* The illustration is a wireframe of a dashboard. Beside the copy on a
-          wide screen it reads as what the site is about; behind it on a phone
-          it reads as artefacts, and no amount of scrim fixes that — a fade
-          heavy enough to protect the text leaves grey bars crossing the
-          buttons, and a lighter one puts panels under the headline. A phone
-          gets the type and the two things to do, which is the stronger first
-          screen anyway. */}
-      <div className="absolute inset-x-0 bottom-0 top-20 hidden lg:left-[44%] lg:block">
-        <img
-          className="size-full object-cover object-[66%_center]"
-          src="/images/unsolero-saas-hero.svg"
-          alt="A small team reviewing the tools their business runs on"
-          fetchPriority="high"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-canvas via-canvas/25 to-transparent" />
-      </div>
-
-      <Container className="relative z-10 flex items-start pb-16 pt-14 sm:pb-20 sm:pt-24 lg:min-h-[740px] lg:items-center lg:py-20">
-        <div className="max-w-3xl lg:max-w-[720px]">
+      {/* The illustration used to be a static SVG wireframe: grey bars
+          arranged to look like a dashboard. On a site whose whole argument is
+          that its numbers are real and checked, drawing fake interface was the
+          worst available choice — and its alt text described a small team
+          reviewing tools, which is not what the picture showed either. It is
+          the catalog now, live. */}
+      <Container className="relative z-10 flex flex-col items-start gap-14 pt-14 pb-16 sm:pt-24 sm:pb-20 lg:min-h-[740px] lg:flex-row lg:items-center lg:justify-between lg:gap-16 lg:py-20">
+        <div className="max-w-3xl lg:max-w-[620px]">
           <p className="eyebrow">Software stack intelligence</p>
           <Heading className="mt-5 max-w-2xl" level={1} size="hero">
             Build the right software stack.
@@ -44,11 +34,9 @@ export function Hero() {
             </ButtonLink>
           </div>
         </div>
-      </Container>
 
-      <p className="absolute bottom-7 right-6 z-10 hidden max-w-[170px] text-xs leading-5 text-canvas/78 lg:block xl:right-10">
-        Your budget and existing tools are constraints—not afterthoughts.
-      </p>
+        <HeroCatalogPanel />
+      </Container>
     </section>
   )
 }

@@ -148,9 +148,7 @@ export function ComparisonSection() {
                       size="sm"
                     />
                   </td>
-                  <td className="p-5 text-sm sm:p-6">
-                    {product.planLabel}
-                  </td>
+                  <td className="p-5 text-sm sm:p-6">{product.planLabel}</td>
                   <td className="p-5 text-sm sm:p-6">
                     {product.easeScore}/100
                   </td>
