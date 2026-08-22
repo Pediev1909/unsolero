@@ -55,7 +55,7 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
           onChange={(event) => setDifferencesOnly(event.target.checked)}
         />
         <p className="text-xs text-ink/60">
-          Rows where every tool answers the same are dimmed.
+          Rows where every tool answers the same are tinted.
         </p>
       </div>
 
@@ -163,22 +163,32 @@ function Row({
   products: ProductDetail[]
   muted: boolean
 }) {
+  // Marked by tint, not by opacity. Dimming the row with opacity dropped its
+  // text to a contrast ratio of 2.1 against a required 4.5 — the "these are
+  // the same" signal was being paid for in legibility, by the reader who most
+  // needs to read it.
   return (
-    <tr className={cn(muted && 'opacity-55')}>
+    <tr>
       <th
-        className="sticky left-0 z-10 border-r border-b border-ink/15 bg-paper p-4 align-top font-semibold"
+        className={cn(
+          'sticky left-0 z-10 border-r border-b border-ink/15 p-4 align-top font-semibold',
+          muted ? 'bg-paper/60' : 'bg-paper',
+        )}
         scope="row"
       >
         {row.label}
         {row.explains && (
-          <span className="mt-1 block text-xs leading-4 font-normal text-ink/60">
+          <span className="mt-1 block text-xs leading-4 font-normal text-ink/70">
             {row.explains}
           </span>
         )}
       </th>
       {products.map((product) => (
         <td
-          className="border-r border-b border-ink/10 bg-surface p-4 align-top last:border-r-0"
+          className={cn(
+            'border-r border-b border-ink/10 p-4 align-top last:border-r-0',
+            muted ? 'bg-paper/40' : 'bg-surface',
+          )}
           key={product.id}
         >
           {row.kind === 'score' ? (
@@ -207,7 +217,7 @@ function ScoreCell({ value }: { value: number }) {
         <span className="font-display text-sm font-semibold">
           {scoreBand(value)}
         </span>
-        <span className="text-xs text-ink/55 tabular-nums">{value}</span>
+        <span className="text-xs text-ink/70 tabular-nums">{value}</span>
       </div>
       <div
         aria-hidden="true"
@@ -233,7 +243,7 @@ function FactCell({
   const source = row.key === 'price_checked' ? priceSource(product) : null
 
   return (
-    <div className="text-ink/80">
+    <div className="text-ink">
       <span
         className={cn(
           row.key === 'price' && 'font-display text-base font-semibold',
