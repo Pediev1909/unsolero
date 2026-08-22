@@ -1,4 +1,7 @@
+import { Bookmark } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
+
+import { useWishlistSelection } from '../../features/catalog/useProductCollections'
 
 import { BrowseMenu } from './BrowseMenu'
 import { NavigationMenu } from './NavigationMenu'
@@ -17,6 +20,8 @@ interface NavigationProps {
 
 export function Navigation({ items, includeAccount = true }: NavigationProps) {
   const location = useLocation()
+  const wishlist = useWishlistSelection()
+  const savedCount = wishlist.productIDs.length
 
   return (
     <nav
@@ -66,6 +71,24 @@ export function Navigation({ items, includeAccount = true }: NavigationProps) {
           </ul>
         )}
       </NavigationMenu>
+
+      {/* Appears only once something is in it. A "Save product" button whose
+          result has no visible destination is a button that does nothing as
+          far as the reader can tell — and after the navigation rebuild this
+          link lived only in the mobile drawer and the footer, so on a desktop
+          there was no way at all to reach what you had just saved. */}
+      {savedCount > 0 && (
+        <Link
+          className="nav-link inline-flex items-center gap-1.5"
+          to="/wishlist"
+        >
+          <Bookmark aria-hidden="true" size={15} />
+          Saved
+          <span className="rounded-full bg-bronze px-1.5 text-[0.6875rem] font-bold text-canvas tabular-nums">
+            {savedCount}
+          </span>
+        </Link>
+      )}
 
       {includeAccount && (
         <Link

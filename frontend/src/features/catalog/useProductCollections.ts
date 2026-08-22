@@ -61,6 +61,9 @@ export function useWishlistSelection() {
 
   return {
     productIDs,
+    // Exposed so a message about where something was saved can be accurate:
+    // an account list follows you between devices, a browser list does not.
+    authenticated,
     toggle,
     isPending:
       account.isPending ||

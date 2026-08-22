@@ -32,11 +32,26 @@ export function useCatalogActions() {
   }
 
   function save(product: ProductSummary) {
+    const wasSaved = wishlist.productIDs.includes(product.id)
     if (!wishlist.toggle(product.id)) {
       showToast({
         title: 'Saved software is unavailable',
         description: 'Wait a moment, then try again.',
         variant: wishlist.isError ? 'error' : 'neutral',
+      })
+      return
+    }
+    // Saving used to give no feedback at all beyond a bookmark icon changing
+    // state, and no indication of where the thing had gone or whether it
+    // would survive closing the tab. Both matter, and the honest answer
+    // differs depending on whether they are signed in.
+    if (!wasSaved) {
+      showToast({
+        title: `${product.name} saved`,
+        description: wishlist.authenticated
+          ? 'It is on your saved list, on any device you sign in from.'
+          : 'It is on your saved list in this browser. Sign in to keep it.',
+        variant: 'success',
       })
     }
   }
