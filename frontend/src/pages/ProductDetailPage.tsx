@@ -122,7 +122,11 @@ export function ProductDetailPage() {
         </Container>
 
         <Container className="pb-16 sm:pb-24">
-          <div className="grid gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)] lg:gap-14">
+          {/* items-start, so the left column does not stretch to the height of
+              the right one. Without it the price card's border ran the full
+              height of the description beside it and left a tall panel of
+              empty white under the last row. */}
+          <div className="grid items-start gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)] lg:gap-14">
             <ProductGallery product={item} />
             <div className="lg:pt-5">
               <div className="flex flex-wrap items-center gap-2">

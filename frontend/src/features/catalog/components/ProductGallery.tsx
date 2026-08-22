@@ -80,7 +80,7 @@ function PriceCard({ product }: { product: ProductDetail }) {
   const free = product.price.amount_minor === 0
 
   return (
-    <aside className="border border-ink/15 bg-surface">
+    <aside className="self-start border border-ink/15 bg-surface">
       <div className="flex items-center gap-3 border-b border-ink/12 bg-paper px-5 py-4">
         <BrandMark
           brandName={product.brand.name}
@@ -119,12 +119,12 @@ function PriceCard({ product }: { product: ProductDetail }) {
           icon={<CalendarCheck aria-hidden="true" size={16} />}
           label="Read from the vendor on"
         >
-          <span className="text-base font-semibold">
+          <span className="block text-base font-semibold">
             {checked ?? 'Not recorded'}
           </span>
           {source && (
             <a
-              className="mt-1.5 inline-flex items-center gap-1 text-sm text-bronze underline-offset-4 hover:underline"
+              className="mt-2 inline-flex items-center gap-1 text-sm text-bronze underline-offset-4 hover:underline"
               href={source}
               rel="nofollow noopener noreferrer"
               target="_blank"
