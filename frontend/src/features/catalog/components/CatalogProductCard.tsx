@@ -30,7 +30,7 @@ export function CatalogProductCard({
 
   return (
     <article className="group flex h-full flex-col border-b border-r border-ink/15 bg-surface">
-        {/* Every product in a software catalog reaches this branch, so the
+      {/* Every product in a software catalog reaches this branch, so the
             media slot is never a photograph and a 4:3 box is 292px of empty
             paper on a phone before the name, the price or a button. The
             placeholder keeps a band deep enough to read as a deliberate mark
@@ -39,7 +39,9 @@ export function CatalogProductCard({
         aria-label={`View ${product.name}`}
         className={cn(
           'relative block overflow-hidden bg-paper',
-          product.primary_image ? 'aspect-[4/3]' : 'aspect-[16/5] sm:aspect-[16/6]',
+          product.primary_image
+            ? 'aspect-[4/3]'
+            : 'aspect-[16/5] sm:aspect-[16/6]',
         )}
         to={`/products/${product.slug}`}
       >

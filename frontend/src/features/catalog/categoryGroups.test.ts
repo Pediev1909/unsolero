@@ -38,9 +38,7 @@ describe('groupCategories', () => {
 
   it('leaves out a category with nothing published in it', () => {
     const groups = groupCategories([category('crm'), category('payments', 0)])
-    const slugs = groups.flatMap((group) =>
-      group.categories.map((c) => c.slug),
-    )
+    const slugs = groups.flatMap((group) => group.categories.map((c) => c.slug))
     expect(slugs).toEqual(['crm'])
   })
 

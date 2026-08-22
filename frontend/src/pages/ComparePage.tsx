@@ -21,8 +21,7 @@ export function ComparePage() {
     (selection.productIDs.length > 0 && products.isPending)
   usePageMetadata({
     title: 'Compare Software | UNSOLERO',
-    description:
-      'Compare structured software product facts side by side.',
+    description: 'Compare structured software product facts side by side.',
     robots: 'noindex, follow',
   })
   return (
@@ -35,8 +34,9 @@ export function ComparePage() {
             Compare tools.
           </Heading>
           <p className="mt-5 max-w-2xl text-ink/70">
-            Select two to four products. On small screens, swipe the table
-            horizontally while specification labels stay visible.
+            Two to four tools, side by side. Every price says whether it is
+            monthly or annual, and every score says what it measures — because
+            &ldquo;82 out of 100&rdquo; on its own decides nothing.
           </p>
           <div className="mt-10">
             {loading && <LoadingState title="Loading your comparison" />}

@@ -28,19 +28,13 @@ const factLabels: Record<string, string> = {
 }
 
 export function evidenceFactLabel(key: string): string {
-  return (
-    factLabels[key] ??
-    key.replaceAll('_', ' ').replaceAll('.', ' · ')
-  )
+  return factLabels[key] ?? key.replaceAll('_', ' ').replaceAll('.', ' · ')
 }
 
 // A fact key that describes nothing this product has. Evidence for a score of
 // zero on a dimension the product is not measured on reads as a gap in the
 // product rather than as a dimension that does not apply to it.
-export function evidenceApplies(
-  key: string,
-  product: ProductDetail,
-): boolean {
+export function evidenceApplies(key: string, product: ProductDetail): boolean {
   switch (key) {
     // The URL this page is served at is not a claim anyone needs sourced.
     case 'slug':
