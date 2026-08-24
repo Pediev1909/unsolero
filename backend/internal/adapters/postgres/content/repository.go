@@ -67,6 +67,7 @@ func (repository *Repository) ListPublished(ctx context.Context, filter ports.Fi
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("read published editorial entries: %w", err)
 	}
+	repository.attachCovered(ctx, entries)
 	return entries, nil
 }
 
@@ -275,6 +276,51 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 
 type summaryScanner interface {
 	Scan(...any) error
+}
+
+// attachCovered fills in the products each piece compares, for the whole list
+// in one query rather than one per card. A card is named after its products, so
+// without this every comparison would look like every other comparison — which
+// is exactly what thirteen entries sharing one illustration looked like.
+//
+// A failure here is deliberately silent: the card falls back to its
+// illustration, and a listing that renders without product names is better than
+// a listing that does not render at all.
+func (repository *Repository) attachCovered(ctx context.Context, entries []domain.Summary) {
+	if len(entries) == 0 {
+		return
+	}
+	ids := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		ids = append(ids, entry.ID)
+	}
+	rows, err := repository.pool.Query(ctx, `
+		SELECT entry_products.entry_id, products.name, products.price_minor, products.currency
+		FROM editorial.entry_products
+		JOIN catalog.products AS products ON products.id = entry_products.product_id
+		WHERE entry_products.entry_id = ANY($1::uuid[])
+			AND products.status = 'published'
+		ORDER BY entry_products.entry_id, products.price_minor, products.name`, ids)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	covered := make(map[string][]domain.CoveredProduct, len(entries))
+	for rows.Next() {
+		var entryID string
+		var product domain.CoveredProduct
+		if err := rows.Scan(&entryID, &product.Name, &product.PriceMinor, &product.Currency); err != nil {
+			return
+		}
+		covered[entryID] = append(covered[entryID], product)
+	}
+	if err := rows.Err(); err != nil {
+		return
+	}
+	for index := range entries {
+		entries[index].Covered = covered[entries[index].ID]
+	}
 }
 
 func scanSummary(scanner summaryScanner) (domain.Summary, error) {

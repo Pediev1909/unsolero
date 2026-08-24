@@ -26,6 +26,17 @@ export const contentSummarySchema = z.object({
   author_name: z.string(),
   published_at: z.string().datetime(),
   updated_at: z.string().datetime(),
+  // The products the piece compares. A card is named after them, which is what
+  // stops thirteen comparisons sharing one illustration from looking identical.
+  covered: z
+    .array(
+      z.object({
+        name: z.string(),
+        price_minor: z.number().int().nonnegative(),
+        currency: z.string(),
+      }),
+    )
+    .default([]),
 })
 
 const contentBlockSchema = z.object({

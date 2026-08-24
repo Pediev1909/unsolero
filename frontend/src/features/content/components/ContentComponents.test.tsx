@@ -21,6 +21,7 @@ const summary: ContentSummary = {
   author_name: 'UNSOLERO Editorial',
   published_at: '2026-08-01T09:00:00Z',
   updated_at: '2026-08-01T09:00:00Z',
+  covered: [],
 }
 
 describe('editorial content presentation', () => {
@@ -53,5 +54,60 @@ describe('editorial content presentation', () => {
     ).toHaveAttribute('id', 'measure-the-room')
     expect(screen.getByText('<script>unsafe()</script>')).toBeInTheDocument()
     expect(container.querySelector('script')).not.toBeInTheDocument()
+  })
+})
+
+describe('editorial card nameplate', () => {
+  // Thirteen comparisons shared one illustration, so the card has to take its
+  // identity from the products the piece covers rather than from a picture.
+  it('names the card after the products the piece compares', () => {
+    render(
+      <MemoryRouter>
+        <ContentCard
+          entry={{
+            ...summary,
+            covered: [
+              { name: 'Fathom', price_minor: 1500, currency: 'USD' },
+              { name: 'Umami', price_minor: 2000, currency: 'USD' },
+            ],
+          }}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText(/Fathom/)).toBeInTheDocument()
+    expect(screen.getByText(/Umami/)).toBeInTheDocument()
+    expect(screen.getByText('$15–$20')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+  })
+
+  it('calls a free tool free rather than printing a zero', () => {
+    render(
+      <MemoryRouter>
+        <ContentCard
+          entry={{
+            ...summary,
+            covered: [
+              { name: 'Wave', price_minor: 0, currency: 'USD' },
+              { name: 'Zoho Books', price_minor: 1200, currency: 'USD' },
+            ],
+          }}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Free–$12')).toBeInTheDocument()
+  })
+
+  // A piece with no product set keeps its illustration; the alternative is a
+  // card with an empty band where a picture used to be.
+  it('keeps the illustration when the piece covers nothing', () => {
+    render(
+      <MemoryRouter>
+        <ContentCard entry={summary} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('img')).toHaveAttribute(
+      'src',
+      '/images/saas-agency-stack.svg',
+    )
   })
 })

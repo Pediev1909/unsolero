@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { CardNameplate } from './CardNameplate'
 import { contentTypeLabel, formatEditorialDate } from '../model'
 import type { ContentSummary } from '../schemas'
 
@@ -12,14 +13,7 @@ export function ContentCard({ entry }: { entry: ContentSummary }) {
         className="flex h-full flex-col"
         to={entry.path}
       >
-        <div className="aspect-[16/10] overflow-hidden bg-paper">
-          <img
-            alt={entry.hero_image.alt_text}
-            className="size-full object-cover transition-transform duration-280 group-hover:scale-[1.015] motion-reduce:transform-none"
-            loading="lazy"
-            src={entry.hero_image.url}
-          />
-        </div>
+        <CardNameplate entry={entry} />
         <div className="flex flex-1 flex-col p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4 text-[0.625rem] font-bold uppercase tracking-[0.14em] text-bronze-dark">
             <span>{contentTypeLabel(entry.type)}</span>

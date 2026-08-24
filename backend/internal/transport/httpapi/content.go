@@ -23,6 +23,15 @@ type contentSummaryResponse struct {
 	AuthorName  string        `json:"author_name"`
 	PublishedAt time.Time     `json:"published_at"`
 	UpdatedAt   time.Time     `json:"updated_at"`
+	// Covered names the card after the products the piece compares, so a grid
+	// of comparisons stops looking like one comparison repeated.
+	Covered []coveredProductResponse `json:"covered"`
+}
+
+type coveredProductResponse struct {
+	Name       string `json:"name"`
+	PriceMinor int64  `json:"price_minor"`
+	Currency   string `json:"currency"`
 }
 
 type contentBlockResponse struct {
@@ -121,11 +130,18 @@ func (h *Handler) getContent(response http.ResponseWriter, request *http.Request
 }
 
 func contentSummaryDTO(entry domain.Summary) contentSummaryResponse {
+	covered := make([]coveredProductResponse, 0, len(entry.Covered))
+	for _, product := range entry.Covered {
+		covered = append(covered, coveredProductResponse{
+			Name: product.Name, PriceMinor: product.PriceMinor, Currency: product.Currency,
+		})
+	}
 	return contentSummaryResponse{
 		ID: entry.ID, Type: string(entry.Type), Title: entry.Title, Slug: entry.Slug,
 		Path: entry.Path, Description: entry.Description,
 		HeroImage:  imageResponse{URL: entry.HeroImageURL, AltText: entry.HeroImageAlt},
 		AuthorName: entry.AuthorName, PublishedAt: entry.PublishedAt, UpdatedAt: entry.UpdatedAt,
+		Covered: covered,
 	}
 }
 

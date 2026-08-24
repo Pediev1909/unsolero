@@ -64,6 +64,17 @@ type Summary struct {
 	PublishedAt  time.Time
 	UpdatedAt    time.Time
 	Path         string
+	// Covered names a card after the products the piece actually compares.
+	// Thirteen comparisons shared one illustration and six guides shared
+	// another, so a grid of them read as a template rather than a library. The
+	// products differ on every piece, which makes the card differ for free.
+	Covered []CoveredProduct
+}
+
+type CoveredProduct struct {
+	Name       string
+	PriceMinor int64
+	Currency   string
 }
 
 type Entry struct {
