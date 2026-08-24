@@ -152,7 +152,7 @@ export function RecommendationBuilderPage() {
                         ? 'Loading your saved progress…'
                         : builder.draft.isError
                           ? 'Saved progress is unavailable. Answers remain in this browser.'
-                          : builder.saveDraft.isError
+                          : builder.saveHasFailed
                             ? 'Your latest change could not be saved. Your answers remain in this browser.'
                             : // No "Saving progress…" state. The save takes a
                               // couple of hundred milliseconds and fires on

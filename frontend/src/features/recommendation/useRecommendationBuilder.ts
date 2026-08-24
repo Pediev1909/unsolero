@@ -40,6 +40,12 @@ export function useRecommendationBuilder(initialInput?: RecommendationInput) {
       ? fromRecommendationInput(initialInput)
       : (restored?.values ?? defaultBuilderValues),
   })
+  // React Query clears isError the moment the next mutation starts, and this
+  // one fires on every answer. While saving is genuinely failing that made the
+  // warning strobe — gone on each click, back a moment later — which reads as a
+  // glitch rather than as a problem. Latch it: it appears on the first failure
+  // and stays until a save succeeds.
+  const [saveHasFailed, setSaveHasFailed] = useState(false)
   const [currentStep, setCurrentStep] = useState(restored?.currentStep ?? 0)
   const [stepError, setStepError] = useState<string | null>(null)
   const [result, setResult] = useState<RecommendationResult | null>(null)
@@ -67,7 +73,10 @@ export function useRecommendationBuilder(initialInput?: RecommendationInput) {
     if (!account.data || !draft.isSuccess || generate.isPending || result)
       return
     const timeout = window.setTimeout(() => {
-      persistDraft(toDraft(values, currentStep + 1))
+      persistDraft(toDraft(values, currentStep + 1), {
+        onError: () => setSaveHasFailed(true),
+        onSuccess: () => setSaveHasFailed(false),
+      })
     }, 650)
     return () => window.clearTimeout(timeout)
   }, [
@@ -157,6 +166,7 @@ export function useRecommendationBuilder(initialInput?: RecommendationInput) {
     account,
     draft,
     saveDraft,
+    saveHasFailed,
     generate,
     next,
     back,

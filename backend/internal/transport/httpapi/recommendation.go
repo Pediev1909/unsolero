@@ -359,9 +359,19 @@ func draftFromRequest(body draftRequest) recommendationports.Draft {
 			HeightMM: space.HeightMM, AccessWidthMM: space.AccessWidthMM,
 			ApartmentLiving: space.ApartmentLiving}
 	}
+	// Empty, not nil. Both columns are NOT NULL, and appending to a nil slice
+	// that never receives an element leaves it nil, which pgx sends as NULL.
+	// Nobody has chosen a preference or a priority until the questions that ask
+	// for them, so every draft save from question one onwards failed with a
+	// constraint violation, and a signed-in visitor watched "your latest change
+	// could not be saved" appear on each answer. Same class as the zeroed space
+	// above: a value the non-physical vertical never fills, reaching a column
+	// that was written expecting it.
+	draft.TrainingPreferences = make([]recommendationdomain.TrainingPreference, 0, len(body.TrainingPreferences))
 	for _, value := range body.TrainingPreferences {
 		draft.TrainingPreferences = append(draft.TrainingPreferences, recommendationdomain.TrainingPreference(value))
 	}
+	draft.Priorities = make([]recommendationdomain.Priority, 0, len(body.Priorities))
 	for _, value := range body.Priorities {
 		draft.Priorities = append(draft.Priorities, recommendationdomain.Priority(value))
 	}
