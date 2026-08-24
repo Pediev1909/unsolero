@@ -637,6 +637,13 @@ func commit(ctx context.Context, tx pgx.Tx, err error) error {
 }
 
 func mapError(operation string, err error) error {
+	// Success has to survive this function. Every caller until now passed an
+	// error it already knew was non-nil, so the unconditional wrap at the end
+	// was invisible; the first caller to hand it rows.Err() on a good read got
+	// a non-nil error wrapping nil, and a working query returned 500.
+	if err == nil {
+		return nil
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ports.ErrNotFound
 	}
