@@ -34,7 +34,7 @@ FROM author CROSS JOIN (VALUES
     'Zoho CRM vs HubSpot: the same price, two different bets',
     'zoho-crm-vs-hubspot',
     'Both cost 20 USD per user per month. That is where the similarity stops. One is a cheap seat in a large suite, the other is a cheap door into an expensive one.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Two software plans placed side by side at the same monthly price',
     $json$[
       {"type":"paragraph","text":"Zoho CRM Standard and HubSpot Starter Customer Platform both cost 20 USD per user per month. The interesting question is not which is cheaper today, because neither is. It is which one costs more in two years, and the answer is almost always HubSpot."},
@@ -60,7 +60,7 @@ FROM author CROSS JOIN (VALUES
     'Zapier vs Make: pay more for the library or less for the canvas',
     'zapier-vs-make',
     'Zapier connects to more things. Make is cheaper and easier to reason about once a workflow branches. Which matters depends on one question about the tools you already own.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Two automation workflows drawn side by side, one as a list and one as a diagram',
     $json$[
       {"type":"paragraph","text":"If the app you need is only on Zapier, the comparison is over and you pay the difference. If both connect to everything you own, Make does the same work for less money and shows it to you more clearly. Check the connector list first; everything else is secondary."},
@@ -86,7 +86,7 @@ FROM author CROSS JOIN (VALUES
     'Stripe vs Paddle: who files your sales tax',
     'stripe-vs-paddle',
     'Stripe charges 2.9% plus 30 cents. Paddle charges 5% plus 50 cents. The gap is not a markup — it is the price of somebody else being legally responsible for your VAT.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Two payment routes drawn side by side, one passing through a tax authority',
     $json$[
       {"type":"paragraph","text":"Neither charges a monthly fee. Stripe takes 2.9% plus 30 cents per successful domestic card charge. Paddle takes 5% plus 50 cents per checkout transaction. Two points looks like a lot until you find out what it buys, and then for most one-person software businesses it looks cheap."},
@@ -111,7 +111,7 @@ FROM author CROSS JOIN (VALUES
     'Calendly vs Cal.com vs Zoho Bookings: the booking link decision',
     'calendly-vs-cal-com-vs-zoho-bookings',
     'Three booking tools within four dollars of each other. The price is not the decision — recognition, ownership and what else you already run are.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Three booking calendars shown side by side with their monthly prices',
     $json$[
       {"type":"paragraph","text":"These three sit within four dollars of one another, so anyone leading with price is padding. Calendly is the one your customer already recognises. Cal.com is the one you can host yourself. Zoho Bookings is the one that already knows your CRM. Pick the sentence that describes your problem."},
@@ -136,7 +136,7 @@ FROM author CROSS JOIN (VALUES
     'Fathom vs Simple Analytics vs Umami: privacy analytics compared',
     'fathom-vs-simple-analytics-vs-umami',
     'Three analytics tools that need no cookie banner, at 100,000 pageviews a month. One of them is free at that volume, which changes the shape of the comparison.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Three analytics dashboards shown side by side at the same traffic volume',
     $json$[
       {"type":"paragraph","text":"All three do the same core job: web analytics without cookies, without a consent banner, and without handing your visitors to an advertising company. Priced at the same volume, one of them is free, which is the fact that should decide most of these comparisons and rarely gets stated plainly."},
@@ -163,7 +163,7 @@ FROM author CROSS JOIN (VALUES
     'Shopify vs BigCommerce: identical price, different bill',
     'shopify-vs-bigcommerce',
     'Both entry plans cost 29 USD a month. What separates them is the transaction fee, the sales ceiling, and how much of your setup you can take with you.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Two online store dashboards shown side by side at the same monthly price',
     $json$[
       {"type":"paragraph","text":"Shopify Basic and BigCommerce Core both cost 29 USD a month. They are not the same 29 dollars. BigCommerce charges no platform transaction fee on top when you use a supported payment provider; Shopify does unless you use Shopify Payments. On any real volume, that line matters more than the subscription."},
@@ -190,7 +190,7 @@ FROM author CROSS JOIN (VALUES
     'Zoho Invoice vs Wave: which free invoicing tool',
     'zoho-invoice-vs-wave',
     'Both cost nothing, permanently, with no trial and no card. One of them does bookkeeping and the other does not, and that single difference decides it.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Two invoices side by side, both marked as costing nothing',
     $json$[
       {"type":"paragraph","text":"Zoho Invoice and Wave Starter are both free. Not free-for-a-month, not free-until-you-have-customers: free, with no paid tier to graduate into in Zoho Invoice's case at all. If you are a freelancer sending a handful of invoices, one of these is the correct answer and paying for anything else is a mistake."},

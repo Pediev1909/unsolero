@@ -22,7 +22,7 @@ FROM author CROSS JOIN (VALUES
     'Canva vs Figma: two different jobs at the same price',
     'canva-vs-figma',
     'Within a dollar of each other and almost never a real choice. One makes a decent asset today; the other designs an interface. Knowing which you need takes one question.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Two design tools shown side by side at nearly the same monthly price',
     $json$[
       {"type":"paragraph","text":"Canva Pro works out at 15 USD a month, Figma Professional is 16. People compare them constantly and almost nobody should. They do different jobs, and the price being nearly identical is a coincidence rather than a signal."},
@@ -47,7 +47,7 @@ FROM author CROSS JOIN (VALUES
     'Webflow vs Squarespace vs Framer: which website builder',
     'webflow-vs-squarespace-vs-framer',
     'Ten, fifteen and nineteen dollars. The cheapest is the newest, the dearest asks least of you, and the middle one hides its real entry price one tier up.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Three website builders compared at their entry monthly prices',
     $json$[
       {"type":"paragraph","text":"If nobody at your business is technical, this is a short conversation: Squarespace, and stop reading. The other two are better tools for people who will use them properly, and worse tools for people who will not."},
@@ -71,7 +71,7 @@ FROM author CROSS JOIN (VALUES
     'Freshdesk vs Help Scout vs Tidio: which support tool',
     'freshdesk-vs-help-scout-vs-tidio',
     'Within two dollars of each other and built for three different shapes of business. The price is not the decision; where your questions arrive is.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Three customer support tools compared at their entry prices',
     $json$[
       {"type":"paragraph","text":"These three sit within two dollars of one another, so anyone leading with price is padding. What separates them is when your customers ask questions: before they buy, or after."},
@@ -95,7 +95,7 @@ FROM author CROSS JOIN (VALUES
     'Ahrefs vs Semrush: and the gap between them',
     'ahrefs-vs-semrush',
     'Twenty-nine dollars against a hundred and seventeen. The interesting part is what sits in between, and whether you need it at all.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Two SEO platforms compared, with a third option between them',
     $json$[
       {"type":"paragraph","text":"Ahrefs Starter is 29 USD a month. Semrush is 117.33 billed annually. That is not a comparison between two similar things — it is the shape of the whole market, where there is one cheap way in and then a cliff."},
@@ -119,7 +119,7 @@ FROM author CROSS JOIN (VALUES
     'Teachable vs Thinkific vs Gumroad: what selling a course really costs',
     'teachable-vs-thinkific-vs-gumroad',
     'The cheapest of the three takes the biggest cut, and the dearest takes none. Which is cheapest depends entirely on how much you sell.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Three course platforms compared by subscription and transaction fee',
     $json$[
       {"type":"paragraph","text":"You cannot compare these on the monthly price, and the monthly price is what every other comparison shows you. Gumroad is free and takes 10%. Teachable is 29 and takes 7.5%. Thinkific is 40 and takes nothing. At some volume each of them is the cheapest."},

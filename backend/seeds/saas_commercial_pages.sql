@@ -31,7 +31,7 @@ FROM author CROSS JOIN (VALUES
     'ClickUp vs Teamwork for client work',
     'clickup-vs-teamwork',
     'Both track projects. One is built around client work and bills for it; the other is broader and cheaper. Which is right depends on whether you invoice by the hour.',
-    '/images/saas-comparison.svg',
+    '/images/saas-comparison-v2.svg',
     'Two product cards side by side, differing on one row',
     $json$[
       {"type":"paragraph","text":"If you bill clients for time, Teamwork is the better fit despite costing more. If you do not, ClickUp does the same job for less and gives you more room to grow into. That is the whole decision; the rest of this page is why."},
@@ -58,7 +58,7 @@ FROM author CROSS JOIN (VALUES
     'HubSpot alternatives for a small team',
     'hubspot-alternatives',
     'HubSpot is the default CRM answer, and for a small team the default is often oversized. What the alternatives trade away, and when that trade is right.',
-    '/images/saas-alternatives.svg',
+    '/images/saas-alternatives-v2.svg',
     'One large product beside several smaller candidates',
     $json$[
       {"type":"paragraph","text":"Most small teams looking past HubSpot want one of two things: a lower bill, or less product to configure. Those point in different directions, so decide which one you are actually chasing before you look at anything."},
@@ -87,7 +87,7 @@ FROM author CROSS JOIN (VALUES
     'Best CRM for a small client services agency',
     'best-crm-small-agency',
     'A recommendation for a four-person agency with no dedicated admin, and the reasoning behind it, including what was rejected.',
-    '/images/saas-use-case.svg',
+    '/images/saas-use-case-v2.svg',
     'A brief on one side producing a shortlist on the other',
     $json$[
       {"type":"paragraph","text":"For a four-person agency with nobody assigned to maintaining tools, start on HubSpot's free tier and move to Starter at 20 USD per seat when two users stops being enough. Choose Salesflare Growth instead if your team will not keep records up to date by hand, which is most teams."},

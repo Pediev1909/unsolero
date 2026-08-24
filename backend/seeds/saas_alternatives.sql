@@ -36,7 +36,7 @@ FROM author CROSS JOIN (VALUES
     'Google Analytics alternatives that need no cookie banner',
     'google-analytics-alternatives',
     'Three analytics tools that do not use cookies, do not need consent, and fit on one screen. Priced at the same traffic volume so the comparison means something.',
-    '/images/saas-alternatives.svg',
+    '/images/saas-alternatives-v2.svg',
     'A simple analytics dashboard shown without a cookie consent banner over it',
     $json$[
       {"type":"paragraph","text":"People leave Google Analytics for one of two reasons: the consent banner, or GA4 itself. If it is the banner, any of the three below removes it, because none of them sets a cookie or collects anything that needs permission under GDPR. If it is GA4, you are looking for something simpler, and all three are that too."},
@@ -63,7 +63,7 @@ FROM author CROSS JOIN (VALUES
     'Mailchimp alternatives for a list you actually own',
     'mailchimp-alternatives',
     'Five email tools at every price point from 5.25 to 39 USD, all quoted at 1,000 subscribers, plus the one question that tells you whether to move at all.',
-    '/images/saas-alternatives.svg',
+    '/images/saas-alternatives-v2.svg',
     'An email list being moved from one platform to another',
     $json$[
       {"type":"paragraph","text":"Almost nobody leaves Mailchimp because of the features. They leave because the bill grew faster than the list did, and because contacts they no longer email still count toward it. If that is your reason, the move is worth it and the options below are all cheaper. If your reason is that you want better automation, read the last section first."},
@@ -89,7 +89,7 @@ FROM author CROSS JOIN (VALUES
     'Zapier alternatives when the task bill stops making sense',
     'zapier-alternatives',
     'Two serious alternatives, one of them free if you host it yourself, plus an honest account of what you give up by leaving the largest connector library in the category.',
-    '/images/saas-alternatives.svg',
+    '/images/saas-alternatives-v2.svg',
     'An automation workflow being rebuilt on a different platform',
     $json$[
       {"type":"paragraph","text":"Zapier gets replaced for one reason: the meter. It counts every step of every run, so a workflow that fires often costs more than the plan you priced it on. Before you move, though, check the connector list, because that is the thing Zapier is actually selling and the thing you will miss."},
@@ -115,7 +115,7 @@ FROM author CROSS JOIN (VALUES
     'Calendly alternatives worth the switch',
     'calendly-alternatives',
     'Two alternatives, one cheaper and one you can host yourself, and a straight answer about why most people should keep paying Calendly anyway.',
-    '/images/saas-alternatives.svg',
+    '/images/saas-alternatives-v2.svg',
     'A booking link being replaced with a different scheduling tool',
     $json$[
       {"type":"paragraph","text":"Calendly Standard is 10 USD per seat per month. The two alternatives below are 8 and 12 dollars, so nobody is switching to save money. They are worth it for exactly two reasons: you already run Zoho, or you need the booking data on your own server. If neither applies, this page ends with a recommendation to stay."},
@@ -141,7 +141,7 @@ FROM author CROSS JOIN (VALUES
     'Slack alternatives when the per-seat bill adds up',
     'slack-alternatives',
     'Two cheaper options at 4 and 7 USD per user, what each one actually includes beyond chat, and why the free Slack tier hiding your history changes the maths.',
-    '/images/saas-alternatives.svg',
+    '/images/saas-alternatives-v2.svg',
     'A team chat conversation being moved to a different platform',
     $json$[
       {"type":"paragraph","text":"Slack Pro is 8.75 USD per user per month. On a team of ten that is a bill worth examining, and both alternatives below cost less. But neither is only a chat tool, and that changes what you are actually comparing."},
