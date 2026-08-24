@@ -163,7 +163,19 @@ git pull
 sed -i "s/^APP_VERSION=.*/APP_VERSION=$(git rev-parse --short HEAD)/" .env
 docker compose -f compose.yaml -f compose.production.yaml \
   --profile production up -d --build
+# nginx inside web resolves the api hostname once, at startup, and caches the
+# address. A backend-only change rebuilds api and leaves web untouched, so web
+# keeps proxying to an address nothing answers on and every request becomes a
+# 502 that Caddy reports as "no upstreams available". Recreating web after the
+# fact costs seconds and prevents that outage.
+docker compose -f compose.yaml -f compose.production.yaml \
+  --profile production up -d --force-recreate web
 ```
+
+Use `--profile production` alone here. Adding `--profile tools` to an `up`
+starts the seed, purge, backup and reconciliation containers as well, because
+`up` starts everything in every active profile. Tools belong on `run`, which
+starts only the service named.
 
 Migrations are forward-only. There is no automatic rollback, so take a backup
 before deploying a release that changes the schema.
