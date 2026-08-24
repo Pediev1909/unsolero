@@ -17,6 +17,12 @@ const (
 	maximumPage     = 10_000
 )
 
+// MaximumPageSize lets a caller build a query it knows will be accepted. Search
+// rejects an over-sized page size as an invalid query rather than clamping it,
+// and a caller that treats an error as "no results" then renders an empty page
+// with no indication anything went wrong.
+const MaximumPageSize = maximumPageSize
+
 type Query struct {
 	ProductIDs    []domain.ProductID
 	Search        string

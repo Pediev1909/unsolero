@@ -368,7 +368,12 @@ func (h *Handler) listingProducts(ctx context.Context, query catalogapp.Query) [
 	if h.catalog == nil {
 		return nil
 	}
-	query.Page, query.PageSize = 1, 60
+	// Taken from the service rather than written here. Search rejects an
+	// over-sized page size as an invalid query, and this function turns any
+	// error into an empty list, so a number that drifts out of range silently
+	// produces a listing page with a heading and no links — which is the exact
+	// defect this body exists to fix.
+	query.Page, query.PageSize = 1, catalogapp.MaximumPageSize
 	page, err := h.catalog.Search(ctx, query)
 	if err != nil {
 		h.logger.Warn("listing products for prerendered body", "error", err)

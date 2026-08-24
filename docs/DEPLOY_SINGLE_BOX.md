@@ -107,8 +107,12 @@ allowed, and has its own service so the flag cannot be mistyped:
 
 ```bash
 docker compose -f compose.yaml -f compose.production.yaml \
-  --profile tools run --rm seed-purge
+  --profile production --profile tools run --rm seed-purge
 ```
+
+Both profiles are required, not just `tools`. `tls-init` is a production-profile
+service and `postgres` depends on it, so a command that omits `--profile
+production` fails with "depends on undefined service" before it runs anything.
 
 It reports how many products it unpublished, how many it deleted, and how many
 an active recommendation policy is still holding. A held product stays in the
