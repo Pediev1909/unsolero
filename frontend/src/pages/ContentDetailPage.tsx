@@ -20,6 +20,7 @@ import {
 } from '../features/content/model'
 import { useContentEntry } from '../features/content/queries'
 import { usePageMetadata } from '../lib/seo/usePageMetadata'
+import { EditorialHero } from '../features/content/components/PriceScale'
 
 export function ContentDetailPage() {
   const { slug = '' } = useParams()
@@ -110,15 +111,17 @@ export function ContentDetailPage() {
             </Container>
           </header>
 
+          {/* The comparison itself, where an abstract illustration used to
+              be. A reader arriving here wants to know which one to pick, and
+              the first screen should start answering rather than decorate.
+              PriceScale returns null when a piece has fewer than two priced
+              products or when they all cost the same, and the illustration
+              stays as the hero for those. */}
           <Container className="py-7 sm:py-10">
-            <div className="aspect-[16/9] max-h-[48rem] overflow-hidden bg-paper">
-              <img
-                alt={item.hero_image.alt_text}
-                className="size-full object-cover"
-                fetchPriority="high"
-                src={item.hero_image.url}
-              />
-            </div>
+            <EditorialHero
+              image={item.hero_image}
+              products={item.related_products}
+            />
           </Container>
 
           <Container className="pb-16 pt-6 sm:pb-24 lg:pt-12">

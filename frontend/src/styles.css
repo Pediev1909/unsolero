@@ -218,6 +218,19 @@
   }
 }
 
+/* The comparison hero: each bar grows to the length its price earns, cheapest
+   first. Scaling rather than animating width keeps it off the layout path, so
+   a hero at the top of an article cannot cost a reflow while it plays. */
+@keyframes price-bar {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @keyframes skeleton-shimmer {
   from {
     background-position: 130% 0;
