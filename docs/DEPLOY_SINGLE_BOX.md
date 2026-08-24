@@ -100,6 +100,20 @@ Everything it loads is explicitly fictional and must be removed before real
 traffic. Real products go in through the admin interface, where the evidence
 workflow requires a source for each fact before a product can be published.
 
+In production the `seed` service refuses to run: the fixture publishes invented
+products at the same status the public catalog serves, so loading it would put
+invented prices in front of real visitors. Removing the fixture is always
+allowed, and has its own service so the flag cannot be mistyped:
+
+```bash
+docker compose -f compose.yaml -f compose.production.yaml \
+  --profile tools run --rm seed-purge
+```
+
+It reports how many products it unpublished, how many it deleted, and how many
+an active recommendation policy is still holding. A held product stays in the
+database but leaves the public catalog, which is the part that matters.
+
 ## Verify
 
 ```bash

@@ -10,7 +10,10 @@ import { LoadingState } from '../../../components/ui/LoadingState'
 // Both refusals arrived here as a bare "something went wrong", which told an
 // administrator locked out of every page nothing about how to get in. The API
 // names the reason; these turn it into the action that resolves it.
-const accessRequirements: Record<string, { title: string; description: string }> = {
+const accessRequirements: Record<
+  string,
+  { title: string; description: string }
+> = {
   email_verification_required: {
     title: 'Verify your email address first',
     description:

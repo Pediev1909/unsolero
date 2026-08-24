@@ -8,18 +8,19 @@ import {
   FileCheck2,
   Link2,
   PackageSearch,
-  Settings,
+  SlidersHorizontal,
   ShoppingBag,
   RefreshCcw,
   Tags,
   Users,
 } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { BrandMark } from '../../../components/layout/BrandMark'
 import { SkipLink } from '../../../components/ui/SkipLink'
 import { cn } from '../../../lib/styles/cn'
 import { useCurrentUser } from '../../auth/queries'
+import { useAdminDashboard } from '../queries'
 import { AdminSearch } from './AdminSearch'
 
 const catalogReaders = [
@@ -122,22 +123,44 @@ const items = [
     roles: ['content_editor'],
   },
   {
-    to: '/admin/settings',
-    label: 'Settings',
-    icon: Settings,
+    to: '/admin/policy',
+    label: 'Ranking policy',
+    icon: SlidersHorizontal,
     end: false,
     roles: ['admin', 'policy_editor', 'policy_reviewer'],
   },
 ] as const
 
+// Sections that exist for data this deployment may never have. A solo operator
+// with no provider integrations should not navigate past an import console to
+// reach the four pages they use. Hidden only on a confirmed zero: a pending or
+// failed dashboard request leaves everything visible, because losing a section
+// to a network error is worse than showing an empty one.
+const dataGatedSections: Record<
+  string,
+  'commerce_providers' | 'published_content'
+> = {
+  '/admin/commerce': 'commerce_providers',
+  '/admin/content': 'published_content',
+}
+
 export function AdminLayout() {
   const account = useCurrentUser()
-  const visibleItems = items.filter(
-    (item) =>
+  const dashboard = useAdminDashboard()
+  const location = useLocation()
+  const readiness = dashboard.data?.readiness
+  const visibleItems = items.filter((item) => {
+    const permitted =
       account.data?.roles.includes('admin') ||
       item.roles.length === 0 ||
-      item.roles.some((role) => account.data?.roles.includes(role)),
-  )
+      item.roles.some((role) => account.data?.roles.includes(role))
+    if (!permitted) return false
+    const gate = dataGatedSections[item.to]
+    if (!gate || !readiness) return true
+    // Never hide the section being viewed; the nav would lose its active item.
+    if (location.pathname.startsWith(item.to)) return true
+    return readiness[gate] > 0
+  })
   return (
     <div className="min-h-screen bg-canvas text-ink">
       <SkipLink />

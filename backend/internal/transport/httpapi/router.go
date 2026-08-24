@@ -174,6 +174,8 @@ type AdminService interface {
 
 type EvidenceService interface {
 	CreateSource(context.Context, domain.UserID, evidencedomain.SourceInput) (evidencedomain.Source, error)
+	ListSources(context.Context, int) ([]evidencedomain.Source, error)
+	ListObservations(context.Context, string) ([]evidencedomain.Observation, error)
 	ReviewSource(context.Context, domain.UserID, string, evidencedomain.ReviewStatus, string) (evidencedomain.Source, error)
 	CreateObservation(context.Context, domain.UserID, evidencedomain.ObservationInput) (evidencedomain.Observation, error)
 	CreateRevision(context.Context, domain.UserID, evidencedomain.RevisionInput) (evidencedomain.Revision, error)
@@ -407,6 +409,8 @@ func NewRouter(
 			}
 			mux.Handle("GET /api/admin/evidence/products", allowed(domain.PermissionEvidenceRead, handler.adminListProductGovernance))
 			mux.Handle("GET /api/admin/evidence/products/{productID}", allowed(domain.PermissionEvidenceRead, handler.adminGetProductGovernance))
+			mux.Handle("GET /api/admin/evidence/sources", allowed(domain.PermissionEvidenceRead, handler.adminListEvidenceSources))
+			mux.Handle("GET /api/admin/evidence/products/{productID}/observations", allowed(domain.PermissionEvidenceRead, handler.adminListEvidenceObservations))
 			mux.Handle("POST /api/admin/evidence/sources", evidenceEditor(handler.adminCreateEvidenceSource))
 			mux.Handle("PUT /api/admin/evidence/sources/{sourceID}/review", evidenceReviewer(handler.adminReviewEvidenceSource))
 			mux.Handle("POST /api/admin/evidence/observations", evidenceEditor(handler.adminCreateEvidenceObservation))

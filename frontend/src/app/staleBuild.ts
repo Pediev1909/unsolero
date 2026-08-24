@@ -24,7 +24,11 @@ const staleChunkMessages = [
 
 export function isStaleBuildError(error: unknown): boolean {
   const message =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : ''
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : ''
   if (!message) return false
   const normalized = message.toLowerCase()
   return staleChunkMessages.some((candidate) => normalized.includes(candidate))

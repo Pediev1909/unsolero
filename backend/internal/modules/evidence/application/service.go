@@ -43,6 +43,19 @@ func (service *Service) ReviewSource(ctx context.Context, actor identity.UserID,
 	return service.repository.ReviewSource(ctx, actor, id, status, note)
 }
 
+// ListSources and ListObservations back the forms that record evidence. They
+// are reads with no actor requirement beyond the permission the route enforces.
+func (service *Service) ListSources(ctx context.Context, limit int) ([]domain.Source, error) {
+	return service.repository.ListSources(ctx, limit)
+}
+
+func (service *Service) ListObservations(ctx context.Context, productID string) ([]domain.Observation, error) {
+	if strings.TrimSpace(productID) == "" {
+		return nil, ErrInvalidInput
+	}
+	return service.repository.ListObservations(ctx, productID)
+}
+
 func (service *Service) CreateObservation(ctx context.Context, actor identity.UserID, input domain.ObservationInput) (domain.Observation, error) {
 	input.Notes = strings.TrimSpace(input.Notes)
 	if actor == "" || input.Validate(service.now()) != nil {

@@ -10,6 +10,7 @@ import {
 import type { AnalyticsReportData } from '../../features/admin/schemas'
 import { usePageMetadata } from '../../lib/seo/usePageMetadata'
 import { DailyTrend } from '../../features/admin/components/DailyTrend'
+import { MonetizationReadiness } from '../../features/admin/components/MonetizationReadiness'
 
 export function AdminDashboardPage() {
   usePageMetadata({
@@ -23,7 +24,7 @@ export function AdminDashboardPage() {
   return (
     <>
       <AdminPageHeader
-        description="Operational inventory and observed first-party behavior. No modeled conversions, commission, or revenue."
+        description="Did anyone come, where from, did they click through, and what is stopping the catalog from earning. Observed first-party behaviour only — no modeled conversions, commission, or revenue."
         eyebrow="Overview"
         title="Dashboard"
       />
@@ -38,6 +39,12 @@ export function AdminDashboardPage() {
       >
         {dashboard.data && analytics.data ? (
           <div className="space-y-12">
+            {/* Ordered by the question each answers: can it earn, did anyone
+                come, where from, and only then how much of everything exists. */}
+            <MonetizationReadiness readiness={dashboard.data.readiness} />
+            <AnalyticsSummary data={analytics.data} />
+            <DailyTrend daily={analytics.data.daily} />
+            <RankingGrid data={analytics.data} />
             <MetricSection
               items={[
                 ['Products', dashboard.data.counts.products],
@@ -48,10 +55,7 @@ export function AdminDashboardPage() {
               title="Inventory"
             />
             <ReportingStatus data={analytics.data} />
-            <AnalyticsSummary data={analytics.data} />
-            <DailyTrend daily={analytics.data.daily} />
             <IngestionSummary data={analytics.data} />
-            <RankingGrid data={analytics.data} />
             <UnavailableMetrics />
           </div>
         ) : null}

@@ -19,7 +19,9 @@ export function AuthorPage() {
   const author = useContentAuthor(slug)
 
   usePageMetadata({
-    title: author.data ? `${author.data.author.name} | UNSOLERO` : 'Author | UNSOLERO',
+    title: author.data
+      ? `${author.data.author.name} | UNSOLERO`
+      : 'Author | UNSOLERO',
     description: author.data?.author.bio ?? 'Who writes UNSOLERO.',
   })
 

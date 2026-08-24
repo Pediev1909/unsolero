@@ -20,7 +20,12 @@ describe('buttonStyles', () => {
 
   it('keeps every variant visually distinct from primary', () => {
     const primary = buttonStyles({ variant: 'primary' })
-    for (const variant of ['secondary', 'quiet', 'danger', 'inverse'] as const) {
+    for (const variant of [
+      'secondary',
+      'quiet',
+      'danger',
+      'inverse',
+    ] as const) {
       expect(buttonStyles({ variant })).not.toEqual(primary)
     }
   })

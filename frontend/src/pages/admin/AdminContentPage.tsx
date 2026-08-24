@@ -1,7 +1,6 @@
 import { ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-import { EmptyState } from '../../components/ui/EmptyState'
 import { AdminPageHeader } from '../../features/admin/components/AdminLayout'
 import {
   AdminQueryState,
@@ -80,39 +79,6 @@ export function AdminContentPage() {
           </AdminTable>
         )}
       </AdminQueryState>
-    </>
-  )
-}
-
-export function AdminSettingsPage() {
-  return (
-    <EmptyAdminSection
-      description="No runtime settings are editable through the browser. Security and infrastructure configuration remain environment-controlled."
-      title="Settings"
-    />
-  )
-}
-
-function EmptyAdminSection({
-  title,
-  description,
-}: {
-  title: string
-  description: string
-}) {
-  usePageMetadata({
-    title: `${title} | UNSOLERO admin`,
-    description: `Protected ${title.toLowerCase()} administration.`,
-    robots: 'noindex, follow',
-  })
-  return (
-    <>
-      <AdminPageHeader
-        description={description}
-        eyebrow="Administration"
-        title={title}
-      />
-      <EmptyState description={description} title="No data" />
     </>
   )
 }

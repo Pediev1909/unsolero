@@ -1,12 +1,15 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 
+	catalogapp "rigmark/internal/modules/catalog/application"
+	catalogdomain "rigmark/internal/modules/catalog/domain"
 	catalogports "rigmark/internal/modules/catalog/ports"
 	contentports "rigmark/internal/modules/content/ports"
 )
@@ -40,6 +43,7 @@ var staticPublicRoutes = map[string]bool{
 	// both look for these two before approving or ranking a commercial site,
 	// so a 404 here is expensive.
 	"/about": true, "/privacy": true, "/affiliate-disclosure": true,
+	"/terms": true,
 	"/login": false, "/register": false, "/check-email": false,
 	"/verify-email": false, "/forgot-password": false, "/reset-password": false,
 	"/login/mfa": false, "/build": false, "/compare": false,
@@ -188,11 +192,12 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		}
 		meta.Indexable = true
 		meta.Title = detail.Product.Name + " — " + detail.Product.BrandName + " | UNSOLERO"
-		meta.Description = truncateDescription(detail.Product.Description, 160)
+		meta.Description = truncateDescription(detail.Product.Description, 155)
 		if len(detail.Product.Images) > 0 {
 			meta.ImageURL = h.absoluteImageURL(detail.Product.Images[0].URL)
 		}
 		meta.StructuredData = productStructuredData(detail.Product, meta.CanonicalURL)
+		meta.PrerenderedBody = renderProductBody(detail.Product)
 		return meta, true, nil
 	case "categories":
 		if h.catalog == nil {
@@ -206,9 +211,11 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		// category and its empty state rather than a 404. It is simply not
 		// offered to a search engine until it has something to show.
 		meta.Indexable = category.PublishedProducts > 0
-		meta.Title = category.Name + " | UNSOLERO"
+		meta.Title = category.Name + " — compared on structured facts | UNSOLERO"
 		meta.Description = truncateDescription(defaultText(category.Description,
-			"Compare "+category.Name+" on structured facts, with no commission-driven ranking."), 160)
+			"Compare "+category.Name+" on structured facts, with no commission-driven ranking."), 155)
+		meta.PrerenderedBody = renderCatalogListingBody(category.Name, category.Description,
+			h.listingProducts(request.Context(), catalogapp.Query{CategorySlug: value}))
 		return meta, true, nil
 	case "brands":
 		if h.catalog == nil {
@@ -219,9 +226,11 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 			return pageMetadata{}, false, err
 		}
 		meta.Indexable = brand.PublishedProducts > 0
-		meta.Title = brand.Name + " | UNSOLERO"
+		meta.Title = brand.Name + " — plans, pricing and fit | UNSOLERO"
 		meta.Description = truncateDescription(defaultText(brand.Description,
-			"Products from "+brand.Name+", assessed on structured facts."), 160)
+			"Products from "+brand.Name+", assessed on structured facts."), 155)
+		meta.PrerenderedBody = renderCatalogListingBody(brand.Name, brand.Description,
+			h.listingProducts(request.Context(), catalogapp.Query{BrandSlug: value}))
 		return meta, true, nil
 	case "guides", "articles", "compare":
 		if h.content == nil {
@@ -237,7 +246,7 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		meta.Indexable = true
 		meta.CanonicalURL = entry.CanonicalURL
 		meta.Title = defaultText(entry.SEOTitle, entry.Title+" | UNSOLERO")
-		meta.Description = truncateDescription(defaultText(entry.SEODescription, entry.Description), 160)
+		meta.Description = truncateDescription(defaultText(entry.SEODescription, entry.Description), 155)
 		meta.ImageURL = h.absoluteImageURL(entry.HeroImageURL)
 		meta.StructuredData = h.articleStructuredData(entry, meta.CanonicalURL)
 		meta.PrerenderedBody = renderEntryBody(entry)
@@ -252,7 +261,7 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		}
 		meta.Indexable = true
 		meta.Title = author.Name + " | UNSOLERO"
-		meta.Description = truncateDescription(author.Bio, 160)
+		meta.Description = truncateDescription(author.Bio, 155)
 		meta.StructuredData = map[string]any{
 			"@context": "https://schema.org", "@type": "Person",
 			"name": author.Name, "description": author.Bio, "url": meta.CanonicalURL,
@@ -318,6 +327,9 @@ func staticRouteMetadata(path string) (string, string) {
 	case "/privacy":
 		return "Privacy policy | UNSOLERO",
 			"What we store, why we store it, and how to have it removed."
+	case "/terms":
+		return "Terms of use | UNSOLERO",
+			"What UNSOLERO is, what it does not promise, who your purchase contract is with, and the rules for using the site."
 	case "/affiliate-disclosure":
 		return "Affiliate disclosure | UNSOLERO",
 			"How UNSOLERO earns, and why commission is excluded from the ranking."
@@ -345,4 +357,22 @@ func (h *Handler) writeRouteStatusError(response http.ResponseWriter, status int
 	response.Header().Set("Cache-Control", "no-store")
 	response.Header().Set("X-Robots-Tag", "noindex, nofollow")
 	response.WriteHeader(status)
+}
+
+// listingProducts fetches the products a category or brand page lists, for the
+// server-rendered body only. A failure here must not fail the page: the
+// document still carries its heading and metadata, and the application renders
+// the full listing once it runs. The cap keeps the shell small — a crawler
+// needs a route into each product, not the whole catalogue on one page.
+func (h *Handler) listingProducts(ctx context.Context, query catalogapp.Query) []catalogdomain.Product {
+	if h.catalog == nil {
+		return nil
+	}
+	query.Page, query.PageSize = 1, 60
+	page, err := h.catalog.Search(ctx, query)
+	if err != nil {
+		h.logger.Warn("listing products for prerendered body", "error", err)
+		return nil
+	}
+	return page.Products
 }

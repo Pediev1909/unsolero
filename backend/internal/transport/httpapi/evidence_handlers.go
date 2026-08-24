@@ -3,6 +3,8 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	catalog "rigmark/internal/modules/catalog/domain"
@@ -167,6 +169,55 @@ func (h *Handler) adminCreateEvidenceSource(response http.ResponseWriter, reques
 		return
 	}
 	h.writeAdminJSON(response, http.StatusCreated, sourceDTO(result))
+}
+
+// adminListEvidenceSources and adminListEvidenceObservations back the forms
+// that record evidence. Without them an operator can create a source but never
+// see one again, which is why recording evidence was only possible in SQL.
+func (h *Handler) adminListEvidenceSources(response http.ResponseWriter, request *http.Request) {
+	limit, _ := strconv.Atoi(strings.TrimSpace(request.URL.Query().Get("limit")))
+	sources, err := h.evidence.ListSources(request.Context(), limit)
+	if err != nil {
+		h.writeEvidenceError(response, err)
+		return
+	}
+	items := make([]evidenceSourceResponse, 0, len(sources))
+	for _, source := range sources {
+		items = append(items, sourceDTO(source))
+	}
+	h.writeAdminJSON(response, http.StatusOK, map[string]any{"sources": items})
+}
+
+func (h *Handler) adminListEvidenceObservations(response http.ResponseWriter, request *http.Request) {
+	id, ok := adminUUIDPath(response, request.PathValue("productID"), h)
+	if !ok {
+		return
+	}
+	observations, err := h.evidence.ListObservations(request.Context(), id)
+	if err != nil {
+		h.writeEvidenceError(response, err)
+		return
+	}
+	items := make([]productObservationResponse, 0, len(observations))
+	for _, observation := range observations {
+		items = append(items, productObservationResponse{
+			ID: observation.ID, SourceID: observation.SourceID,
+			ObservedAt: observation.ObservedAt, ExpiresAt: observation.ExpiresAt,
+			Confidence: observation.Confidence, Notes: observation.Notes,
+		})
+	}
+	h.writeAdminJSON(response, http.StatusOK, map[string]any{"observations": items})
+}
+
+// productObservationResponse carries source_id, which observationResponse does
+// not: the revision form has to show which source each observation came from.
+type productObservationResponse struct {
+	ID         string     `json:"id"`
+	SourceID   string     `json:"source_id"`
+	ObservedAt time.Time  `json:"observed_at"`
+	ExpiresAt  *time.Time `json:"expires_at"`
+	Confidence int16      `json:"confidence"`
+	Notes      string     `json:"notes"`
 }
 
 func (h *Handler) adminReviewEvidenceSource(response http.ResponseWriter, request *http.Request) {

@@ -338,7 +338,7 @@ type Brand struct {
 	Description string
 	// See Category.PublishedProducts.
 	PublishedProducts int
-	WebsiteURL  *string
-	CountryCode *string
-	IsActive    bool
+	WebsiteURL        *string
+	CountryCode       *string
+	IsActive          bool
 }

@@ -18,6 +18,8 @@ var (
 
 type Repository interface {
 	CreateSource(context.Context, identity.UserID, domain.SourceInput) (domain.Source, error)
+	ListSources(context.Context, int) ([]domain.Source, error)
+	ListObservations(context.Context, string) ([]domain.Observation, error)
 	ReviewSource(context.Context, identity.UserID, string, domain.ReviewStatus, string) (domain.Source, error)
 	CreateObservation(context.Context, identity.UserID, domain.ObservationInput) (domain.Observation, error)
 	CreateRevision(context.Context, identity.UserID, domain.RevisionInput) (domain.Revision, error)

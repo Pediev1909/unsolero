@@ -8,7 +8,10 @@ import { openAnalyticsConsentPreferences } from '../../features/analytics/consen
 // the reader scan all of them to find one; under a heading they can skip to the
 // group they want. The grouping is editorial and deliberately differs from the
 // header's navigation, which carries only the primary journeys.
-const footerGroups: { heading: string; links: { label: string; to: string }[] }[] = [
+const footerGroups: {
+  heading: string
+  links: { label: string; to: string }[]
+}[] = [
   {
     heading: 'Decide',
     links: [
@@ -28,6 +31,9 @@ const footerGroups: { heading: string; links: { label: string; to: string }[] }[
       { label: 'Guides', to: '/guides' },
       { label: 'Articles', to: '/articles' },
       { label: 'About', to: '/about' },
+      // Partner programmes and press open the site looking for a human to
+      // write to, and the address existed only on the About page.
+      { label: 'Contact', to: 'mailto:hello@unsolero.com' },
     ],
   },
   {
@@ -36,10 +42,14 @@ const footerGroups: { heading: string; links: { label: string; to: string }[] }[
       { label: 'Sign in', to: '/login' },
       { label: 'Create account', to: '/register' },
       { label: 'Privacy', to: '/privacy' },
+      { label: 'Terms', to: '/terms' },
       { label: 'Affiliate disclosure', to: '/affiliate-disclosure' },
     ],
   },
 ]
+
+const footerLinkStyle =
+  'flex min-h-6 items-center text-sm text-canvas/75 transition-colors duration-150 hover:text-canvas'
 
 export function SiteFooter() {
   return (
@@ -69,12 +79,17 @@ export function SiteFooter() {
                 <ul className="mt-3 space-y-2">
                   {group.links.map((link) => (
                     <li key={link.to}>
-                      <Link
-                        className="flex min-h-6 items-center text-sm text-canvas/75 transition-colors duration-150 hover:text-canvas"
-                        to={link.to}
-                      >
-                        {link.label}
-                      </Link>
+                      {/* A mailto: is not a route. Handing it to Link makes
+                          the router treat it as a path and navigate nowhere. */}
+                      {link.to.startsWith('mailto:') ? (
+                        <a className={footerLinkStyle} href={link.to}>
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link className={footerLinkStyle} to={link.to}>
+                          {link.label}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -83,9 +98,7 @@ export function SiteFooter() {
           </nav>
         </div>
         <div className="flex flex-col gap-2 pt-5 text-[0.625rem] uppercase tracking-[0.12em] text-canvas/70 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © {new Date().getFullYear()} UNSOLERO · Independent by design
-          </p>
+          <p>© {new Date().getFullYear()} UNSOLERO · Independent by design</p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
             <p>Commission never changes ranking</p>
             <button

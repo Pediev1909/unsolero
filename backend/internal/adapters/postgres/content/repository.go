@@ -222,6 +222,7 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 				WHERE entries.author_id = authors.id AND entries.status = 'published'
 			)
 			UNION ALL SELECT '/privacy', site_updated_at FROM public_updates
+			UNION ALL SELECT '/terms', site_updated_at FROM public_updates
 			UNION ALL SELECT '/affiliate-disclosure', site_updated_at FROM public_updates
 			UNION ALL
 			-- A category or brand with nothing published under it is a page

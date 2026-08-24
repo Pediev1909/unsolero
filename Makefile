@@ -1,4 +1,4 @@
-.PHONY: install dev down dev-web dev-api migrate seed backup restore-verify media-reconcile-dry test e2e typecheck lint format format-check build check compose-config
+.PHONY: install dev down dev-web dev-api migrate seed seed-purge backup restore-verify media-reconcile-dry test e2e typecheck lint format format-check build check compose-config
 
 install:
 	npm --prefix frontend ci
@@ -21,6 +21,9 @@ migrate:
 
 seed:
 	cd backend && go run ./cmd/seed
+
+seed-purge:
+	cd backend && go run ./cmd/seed -purge
 
 backup:
 	docker compose --env-file .env --profile tools run --rm backup

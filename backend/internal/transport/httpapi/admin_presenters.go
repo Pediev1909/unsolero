@@ -33,6 +33,26 @@ type adminDashboardResponse struct {
 		SavedProducts            int64 `json:"saved_products"`
 		SavedSetups              int64 `json:"saved_setups"`
 	} `json:"analytics"`
+	Readiness adminReadinessResponse `json:"readiness"`
+}
+
+// The dashboard reports monetization readiness so an operator can see, without
+// opening another page, how much of the published catalog can actually earn.
+type adminReadinessResponse struct {
+	PublishedProducts    int64                  `json:"published_products"`
+	WithoutActiveOffer   int64                  `json:"without_active_offer"`
+	WithoutAffiliateLink int64                  `json:"without_affiliate_link"`
+	EarningReady         int64                  `json:"earning_ready"`
+	CommerceProviders    int64                  `json:"commerce_providers"`
+	PublishedContent     int64                  `json:"published_content"`
+	Blocked              []adminBlockedResponse `json:"blocked"`
+}
+
+type adminBlockedResponse struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Slug   string `json:"slug"`
+	Reason string `json:"reason"`
 }
 
 type adminProductResponse struct {
@@ -244,7 +264,27 @@ func dashboardDTO(value admin.Dashboard) adminDashboardResponse {
 	result.Analytics.AffiliateClicks = value.Analytics.AffiliateClicks
 	result.Analytics.SavedProducts = value.Analytics.SavedProducts
 	result.Analytics.SavedSetups = value.Analytics.SavedSetups
+	result.Readiness = readinessDTO(value.Readiness)
 	return result
+}
+
+func readinessDTO(value admin.Readiness) adminReadinessResponse {
+	blocked := make([]adminBlockedResponse, 0, len(value.Blocked))
+	for _, item := range value.Blocked {
+		blocked = append(blocked, adminBlockedResponse{
+			ID: string(item.ID), Name: item.Name, Slug: item.Slug,
+			Reason: string(item.Reason),
+		})
+	}
+	return adminReadinessResponse{
+		PublishedProducts:    value.PublishedProducts,
+		WithoutActiveOffer:   value.WithoutActiveOffer,
+		WithoutAffiliateLink: value.WithoutAffiliateLink,
+		EarningReady:         value.EarningReady,
+		CommerceProviders:    value.CommerceProviders,
+		PublishedContent:     value.PublishedContent,
+		Blocked:              blocked,
+	}
 }
 func adminProductDTO(value catalog.Product) adminProductResponse {
 	images := make([]adminImageResponse, 0, len(value.Images))

@@ -83,10 +83,7 @@ export function MobileNavigation({
             A collapsed section is one more thing to discover, and the whole
             point of this drawer is that nothing in the catalog is hidden. */}
         {groups.map((group) => (
-          <section
-            className="border-t border-ink/10 pt-5 pb-1"
-            key={group.key}
-          >
+          <section className="border-t border-ink/10 pt-5 pb-1" key={group.key}>
             <p className="eyebrow">{group.label}</p>
             <ul className="mt-2 flex flex-col">
               {group.categories.map((category) => (

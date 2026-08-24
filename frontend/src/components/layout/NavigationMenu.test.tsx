@@ -58,9 +58,10 @@ describe('NavigationMenu', () => {
     await user.click(screen.getByRole('button', { name: 'Outside' }))
 
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /Browse/ }),
-      ).toHaveAttribute('aria-expanded', 'false'),
+      expect(screen.getByRole('button', { name: /Browse/ })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      ),
     )
   })
 

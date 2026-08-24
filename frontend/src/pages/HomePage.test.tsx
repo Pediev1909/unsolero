@@ -1,8 +1,50 @@
 import { screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { renderWithProviders } from '../test/renderWithProviders'
 import { HomePage } from './HomePage'
+
+// The featured cards used to be a hardcoded array, so this file could assert a
+// product name directly. They come from the catalog now, and the point worth
+// pinning is no longer which product appears — it is that whatever the catalog
+// returns is rendered as a link to that product's page.
+const featuredProduct = {
+  id: 'a7f1c2d4-5b6e-4a8c-9d0e-1f2a3b4c5d6e',
+  name: 'ClickUp Unlimited',
+  slug: 'clickup-unlimited',
+  brand: { id: 'b1', name: 'ClickUp', slug: 'clickup' },
+  category: {
+    id: 'c1',
+    name: 'Project management',
+    slug: 'project-management',
+  },
+  price: { amount_minor: 1000, currency: 'USD' },
+  primary_image: null,
+  key_specification: { label: 'Plan', value: 'Unlimited' },
+  suitability: [],
+  scores: {},
+  is_demo: false,
+}
+
+vi.mock('../features/catalog/queries', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../features/catalog/queries')>()
+  return {
+    ...actual,
+    useProducts: () => ({
+      data: {
+        products: [featuredProduct],
+        page: 1,
+        page_size: 4,
+        total: 1,
+        total_pages: 1,
+      },
+      isPending: false,
+      isError: false,
+      isSuccess: true,
+    }),
+  }
+})
 
 describe('HomePage', () => {
   it('communicates the value proposition and routes both primary actions', () => {
@@ -32,9 +74,10 @@ describe('HomePage', () => {
     expect(document.getElementById('method')).toBeInTheDocument()
     expect(document.getElementById('categories')).toBeInTheDocument()
     expect(document.getElementById('trust')).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: /^CRM/i }),
-    ).toHaveAttribute('href', '/categories/crm')
+    expect(screen.getByRole('link', { name: /^CRM/i })).toHaveAttribute(
+      'href',
+      '/categories/crm',
+    )
     expect(
       screen.getByRole('link', {
         name: /view details for clickup unlimited/i,
@@ -45,9 +88,7 @@ describe('HomePage', () => {
   it('labels illustrative catalog content and exposes comparison context', () => {
     renderWithProviders(<HomePage />)
 
-    expect(
-      screen.getByText(/read from each vendor/i),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/read from each vendor/i)).toBeInTheDocument()
     expect(
       screen.getByRole('table', {
         name: /comparison of three business tools/i,

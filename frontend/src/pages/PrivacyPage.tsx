@@ -30,19 +30,34 @@ export function PrivacyPage() {
 
               <div className="mt-10 space-y-8 text-base leading-7 text-ink/75">
                 <p>
-                  This page describes what the site actually does. Where a period or
-                  a name is given, it is the value the running system uses.
+                  This page describes what the site actually does. Where a
+                  period or a name is given, it is the value the running system
+                  uses.
                 </p>
 
                 <div>
                   <Heading className="mb-3" level={2} size="title">
                     Who is responsible
                   </Heading>
-                  <p className="rounded border border-ink/15 bg-surface p-4 text-sm">
-                    <strong>To be completed before launch.</strong> Data protection
-                    law requires the operator of this site to be identifiable by
-                    name and contact address. Fill this in, or use a contact
-                    address you are willing to publish.
+                  <p>
+                    UNSOLERO is built and run by Andon Pediev, an individual
+                    based in Bulgaria, within the European Union. There is no
+                    company behind it, and no third party processes your data on
+                    our behalf beyond the infrastructure providers named below.
+                  </p>
+                  <p className="mt-3">
+                    For any question about this policy, about the data held
+                    about you, or to exercise a right described here, write to{' '}
+                    <a className="underline" href="mailto:hello@unsolero.com">
+                      hello@unsolero.com
+                    </a>
+                    . Requests are answered within one month, which is the
+                    period the GDPR allows.
+                  </p>
+                  <p className="mt-3">
+                    You also have the right to complain to a supervisory
+                    authority. In Bulgaria that is the Commission for Personal
+                    Data Protection.
                   </p>
                 </div>
 
@@ -51,16 +66,16 @@ export function PrivacyPage() {
                     If you only browse
                   </Heading>
                   <p>
-                    Pages can be read without an account. Analytics are collected
-                    only after you consent, and you can withdraw that consent at any
-                    time from the link in the footer. Declining does not restrict
-                    anything on the site.
+                    Pages can be read without an account. Analytics are
+                    collected only after you consent, and you can withdraw that
+                    consent at any time from the link in the footer. Declining
+                    does not restrict anything on the site.
                   </p>
                   <p className="mt-3">
                     When you do consent, a cookie named{' '}
                     <code>unsolero_analytics_subject</code> distinguishes your
-                    visits from other people&apos;s. Anonymous analytics events are
-                    deleted after <strong>90 days</strong>.
+                    visits from other people&apos;s. Anonymous analytics events
+                    are deleted after <strong>90 days</strong>.
                   </p>
                 </div>
 
@@ -73,7 +88,8 @@ export function PrivacyPage() {
                     wishlists and comparisons, and the recommendation briefs you
                     submit. A session cookie named <code>rigmark_session</code>{' '}
                     keeps you signed in for up to <strong>30 days</strong>, or{' '}
-                    <strong>7 days</strong> of inactivity, whichever comes first.
+                    <strong>7 days</strong> of inactivity, whichever comes
+                    first.
                   </p>
                   <p className="mt-3">
                     Analytics events linked to an account are deleted after{' '}
@@ -82,8 +98,8 @@ export function PrivacyPage() {
                   </p>
                   <p className="mt-3">
                     Account email is used for verification, password reset and
-                    security notices only. It is not a marketing list and you will
-                    not be added to one without asking.
+                    security notices only. It is not a marketing list and you
+                    will not be added to one without asking.
                   </p>
                 </div>
 
@@ -94,8 +110,9 @@ export function PrivacyPage() {
                   <p>
                     Following a link to a software vendor records which product,
                     which link and which page it came from, so we can tell what
-                    people found useful. The vendor receives whatever their own site
-                    collects; their privacy policy governs that, not this one.
+                    people found useful. The vendor receives whatever their own
+                    site collects; their privacy policy governs that, not this
+                    one.
                   </p>
                 </div>
 
@@ -105,8 +122,8 @@ export function PrivacyPage() {
                   </Heading>
                   <p>
                     You can export your account data or delete your account from
-                    account settings at any time. Deleting the account removes the
-                    personal data attached to it.
+                    account settings at any time. Deleting the account removes
+                    the personal data attached to it.
                   </p>
                 </div>
 
@@ -115,9 +132,10 @@ export function PrivacyPage() {
                     Processors
                   </Heading>
                   <p>
-                    The site runs on a server in Germany. Object storage is provided
-                    by Cloudflare and transactional email by Resend. Each processes
-                    data on our behalf in order to run the service.
+                    The site runs on a server in Germany. Object storage is
+                    provided by Cloudflare and transactional email by Resend.
+                    Each processes data on our behalf in order to run the
+                    service.
                   </p>
                 </div>
               </div>

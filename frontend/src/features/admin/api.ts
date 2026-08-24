@@ -21,6 +21,9 @@ import {
   productSchema,
   productGovernancePageSchema,
   productGovernanceSchema,
+  evidenceObservationListSchema,
+  evidenceSourceListSchema,
+  recommendationPolicyListSchema,
   monetizationReportSchema,
   reconciliationsSchema,
   recommendationDetailSchema,
@@ -29,6 +32,37 @@ import {
   userPageSchema,
   verifiedConversionsSchema,
 } from './schemas'
+
+export interface EvidenceSourceInput {
+  source_type: string
+  title: string
+  publisher: string
+  source_url: string | null
+  is_fictional: boolean
+}
+
+export interface EvidenceObservationInput {
+  source_id: string
+  product_id: string
+  observed_at: string
+  expires_at: string | null
+  confidence: number
+  notes: string
+}
+
+export interface EvidenceRevisionInput {
+  product: ProductInput
+  fact_links: {
+    fact_key: string
+    observation_id: string
+    classification: string
+  }[]
+  score_rationales: {
+    score_key: string
+    rationale: string
+    observation_id: string
+  }[]
+}
 
 export interface ProductInput {
   category_id: string
@@ -118,6 +152,20 @@ export const adminApi = {
     apiRequest(`/admin/products/${id}`, { method: 'GET' }, (value) =>
       productSchema.parse(value),
     ),
+  recommendationPolicies: () =>
+    apiRequest('/admin/recommendation-policies', { method: 'GET' }, (value) =>
+      recommendationPolicyListSchema.parse(value),
+    ),
+  transitionRecommendationPolicy: (
+    version: string,
+    action: 'submit' | 'approve' | 'reject' | 'activate' | 'deactivate',
+    note: string,
+  ) =>
+    apiRequest(
+      `/admin/recommendation-policies/${version}/${action}`,
+      { method: 'POST', body: { note } },
+      () => undefined,
+    ),
   governedProducts: (page = 1) =>
     apiRequest(
       `/admin/evidence/products${query(page)}`,
@@ -127,6 +175,50 @@ export const adminApi = {
   productGovernance: (id: string) =>
     apiRequest(`/admin/evidence/products/${id}`, { method: 'GET' }, (value) =>
       productGovernanceSchema.parse(value),
+    ),
+  evidenceSources: () =>
+    apiRequest('/admin/evidence/sources', { method: 'GET' }, (value) =>
+      evidenceSourceListSchema.parse(value),
+    ),
+  evidenceObservations: (productID: string) =>
+    apiRequest(
+      `/admin/evidence/products/${productID}/observations`,
+      { method: 'GET' },
+      (value) => evidenceObservationListSchema.parse(value),
+    ),
+  createEvidenceSource: (input: EvidenceSourceInput) =>
+    apiRequest(
+      '/admin/evidence/sources',
+      { method: 'POST', body: input },
+      () => undefined,
+    ),
+  reviewEvidenceSource: (id: string, status: string, note: string) =>
+    apiRequest(
+      `/admin/evidence/sources/${id}/review`,
+      { method: 'PUT', body: { status, note } },
+      () => undefined,
+    ),
+  createEvidenceObservation: (input: EvidenceObservationInput) =>
+    apiRequest(
+      '/admin/evidence/observations',
+      { method: 'POST', body: input },
+      () => undefined,
+    ),
+  createEvidenceRevision: (productID: string, input: EvidenceRevisionInput) =>
+    apiRequest(
+      `/admin/evidence/products/${productID}/revisions`,
+      { method: 'POST', body: input },
+      () => undefined,
+    ),
+  transitionEvidenceRevision: (
+    revisionID: string,
+    action: 'submit' | 'approve' | 'reject' | 'publish',
+    note: string,
+  ) =>
+    apiRequest(
+      `/admin/evidence/revisions/${revisionID}/${action}`,
+      { method: 'POST', body: { note } },
+      () => undefined,
     ),
   createProduct: (input: ProductInput) =>
     apiRequest('/admin/products', { method: 'POST', body: input }, (value) =>

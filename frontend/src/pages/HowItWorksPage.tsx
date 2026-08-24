@@ -47,7 +47,8 @@ const method = [
     copy: 'Nobody here retypes a number from another comparison site. Each price is read from the vendor’s own pricing page, and the site records which page, what day it was read, and how confident that reading is. If a price cannot be verified, the product does not go in the catalog at all — which is why some well-known tools are missing.',
   },
   {
-    heading: 'The billing basis is always stated, because it is where the trick lives',
+    heading:
+      'The billing basis is always stated, because it is where the trick lives',
     copy: 'One vendor quotes per month, the next quotes the same plan billed annually and shows a smaller number. They are not comparable, so we say which is which on every product. Where a vendor was running a promotion, we publish the standing rate, not the discount, so the comparison does not quietly go stale when the offer ends.',
   },
   {
@@ -74,8 +75,8 @@ export function HowItWorksPage() {
               Start wherever you actually are.
             </Heading>
             <p className="mt-7 max-w-2xl text-lg leading-8 text-ink/65">
-              You do not need to know what you are looking for to use this
-              site. Pick whichever of these three sounds like you.
+              You do not need to know what you are looking for to use this site.
+              Pick whichever of these three sounds like you.
             </p>
           </Container>
         </section>

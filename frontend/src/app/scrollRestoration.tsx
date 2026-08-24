@@ -1,5 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { NavigationType, useLocation, useNavigationType } from 'react-router-dom'
+import {
+  NavigationType,
+  useLocation,
+  useNavigationType,
+} from 'react-router-dom'
 
 import { claimScrollControl } from './scrollControl'
 
@@ -23,7 +27,6 @@ const STORAGE_KEY = 'unsolero:scroll-positions'
 // slow connection. The retry stops early the moment it succeeds, and abandons
 // immediately if the reader takes over.
 const RETRY_WINDOW_MS = 3000
-
 
 function readPositions(): Record<string, number> {
   try {

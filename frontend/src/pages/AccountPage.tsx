@@ -111,11 +111,7 @@ export function AccountPage() {
             )}
             {setups.data?.setups.length === 0 && (
               <div className="mt-6 border border-ink/15 bg-surface p-6 sm:p-8">
-                <Layers3
-                  aria-hidden="true"
-                  className="text-bronze"
-                  size={24}
-                />
+                <Layers3 aria-hidden="true" className="text-bronze" size={24} />
                 <h3 className="mt-4 text-lg font-semibold">
                   No saved setups yet
                 </h3>

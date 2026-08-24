@@ -26,6 +26,22 @@ export const dashboardSchema = z.object({
     saved_products: z.number().int().nonnegative(),
     saved_setups: z.number().int().nonnegative(),
   }),
+  readiness: z.object({
+    published_products: z.number().int().nonnegative(),
+    without_active_offer: z.number().int().nonnegative(),
+    without_affiliate_link: z.number().int().nonnegative(),
+    earning_ready: z.number().int().nonnegative(),
+    commerce_providers: z.number().int().nonnegative(),
+    published_content: z.number().int().nonnegative(),
+    blocked: z.array(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string(),
+        slug: z.string(),
+        reason: z.enum(['no_active_offer', 'no_affiliate_link']),
+      }),
+    ),
+  }),
 })
 
 const rankedEntitySchema = z.object({
@@ -583,6 +599,59 @@ const evidenceSourceSchema = z.object({
   created_at: timestamp,
 })
 
+export const evidenceSourceListSchema = z
+  .object({ sources: z.array(evidenceSourceSchema) })
+  .transform((value) => value.sources)
+
+const evidenceObservationSchema = z.object({
+  id: z.string().uuid(),
+  source_id: z.string().uuid(),
+  observed_at: timestamp,
+  expires_at: timestamp.nullable(),
+  confidence: z.number().int().min(0).max(100),
+  notes: z.string(),
+})
+
+export const evidenceObservationListSchema = z
+  .object({ observations: z.array(evidenceObservationSchema) })
+  .transform((value) => value.observations)
+
+export type EvidenceSource = z.infer<typeof evidenceSourceSchema>
+export type EvidenceObservation = z.infer<typeof evidenceObservationSchema>
+
+// The fact keys a non-physical product must cite provenance for, and every
+// score key that needs a rationale. Both sets are enforced by the server; the
+// form mirrors them so a revision is never submitted incomplete.
+export const requiredFactKeys = [
+  'category',
+  'brand',
+  'name',
+  'slug',
+  'description',
+  'price',
+  'warranty',
+] as const
+
+export const scoreRationaleKeys = [
+  'quality',
+  'value',
+  'durability',
+  'beginner',
+  'advanced',
+  'apartment',
+  'noise',
+  'portability',
+] as const
+
+export const factClassifications = [
+  'verified',
+  'manufacturer',
+  'merchant',
+  'editorial',
+] as const
+
+export type FactClassification = (typeof factClassifications)[number]
+
 export const productGovernanceSchema = z.object({
   product_id: z.string().uuid(),
   product_name: z.string(),
@@ -620,6 +689,33 @@ export const productGovernancePageSchema = z.object({
   items: z.array(productGovernanceSchema),
   ...pageFields,
 })
+
+export const policyStatuses = [
+  'draft',
+  'in_review',
+  'approved',
+  'active',
+  'retired',
+  'rejected',
+] as const
+
+const recommendationPolicySchema = z.object({
+  version: z.string(),
+  vertical_key: z.string(),
+  status: z.enum(policyStatuses),
+  category_count: z.number(),
+  product_count: z.number(),
+  created_at: z.string(),
+  activated_at: nullableString,
+  review_note: z.string(),
+})
+
+export const recommendationPolicyListSchema = z
+  .object({ policies: z.array(recommendationPolicySchema) })
+  .transform((value) => value.policies)
+
+export type RecommendationPolicy = z.infer<typeof recommendationPolicySchema>
+export type PolicyStatus = (typeof policyStatuses)[number]
 
 export type DashboardData = z.infer<typeof dashboardSchema>
 export type AnalyticsReportData = z.infer<typeof analyticsReportSchema>

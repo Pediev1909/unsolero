@@ -18,6 +18,12 @@ export const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
+        path: '/terms',
+        lazy: async () => ({
+          Component: (await import('../pages/TermsPage')).TermsPage,
+        }),
+      },
+      {
         path: '/privacy',
         lazy: async () => ({
           Component: (await import('../pages/PrivacyPage')).PrivacyPage,
@@ -199,13 +205,23 @@ export const router = createBrowserRouter([
           Component: (await import('../pages/BrandPage')).BrandPage,
         }),
       },
-      {
-        path: '/design-system',
-        lazy: async () => ({
-          Component: (await import('../pages/design-system/DesignSystemPage'))
-            .DesignSystemPage,
-        }),
-      },
+      // The component gallery carries invented products with placeholder prices.
+      // It is noindex and disallowed in robots.txt, which stops a search engine
+      // but not a person who reaches it — an affiliate reviewer opening it sees
+      // a half-built page of fake products. It exists for development, so it
+      // ships only in development.
+      ...(import.meta.env.DEV
+        ? [
+            {
+              path: '/design-system',
+              lazy: async () => ({
+                Component: (
+                  await import('../pages/design-system/DesignSystemPage')
+                ).DesignSystemPage,
+              }),
+            },
+          ]
+        : []),
       {
         element: <ProtectedRoute />,
         children: [
@@ -353,17 +369,15 @@ export const router = createBrowserRouter([
               {
                 path: 'content',
                 lazy: async () => ({
-                  Component: (
-                    await import('../pages/admin/AdminEmptySectionPage')
-                  ).AdminContentPage,
+                  Component: (await import('../pages/admin/AdminContentPage'))
+                    .AdminContentPage,
                 }),
               },
               {
-                path: 'settings',
+                path: 'policy',
                 lazy: async () => ({
-                  Component: (
-                    await import('../pages/admin/AdminEmptySectionPage')
-                  ).AdminSettingsPage,
+                  Component: (await import('../pages/admin/AdminPolicyPage'))
+                    .AdminPolicyPage,
                 }),
               },
             ],

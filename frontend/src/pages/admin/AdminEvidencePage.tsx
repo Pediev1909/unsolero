@@ -9,6 +9,14 @@ import {
   adminTableHead,
 } from '../../features/admin/components/AdminStates'
 import {
+  NewRevisionForm,
+  RevisionActions,
+} from '../../features/admin/components/EvidenceRevision'
+import {
+  EvidenceObservationsPanel,
+  EvidenceSourcesPanel,
+} from '../../features/admin/components/EvidenceSources'
+import {
   useGovernedProducts,
   useProductGovernance,
 } from '../../features/admin/queries'
@@ -138,6 +146,7 @@ export function AdminEvidenceDetailPage() {
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Created</th>
                       <th className="px-4 py-3">Valid until</th>
+                      <th className="px-4 py-3">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -164,12 +173,21 @@ export function AdminEvidenceDetailPage() {
                         <td className={adminTableCell}>
                           {formatDate(revision.valid_until)}
                         </td>
+                        <td className={adminTableCell}>
+                          <RevisionActions
+                            revisionID={revision.fact_revision_id}
+                            status={revision.status}
+                          />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </section>
+            {productID && <NewRevisionForm productID={productID} />}
+            <EvidenceSourcesPanel />
+            {productID && <EvidenceObservationsPanel productID={productID} />}
             <section aria-labelledby="provenance-heading" className="mt-12">
               <h2 className="font-editorial text-2xl" id="provenance-heading">
                 Provenance

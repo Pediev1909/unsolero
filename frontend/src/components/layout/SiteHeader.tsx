@@ -74,9 +74,7 @@ export function SiteHeader({
               // classes, because cn concatenates and does not merge: ml-auto
               // and ml-2 would both survive and the winner would be decided
               // by stylesheet order.
-              className={
-                actions ? 'ml-2 md:hidden' : 'ml-auto md:hidden'
-              }
+              className={actions ? 'ml-2 md:hidden' : 'ml-auto md:hidden'}
               onClick={() => setMobileOpen(true)}
               size="sm"
               variant="quiet"

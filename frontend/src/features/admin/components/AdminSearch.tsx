@@ -20,7 +20,11 @@ interface Destination {
   to: string
 }
 
-export function AdminSearch({ sections }: { sections: { label: string; to: string }[] }) {
+export function AdminSearch({
+  sections,
+}: {
+  sections: { label: string; to: string }[]
+}) {
   const references = useAdminReferences()
   const navigate = useNavigate()
   const [term, setTerm] = useState('')

@@ -55,7 +55,79 @@ func (repository *Repository) Dashboard(ctx context.Context) (admin.Dashboard, e
 	if err != nil {
 		return admin.Dashboard{}, fmt.Errorf("load admin dashboard: %w", err)
 	}
+	if err := repository.dashboardReadiness(ctx, &dashboard.Readiness); err != nil {
+		return admin.Dashboard{}, err
+	}
 	return dashboard, nil
+}
+
+// A published product earns nothing without an active offer carrying an active
+// affiliate link. Counting the gap is what turns the dashboard from inventory
+// totals into a work list.
+func (repository *Repository) dashboardReadiness(ctx context.Context, readiness *admin.Readiness) error {
+	const summary = `
+		WITH published AS (
+			SELECT id FROM catalog.products WHERE status = 'published'
+		), offered AS (
+			SELECT DISTINCT product_id FROM commerce.merchant_offers WHERE is_active
+		), linked AS (
+			SELECT DISTINCT offers.product_id
+			FROM commerce.merchant_offers offers
+			JOIN commerce.affiliate_links links
+			  ON links.merchant_offer_id = offers.id AND links.is_active
+			WHERE offers.is_active
+		)
+		SELECT
+			(SELECT count(*) FROM published),
+			(SELECT count(*) FROM published WHERE id NOT IN (SELECT product_id FROM offered)),
+			(SELECT count(*) FROM published WHERE id IN (SELECT product_id FROM offered)
+				AND id NOT IN (SELECT product_id FROM linked)),
+			(SELECT count(*) FROM published WHERE id IN (SELECT product_id FROM linked)),
+			(SELECT count(*) FROM commerce.provider_configurations),
+			(SELECT count(*) FROM editorial.entries WHERE published_at IS NOT NULL)`
+	if err := repository.pool.QueryRow(ctx, summary).Scan(
+		&readiness.PublishedProducts, &readiness.WithoutActiveOffer,
+		&readiness.WithoutAffiliateLink, &readiness.EarningReady,
+		&readiness.CommerceProviders, &readiness.PublishedContent,
+	); err != nil {
+		return fmt.Errorf("load monetization readiness: %w", err)
+	}
+
+	// Bounded on purpose: the dashboard shows the head of the work list, and
+	// the full inventory belongs on the Products page.
+	const blocked = `
+		WITH offered AS (
+			SELECT DISTINCT product_id FROM commerce.merchant_offers WHERE is_active
+		), linked AS (
+			SELECT DISTINCT offers.product_id
+			FROM commerce.merchant_offers offers
+			JOIN commerce.affiliate_links links
+			  ON links.merchant_offer_id = offers.id AND links.is_active
+			WHERE offers.is_active
+		)
+		SELECT products.id, products.name, products.slug,
+			CASE WHEN products.id NOT IN (SELECT product_id FROM offered)
+				THEN 'no_active_offer' ELSE 'no_affiliate_link' END
+		FROM catalog.products products
+		WHERE products.status = 'published'
+		  AND products.id NOT IN (SELECT product_id FROM linked)
+		ORDER BY products.name
+		LIMIT 25`
+	rows, err := repository.pool.Query(ctx, blocked)
+	if err != nil {
+		return fmt.Errorf("load blocked products: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var item admin.BlockedProduct
+		var reason string
+		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &reason); err != nil {
+			return fmt.Errorf("scan blocked product: %w", err)
+		}
+		item.Reason = admin.BlockedReason(reason)
+		readiness.Blocked = append(readiness.Blocked, item)
+	}
+	return rows.Err()
 }
 
 func audit(ctx context.Context, tx pgx.Tx, actor identity.UserID, action, entityType, entityID string, changes map[string]string) error {

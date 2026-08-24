@@ -25,8 +25,7 @@ function groupByLetter(brands: Brand[]) {
   const listed = brands.filter(
     (brand) =>
       !brand.slug.startsWith('demo-') &&
-      (brand.published_products === undefined ||
-        brand.published_products > 0),
+      (brand.published_products === undefined || brand.published_products > 0),
   )
   const letters = new Map<string, Brand[]>()
   for (const brand of listed) {
@@ -154,8 +153,7 @@ export function BrandsPage() {
 
               <p className="border-t border-ink/15 pt-8 text-sm text-ink/60">
                 {total} {total === 1 ? 'vendor' : 'vendors'} in the catalog. The
-                number beside each is how many of its products we have
-                compared.{' '}
+                number beside each is how many of its products we have compared.{' '}
                 <Link className="underline underline-offset-4" to="/categories">
                   Browse by category instead
                 </Link>

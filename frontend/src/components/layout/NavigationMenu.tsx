@@ -1,11 +1,5 @@
 import { ChevronDown } from 'lucide-react'
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/styles/cn'
@@ -72,7 +66,10 @@ export function NavigationMenu({
     }
     const onPointerDown = (event: PointerEvent) => {
       if (!containerRef.current) return
-      if (event.target instanceof Node && containerRef.current.contains(event.target)) {
+      if (
+        event.target instanceof Node &&
+        containerRef.current.contains(event.target)
+      ) {
         return
       }
       setOpen(false)
@@ -81,7 +78,10 @@ export function NavigationMenu({
     // does not leave a panel hanging open behind the rest of the page.
     const onFocusIn = (event: FocusEvent) => {
       if (!containerRef.current) return
-      if (event.target instanceof Node && containerRef.current.contains(event.target)) {
+      if (
+        event.target instanceof Node &&
+        containerRef.current.contains(event.target)
+      ) {
         return
       }
       setOpen(false)

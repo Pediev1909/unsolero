@@ -90,6 +90,64 @@ func (repository *Repository) ReviewSource(ctx context.Context, actor identity.U
 	return source, nil
 }
 
+// ListSources exists because an operator recording an observation has to pick
+// the source it came from, and there was no way to see what sources exist. The
+// write endpoints shipped without it, which is why the whole workflow was
+// reachable only from SQL.
+//
+// Verified sources sort first: those are the ones a revision may cite, and the
+// pending ones below them are the review queue.
+func (repository *Repository) ListSources(ctx context.Context, limit int) ([]domain.Source, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 100
+	}
+	rows, err := repository.pool.Query(ctx, `SELECT id, source_type, title, publisher,
+		source_url, is_fictional, review_status, reviewed_at, review_note, created_at
+		FROM evidence.sources
+		ORDER BY (review_status = 'verified') DESC, created_at DESC
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, mapError("list evidence sources", err)
+	}
+	defer rows.Close()
+	sources := make([]domain.Source, 0, limit)
+	for rows.Next() {
+		var source domain.Source
+		if err := rows.Scan(&source.ID, &source.Type, &source.Title, &source.Publisher,
+			&source.URL, &source.IsFictional, &source.ReviewStatus, &source.ReviewedAt,
+			&source.ReviewNote, &source.CreatedAt); err != nil {
+			return nil, mapError("scan evidence source", err)
+		}
+		sources = append(sources, source)
+	}
+	return sources, mapError("list evidence sources", rows.Err())
+}
+
+// ListObservations returns what has been observed about one product. A revision
+// cites an observation for every required fact and every score, so this is the
+// list the revision form chooses from.
+func (repository *Repository) ListObservations(ctx context.Context, productID string) ([]domain.Observation, error) {
+	rows, err := repository.pool.Query(ctx, `SELECT id, source_id, product_id, observed_at,
+		expires_at, confidence, notes, created_at
+		FROM evidence.observations WHERE product_id = $1
+		ORDER BY observed_at DESC`, productID)
+	if err != nil {
+		return nil, mapError("list evidence observations", err)
+	}
+	defer rows.Close()
+	observations := make([]domain.Observation, 0)
+	for rows.Next() {
+		var observation domain.Observation
+		if err := rows.Scan(&observation.ID, &observation.SourceID, &observation.ProductID,
+			&observation.ObservedAt, &observation.ExpiresAt, &observation.Confidence,
+			&observation.Notes, &observation.CreatedAt); err != nil {
+			return nil, mapError("scan evidence observation", err)
+		}
+		observations = append(observations, observation)
+	}
+	return observations, mapError("list evidence observations", rows.Err())
+}
+
 func (repository *Repository) CreateObservation(ctx context.Context, actor identity.UserID, input domain.ObservationInput) (domain.Observation, error) {
 	tx, err := repository.pool.Begin(ctx)
 	if err != nil {

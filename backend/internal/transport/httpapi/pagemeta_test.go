@@ -6,6 +6,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	catalog "rigmark/internal/modules/catalog/domain"
 	content "rigmark/internal/modules/content/domain"
 )
 
@@ -219,5 +220,61 @@ func TestShellIsUnchangedWithoutAPrerenderedBody(t *testing.T) {
 	}
 	if !strings.Contains(rendered, `<div id="root"></div>`) {
 		t.Fatalf("empty mount point was modified:\n%s", rendered)
+	}
+}
+
+// The live audit reported 125 pages with no <h1> and 126 with no inbound
+// internal link. Both are the same defect: a route whose body only exists after
+// JavaScript runs is, to anything that does not run it, a page with no heading
+// and no anchors. These pin the server-rendered replacement.
+func TestRenderProductBodyCarriesHeadingAndCatalogLinks(t *testing.T) {
+	body := renderProductBody(catalog.Product{
+		Name: "ClickUp Unlimited", Slug: "clickup-unlimited",
+		BrandName: "ClickUp", BrandSlug: "clickup",
+		CategoryName: "Project management", CategorySlug: "project-management",
+		Description: "Project and task tracking on the entry paid tier.",
+		Price:       catalog.Money{AmountMinor: 1000, Currency: "USD"},
+	})
+	for _, want := range []string{
+		"<h1", "ClickUp Unlimited",
+		`href="/brands/clickup"`,
+		`href="/categories/project-management"`,
+		"USD 10.00",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("product body is missing %q\ngot: %s", want, body)
+		}
+	}
+}
+
+func TestRenderCatalogListingBodyLinksEveryProduct(t *testing.T) {
+	body := renderCatalogListingBody("CRM", "Customer records and pipelines.",
+		[]catalog.Product{
+			{Name: "Zoho CRM Standard", Slug: "zoho-crm-standard", BrandName: "Zoho"},
+			{Name: "Pipedrive Lite", Slug: "pipedrive-lite", BrandName: "Pipedrive"},
+		})
+	if !strings.Contains(body, "<h1") || !strings.Contains(body, "CRM") {
+		t.Errorf("listing body has no heading\ngot: %s", body)
+	}
+	for _, slug := range []string{"zoho-crm-standard", "pipedrive-lite"} {
+		if !strings.Contains(body, `href="/products/`+slug+`"`) {
+			t.Errorf("listing body does not link %q\ngot: %s", slug, body)
+		}
+	}
+}
+
+// A name carrying markup must not become markup. The renderers build HTML by
+// concatenation, so escaping is the only thing standing between a catalog value
+// and an injected element.
+func TestRenderedBodiesEscapeCatalogValues(t *testing.T) {
+	body := renderProductBody(catalog.Product{
+		Name: `<script>alert(1)</script>`, Slug: "x", BrandName: `"onload="x`, BrandSlug: "b",
+	})
+	if strings.Contains(body, "<script>") {
+		t.Errorf("product name was not escaped\ngot: %s", body)
+	}
+	listing := renderCatalogListingBody(`<img src=x onerror=y>`, "", nil)
+	if strings.Contains(listing, "<img") {
+		t.Errorf("listing heading was not escaped\ngot: %s", listing)
 	}
 }

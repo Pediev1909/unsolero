@@ -243,6 +243,35 @@ services:
     volumes:
       - ./secrets/tls/trust-bundle.pem:/etc/ssl/unsolero/trust-bundle.pem:ro
 
+  # Without this override the seed container keeps the development definition,
+  # which hardcodes APP_ENV=development and sslmode=disable. That silently
+  # disarms the refusal in cmd/seed: `run --rm seed` against production would
+  # load the fictional fixture and publish invented products to real visitors.
+  # With it, loading is refused here and only `run --rm seed -purge` works.
+  seed:
+    environment: *production-application-environment
+    volumes:
+      - ./secrets/tls/trust-bundle.pem:/etc/ssl/unsolero/trust-bundle.pem:ro
+
+  # Removing the fixture as its own service rather than a flag on the one above.
+  # The seed image sets CMD with no ENTRYPOINT, so `run --rm seed -purge` would
+  # replace the command with the flag and fail with "exec: -purge: not found".
+  # A named service is one word to type on a server and cannot be mistyped into
+  # loading the fixture instead of removing it.
+  seed-purge:
+    profiles: ["tools"]
+    build:
+      context: ./backend
+      target: seed
+    command: ["/usr/local/bin/seed", "-purge"]
+    environment: *production-application-environment
+    volumes:
+      - ./secrets/tls/trust-bundle.pem:/etc/ssl/unsolero/trust-bundle.pem:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
   api:
     restart: unless-stopped
     environment: *production-application-environment

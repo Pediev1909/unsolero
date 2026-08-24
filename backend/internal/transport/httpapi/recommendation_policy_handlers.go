@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	recommendation "rigmark/internal/modules/recommendation/application"
 	"rigmark/internal/modules/recommendation/domain"
@@ -15,13 +16,44 @@ type policyTransitionRequest struct {
 	Note string `json:"note"`
 }
 
+// The domain summary carries no JSON tags, so serialising it directly emitted
+// PascalCase while every other admin response is snake_case. Nothing consumed
+// this endpoint, so nothing caught it.
+type adminPolicyResponse struct {
+	Version       string     `json:"version"`
+	VerticalKey   string     `json:"vertical_key"`
+	Status        string     `json:"status"`
+	CategoryCount int        `json:"category_count"`
+	ProductCount  int        `json:"product_count"`
+	CreatedAt     time.Time  `json:"created_at"`
+	ActivatedAt   *time.Time `json:"activated_at"`
+	ReviewNote    string     `json:"review_note"`
+}
+
+func presentPolicy(summary domain.PolicySummary) adminPolicyResponse {
+	return adminPolicyResponse{
+		Version:       summary.Version,
+		VerticalKey:   summary.VerticalKey,
+		Status:        string(summary.Status),
+		CategoryCount: summary.CategoryCount,
+		ProductCount:  summary.ProductCount,
+		CreatedAt:     summary.CreatedAt,
+		ActivatedAt:   summary.ActivatedAt,
+		ReviewNote:    summary.ReviewNote,
+	}
+}
+
 func (h *Handler) adminListRecommendationPolicies(response http.ResponseWriter, request *http.Request) {
 	items, err := h.recommendationPolicy.List(request.Context())
 	if err != nil {
 		writeAPIError(response, http.StatusInternalServerError, "policy_unavailable", "Recommendation policies are unavailable.", nil, h.logger)
 		return
 	}
-	writeJSON(response, http.StatusOK, map[string]any{"policies": items}, h.logger)
+	policies := make([]adminPolicyResponse, 0, len(items))
+	for _, item := range items {
+		policies = append(policies, presentPolicy(item))
+	}
+	writeJSON(response, http.StatusOK, map[string]any{"policies": policies}, h.logger)
 }
 
 func (h *Handler) adminSubmitRecommendationPolicy(w http.ResponseWriter, r *http.Request) {

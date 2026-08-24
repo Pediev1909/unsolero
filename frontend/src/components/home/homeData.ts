@@ -1,5 +1,3 @@
-import type { ProductCardData } from '../product'
-
 export interface SetupItem {
   name: string
   reason: string
@@ -83,44 +81,5 @@ export const comparisonProducts: ComparisonProduct[] = [
     easeScore: 64,
     integrationScore: 80,
     verdict: 'Useful later, not at this size',
-  },
-]
-
-export const featuredProducts: ProductCardData[] = [
-  {
-    id: 'clickup-unlimited',
-    href: '/products/clickup-unlimited',
-    name: 'ClickUp Unlimited',
-    brand: 'ClickUp',
-    category: 'Project management',
-    priceMinor: 1000,
-    currency: 'USD',
-  },
-  {
-    id: 'zoho-books-standard',
-    href: '/products/zoho-books-standard',
-    name: 'Zoho Books Standard',
-    brand: 'Zoho',
-    category: 'Accounting and invoicing',
-    priceMinor: 1200,
-    currency: 'USD',
-  },
-  {
-    id: 'hubspot-starter-customer-platform',
-    href: '/products/hubspot-starter-customer-platform',
-    name: 'HubSpot Starter Customer Platform',
-    brand: 'HubSpot',
-    category: 'CRM',
-    priceMinor: 2000,
-    currency: 'USD',
-  },
-  {
-    id: 'salesflare-growth',
-    href: '/products/salesflare-growth',
-    name: 'Salesflare Growth',
-    brand: 'Salesflare',
-    category: 'CRM',
-    priceMinor: 3900,
-    currency: 'USD',
   },
 ]

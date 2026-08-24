@@ -3,6 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   adminApi,
   type AffiliateInput,
+  type EvidenceObservationInput,
+  type EvidenceRevisionInput,
+  type EvidenceSourceInput,
   type OfferInput,
   type ProductInput,
   type CommerceProviderInput,
@@ -13,6 +16,10 @@ export const adminKeys = {
   dashboard: ['admin', 'dashboard'] as const,
   analytics: ['admin', 'analytics'] as const,
   references: ['admin', 'references'] as const,
+  recommendationPolicies: ['admin', 'recommendation-policies'] as const,
+  evidenceSources: ['admin', 'evidence', 'sources'] as const,
+  evidenceObservations: (productID: string) =>
+    ['admin', 'evidence', 'observations', productID] as const,
   products: (search: string, page: number) =>
     ['admin', 'products', search, page] as const,
   product: (id: string) => ['admin', 'product', id] as const,
@@ -153,6 +160,90 @@ export const useMonetizationMetrics = () =>
     queryKey: adminKeys.monetizationMetrics,
     queryFn: adminApi.monetizationMetrics,
   })
+
+export const useRecommendationPolicies = () =>
+  useQuery({
+    queryKey: adminKeys.recommendationPolicies,
+    queryFn: adminApi.recommendationPolicies,
+  })
+
+export function usePolicyTransition() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      version,
+      action,
+      note,
+    }: {
+      version: string
+      action: 'submit' | 'approve' | 'reject' | 'activate' | 'deactivate'
+      note: string
+    }) => adminApi.transitionRecommendationPolicy(version, action, note),
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: adminKeys.root }),
+  })
+}
+
+export const useEvidenceSources = () =>
+  useQuery({
+    queryKey: adminKeys.evidenceSources,
+    queryFn: adminApi.evidenceSources,
+  })
+
+export const useEvidenceObservations = (productID: string | undefined) =>
+  useQuery({
+    queryKey: adminKeys.evidenceObservations(productID ?? ''),
+    queryFn: () => adminApi.evidenceObservations(productID ?? ''),
+    enabled: Boolean(productID),
+  })
+
+// Every evidence write invalidates the whole admin tree. The governance detail,
+// the source list and the observation list all move together — a new source can
+// appear in a revision form, and a published revision changes the product row.
+function useEvidenceMutation<Variables>(
+  mutationFn: (variables: Variables) => Promise<unknown>,
+) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: () =>
+      void client.invalidateQueries({ queryKey: adminKeys.root }),
+  })
+}
+
+export const useCreateEvidenceSource = () =>
+  useEvidenceMutation((input: EvidenceSourceInput) =>
+    adminApi.createEvidenceSource(input),
+  )
+
+export const useReviewEvidenceSource = () =>
+  useEvidenceMutation(
+    ({ id, status, note }: { id: string; status: string; note: string }) =>
+      adminApi.reviewEvidenceSource(id, status, note),
+  )
+
+export const useCreateEvidenceObservation = () =>
+  useEvidenceMutation((input: EvidenceObservationInput) =>
+    adminApi.createEvidenceObservation(input),
+  )
+
+export const useCreateEvidenceRevision = (productID: string) =>
+  useEvidenceMutation((input: EvidenceRevisionInput) =>
+    adminApi.createEvidenceRevision(productID, input),
+  )
+
+export const useEvidenceRevisionTransition = () =>
+  useEvidenceMutation(
+    ({
+      revisionID,
+      action,
+      note,
+    }: {
+      revisionID: string
+      action: 'submit' | 'approve' | 'reject' | 'publish'
+      note: string
+    }) => adminApi.transitionEvidenceRevision(revisionID, action, note),
+  )
 
 export function useProductMutation(id?: string) {
   const client = useQueryClient()

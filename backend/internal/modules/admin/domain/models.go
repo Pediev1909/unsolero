@@ -28,6 +28,35 @@ type AnalyticsCounts struct {
 type Dashboard struct {
 	Counts    Counts
 	Analytics AnalyticsCounts
+	Readiness Readiness
+}
+
+// Readiness answers the question the counts do not: how much of the published
+// catalog can actually earn. A published product with no active offer, or an
+// active offer with no active affiliate link, is a page that costs traffic and
+// returns nothing.
+type Readiness struct {
+	PublishedProducts    int64
+	WithoutActiveOffer   int64
+	WithoutAffiliateLink int64
+	EarningReady         int64
+	CommerceProviders    int64
+	PublishedContent     int64
+	Blocked              []BlockedProduct
+}
+
+type BlockedReason string
+
+const (
+	BlockedNoActiveOffer   BlockedReason = "no_active_offer"
+	BlockedNoAffiliateLink BlockedReason = "no_affiliate_link"
+)
+
+type BlockedProduct struct {
+	ID     catalog.ProductID
+	Name   string
+	Slug   string
+	Reason BlockedReason
 }
 
 type ProductPage struct {

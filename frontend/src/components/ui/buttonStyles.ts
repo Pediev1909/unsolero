@@ -1,11 +1,7 @@
 import { cn } from '../../lib/styles/cn'
 
 export type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'quiet'
-  | 'danger'
-  | 'inverse'
+  'primary' | 'secondary' | 'quiet' | 'danger' | 'inverse'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 const variants: Record<ButtonVariant, string> = {

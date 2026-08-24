@@ -350,6 +350,81 @@ func renderEntryBody(entry content.Entry) string {
 	return body.String()
 }
 
+// renderProductBody ships the product's heading, facts and its place in the
+// catalog inside the document.
+//
+// A product route previously returned a correct title above an empty body. An
+// audit of the live site reported 125 pages with no <h1> and 126 with no
+// inbound internal link: both are the same defect seen twice, because a crawler
+// that does not run the application sees neither the heading nor a single
+// anchor. The category and brand links below are what connect a product page to
+// the rest of the site without JavaScript.
+func renderProductBody(product catalog.Product) string {
+	var body strings.Builder
+	body.WriteString(`<main class="mx-auto max-w-reading px-4 py-12">`)
+	body.WriteString(`<h1 class="font-editorial text-4xl">` + html.EscapeString(product.Name) + `</h1>`)
+
+	// Brand and category as links rather than text: this is the page's only
+	// route back into the catalog for a client that never runs the bundle.
+	var trail []string
+	if product.BrandName != "" && product.BrandSlug != "" {
+		trail = append(trail, `<a href="/brands/`+html.EscapeString(product.BrandSlug)+`">`+
+			html.EscapeString(product.BrandName)+`</a>`)
+	}
+	if product.CategoryName != "" && product.CategorySlug != "" {
+		trail = append(trail, `<a href="/categories/`+html.EscapeString(product.CategorySlug)+`">`+
+			html.EscapeString(product.CategoryName)+`</a>`)
+	}
+	if len(trail) > 0 {
+		body.WriteString(`<p class="mt-3 text-body-sm text-ink/70">` +
+			strings.Join(trail, " · ") + `</p>`)
+	}
+
+	if product.Price.AmountMinor > 0 && product.Price.Currency != "" {
+		body.WriteString(`<p class="mt-4 text-body-lg">` +
+			html.EscapeString(formatMoney(product.Price)) +
+			` <span class="text-ink/70">per month, entry paid tier</span></p>`)
+	}
+	if product.Description != "" {
+		body.WriteString(`<p class="mt-5 text-body">` +
+			html.EscapeString(product.Description) + `</p>`)
+	}
+	body.WriteString(`</main>`)
+	return body.String()
+}
+
+// renderCatalogListingBody ships a heading and the products the listing holds,
+// so a category or brand page carries real links instead of an empty container.
+// This is what gives every product page an inbound internal link.
+func renderCatalogListingBody(heading, description string, products []catalog.Product) string {
+	var body strings.Builder
+	body.WriteString(`<main class="mx-auto max-w-reading px-4 py-12">`)
+	body.WriteString(`<h1 class="font-editorial text-4xl">` + html.EscapeString(heading) + `</h1>`)
+	if description != "" {
+		body.WriteString(`<p class="mt-4 text-body-lg text-ink/70">` +
+			html.EscapeString(description) + `</p>`)
+	}
+	if len(products) > 0 {
+		body.WriteString(`<ul class="mt-8 space-y-3 text-body">`)
+		for _, product := range products {
+			body.WriteString(`<li><a href="/products/` + html.EscapeString(product.Slug) + `">` +
+				html.EscapeString(product.Name) + `</a>`)
+			if product.BrandName != "" {
+				body.WriteString(` <span class="text-ink/70">` +
+					html.EscapeString(product.BrandName) + `</span>`)
+			}
+			body.WriteString(`</li>`)
+		}
+		body.WriteString(`</ul>`)
+	}
+	body.WriteString(`</main>`)
+	return body.String()
+}
+
+func formatMoney(value catalog.Money) string {
+	return fmt.Sprintf("%s %.2f", value.Currency, float64(value.AmountMinor)/100)
+}
+
 func writeEntryBlock(body *strings.Builder, block content.Block) {
 	switch block.Type {
 	case content.BlockHeading:

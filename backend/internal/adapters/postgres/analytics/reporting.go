@@ -14,7 +14,7 @@ func (repository *Repository) Report(ctx context.Context, query domain.ReportQue
 	report := domain.Report{
 		MostRecommended: []domain.RankedEntity{}, MostViewed: []domain.RankedEntity{},
 		MostClicked: []domain.RankedEntity{}, TopMerchants: []domain.RankedEntity{},
-		Daily: []domain.DailyPoint{},
+		Daily:         []domain.DailyPoint{},
 		TopCategories: []domain.RankedEntity{}, TrafficSources: []domain.TrafficSource{},
 		Window: domain.ReportingWindow{From: query.From, To: query.To, Layer: "validated_filtered", MinimumSampleSize: minimumRateSampleSize},
 	}

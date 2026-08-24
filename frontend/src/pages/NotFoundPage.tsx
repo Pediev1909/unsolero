@@ -21,7 +21,10 @@ export function NotFoundPage() {
     // with an apology and a single link home, and offered no navigation at all.
     <>
       <SiteHeader />
-      <main className="grid place-items-center bg-canvas px-6 py-24" id="main-content">
+      <main
+        className="grid place-items-center bg-canvas px-6 py-24"
+        id="main-content"
+      >
         <div className="max-w-xl text-center">
           <p className="eyebrow">404 / Page not found</p>
           <Heading className="mt-5" level={1} size="display">

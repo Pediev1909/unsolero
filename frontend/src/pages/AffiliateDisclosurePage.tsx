@@ -39,16 +39,16 @@ export function AffiliateDisclosurePage() {
                   </Heading>
                   <p>
                     It does not affect which products are recommended, in what
-                    order, or why. Recommendations are produced by a deterministic
-                    engine that has no access to commercial data: commission rates
-                    and merchant relationships live in a separate part of the system
-                    and are never inputs to scoring.
+                    order, or why. Recommendations are produced by a
+                    deterministic engine that has no access to commercial data:
+                    commission rates and merchant relationships live in a
+                    separate part of the system and are never inputs to scoring.
                   </p>
                   <p className="mt-3">
-                    This is enforced rather than promised. An automated test fails
-                    the build if any commercial field is added to the data the
-                    engine scores. A product that pays us nothing can and does
-                    outrank one that pays well.
+                    This is enforced rather than promised. An automated test
+                    fails the build if any commercial field is added to the data
+                    the engine scores. A product that pays us nothing can and
+                    does outrank one that pays well.
                   </p>
                 </div>
 
@@ -63,8 +63,8 @@ export function AffiliateDisclosurePage() {
                       programme.
                     </li>
                     <li>
-                      We do not publish a product until its facts have a recorded
-                      source, which is why the catalog grows slowly.
+                      We do not publish a product until its facts have a
+                      recorded source, which is why the catalog grows slowly.
                     </li>
                   </ul>
                 </div>
@@ -75,8 +75,9 @@ export function AffiliateDisclosurePage() {
                   </Heading>
                   <p>
                     Every recommendation shows its reasons and the facts behind
-                    them, and rejected products are shown with the reason they were
-                    rejected rather than hidden. The method is described in full in{' '}
+                    them, and rejected products are shown with the reason they
+                    were rejected rather than hidden. The method is described in
+                    full in{' '}
                     <Link
                       className="underline underline-offset-4"
                       to="/articles/how-unsolero-ranks-software"
@@ -86,8 +87,8 @@ export function AffiliateDisclosurePage() {
                     .
                   </p>
                   <p className="mt-3">
-                    If a recommendation does not make sense to you, it is either a
-                    bug or a bad fact. Both are worth telling us about.
+                    If a recommendation does not make sense to you, it is either
+                    a bug or a bad fact. Both are worth telling us about.
                   </p>
                 </div>
 
@@ -97,9 +98,9 @@ export function AffiliateDisclosurePage() {
                   </Heading>
                   <p>
                     Prices are read from each vendor&apos;s own pricing page and
-                    recorded with the date they were read. Software pricing changes
-                    often; confirm the current price with the vendor before
-                    subscribing.
+                    recorded with the date they were read. Software pricing
+                    changes often; confirm the current price with the vendor
+                    before subscribing.
                   </p>
                 </div>
               </div>

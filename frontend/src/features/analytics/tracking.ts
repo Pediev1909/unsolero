@@ -195,7 +195,14 @@ function analyticsAttribution(): Omit<AnalyticsContext, 'page_path'> {
   const stored = safeSessionGet(attributionStorageKey)
   if (stored) {
     try {
-      return parseAttribution(JSON.parse(stored) as Record<string, unknown>)
+      const parsed = parseAttribution(
+        JSON.parse(stored) as Record<string, unknown>,
+      )
+      // A visitor who opened the site directly and only afterwards followed a
+      // campaign link would otherwise keep the empty first touch for the whole
+      // tab session, losing the campaign that actually brought them back.
+      // First touch still wins; an empty one is not a touch.
+      if (Object.keys(parsed).length > 0) return parsed
     } catch {
       // Replace invalid browser state with current bounded attribution.
     }
@@ -207,7 +214,9 @@ function analyticsAttribution(): Omit<AnalyticsContext, 'page_path'> {
     campaign: search.get('utm_campaign'),
     referrer_host: externalReferrerHost(),
   })
-  safeSessionSet(attributionStorageKey, JSON.stringify(current))
+  if (Object.keys(current).length > 0) {
+    safeSessionSet(attributionStorageKey, JSON.stringify(current))
+  }
   return current
 }
 

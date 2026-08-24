@@ -140,4 +140,34 @@ describe('affiliate and analytics tracking', () => {
       events.every((event) => event.properties.onboarding_id === firstID),
     ).toBe(true)
   })
+
+  // A visitor who opens the site directly and only afterwards follows a campaign
+  // link kept the empty first touch for the whole tab session, so every click
+  // they made was recorded with no traffic source at all.
+  it('keeps a later campaign when the first page view carried no attribution', () => {
+    window.history.replaceState({}, '', '/')
+    affiliateClickPath('/api/affiliate/click/offer-a', 'product_detail')
+
+    window.history.replaceState({}, '', '/?utm_source=tiktok&utm_medium=social')
+    const url = new URL(
+      affiliateClickPath('/api/affiliate/click/offer-a', 'product_detail'),
+      window.location.origin,
+    )
+
+    expect(url.searchParams.get('traffic_source')).toBe('tiktok')
+    expect(url.searchParams.get('traffic_medium')).toBe('social')
+  })
+
+  it('keeps the first campaign when a later page view carries none', () => {
+    window.history.replaceState({}, '', '/?utm_source=tiktok')
+    affiliateClickPath('/api/affiliate/click/offer-a', 'product_detail')
+
+    window.history.replaceState({}, '', '/products/demo')
+    const url = new URL(
+      affiliateClickPath('/api/affiliate/click/offer-a', 'product_detail'),
+      window.location.origin,
+    )
+
+    expect(url.searchParams.get('traffic_source')).toBe('tiktok')
+  })
 })
