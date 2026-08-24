@@ -1,23 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img">
-  <rect width="1200" height="630" fill="#f4f5f7"/>
-  <rect x="180" y="180" width="330" height="270" rx="6" fill="#ffffff" stroke="#d2d6dd"/>
-  <rect x="212" y="216" width="250" height="10" rx="5" fill="#14171c" opacity="0.45"/>
-  <rect x="212" y="260" width="224" height="10" rx="5" fill="#14171c" opacity="0.45"/>
-  <rect x="212" y="304" width="198" height="10" rx="5" fill="#14171c" opacity="0.45"/>
-  <rect x="212" y="348" width="172" height="10" rx="5" fill="#14171c" opacity="0.45"/>
-  <rect x="212" y="392" width="146" height="10" rx="5" fill="#14171c" opacity="0.45"/>
-  <path d="M510 315 L640 315" stroke="#14605a" stroke-width="3"/>
-  <path d="M622 300 L642 315 L622 330" fill="none" stroke="#14605a" stroke-width="3"/>
-  <rect x="670" y="200" width="350" height="72" rx="6" fill="#ffffff" stroke="#d2d6dd"/>
-  <rect x="698" y="222" width="140" height="12" rx="6" fill="#14171c" opacity="0.6"/>
-  <rect x="698" y="244" width="86" height="8" rx="4" fill="#14171c" opacity="0.2"/>
-  <rect x="948" y="226" width="44" height="20" rx="10" fill="#14605a" opacity="0.16"/>
-  <rect x="670" y="292" width="350" height="72" rx="6" fill="#ffffff" stroke="#d2d6dd"/>
-  <rect x="698" y="314" width="140" height="12" rx="6" fill="#14171c" opacity="0.6"/>
-  <rect x="698" y="336" width="86" height="8" rx="4" fill="#14171c" opacity="0.2"/>
-  <rect x="948" y="318" width="44" height="20" rx="10" fill="#14605a" opacity="0.16"/>
-  <rect x="670" y="384" width="350" height="72" rx="6" fill="#ffffff" stroke="#d2d6dd"/>
-  <rect x="698" y="406" width="140" height="12" rx="6" fill="#14171c" opacity="0.6"/>
-  <rect x="698" y="428" width="86" height="8" rx="4" fill="#14171c" opacity="0.2"/>
-  <rect x="948" y="410" width="44" height="20" rx="10" fill="#14605a" opacity="0.16"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="Three constraints entered on the left resolving through a decision point into a set of chosen tools">
+  <title>Your constraints decide</title>
+  <style>
+    .ground { fill: #f4f5f7 }
+    .track  { stroke: #d2d6dd; stroke-width: 6; stroke-linecap: round }
+    .fill   { stroke: #545b67; stroke-width: 6; stroke-linecap: round }
+    .knob   { fill: #ffffff; stroke: #14171c; stroke-width: 2.5 }
+    .wire   { fill: none; stroke: #545b67; stroke-width: 1.5; opacity: .5 }
+    .core   { fill: none; stroke: #14605a; stroke-width: 2.5 }
+    .pick   { stroke: #14605a; stroke-width: 6; stroke-linecap: round }
+    .lead   { fill: #14605a }
+    .mark   { fill: #545b67 }
+
+    /* The wires carry the constraints into the decision; drawing them once is
+       the whole story, and the core holds a slow pulse afterwards. */
+    .wire { stroke-dasharray: 340; animation: feed 1.2s cubic-bezier(.16,1,.3,1) both }
+    .core { animation: hold 4.5s ease-in-out infinite; transform-origin: 620px 315px }
+    @keyframes feed { from { stroke-dashoffset: 340 } to { stroke-dashoffset: 0 } }
+    @keyframes hold { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .5; transform: scale(1.08) } }
+    @media (prefers-reduced-motion: reduce) { .wire, .core { animation: none } }
+  </style>
+
+  <rect class="ground" width="1200" height="630"/>
+
+  <!-- Three constraints, each set to a different value. Sliders because the
+       inputs are quantities the visitor actually chose, not categories. -->
+  <g>
+    <line class="track" x1="150" y1="190" x2="420" y2="190"/>
+    <line class="fill"  x1="150" y1="190" x2="330" y2="190"/>
+    <circle class="knob" cx="330" cy="190" r="11"/>
+
+    <line class="track" x1="150" y1="315" x2="420" y2="315"/>
+    <line class="fill"  x1="150" y1="315" x2="245" y2="315"/>
+    <circle class="knob" cx="245" cy="315" r="11"/>
+
+    <line class="track" x1="150" y1="440" x2="420" y2="440"/>
+    <line class="fill"  x1="150" y1="440" x2="386" y2="440"/>
+    <circle class="knob" cx="386" cy="440" r="11"/>
+  </g>
+
+  <!-- Into the decision. -->
+  <path class="wire" d="M420 190 C520 190 520 315 560 315"/>
+  <path class="wire" d="M420 315 H560"/>
+  <path class="wire" d="M420 440 C520 440 520 315 560 315"/>
+
+  <circle class="core" cx="620" cy="315" r="34"/>
+  <circle class="core" cx="620" cy="315" r="10" fill="#14605a" stroke="none"/>
+
+  <path class="wire" d="M680 315 C740 315 740 205 800 205"/>
+  <path class="wire" d="M680 315 H800"/>
+  <path class="wire" d="M680 315 C740 315 740 425 800 425"/>
+
+  <!-- The resolved set, drawn on the same scale as the constraints that
+       produced it. Cards with grey bars would say "some content goes here";
+       three measured values say what the engine actually returned. -->
+  <g>
+    <line class="track" x1="800" y1="205" x2="1050" y2="205"/>
+    <line class="pick"  x1="800" y1="205" x2="990" y2="205"/>
+    <circle class="lead" cx="990" cy="205" r="10"/>
+
+    <line class="track" x1="800" y1="315" x2="1050" y2="315"/>
+    <line class="fill"  x1="800" y1="315" x2="912" y2="315"/>
+    <circle class="mark" cx="912" cy="315" r="8"/>
+
+    <line class="track" x1="800" y1="425" x2="1050" y2="425"/>
+    <line class="fill"  x1="800" y1="425" x2="1020" y2="425"/>
+    <circle class="mark" cx="1020" cy="425" r="8"/>
+  </g>
 </svg>

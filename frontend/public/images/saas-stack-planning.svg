@@ -1,16 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img">
-  <rect width="1200" height="630" fill="#f3f0e9"/>
-  <rect x="300" y="120" width="600" height="390" rx="4" fill="#fcfaf5" stroke="#171816" stroke-opacity="0.12"/>
-  <rect x="380" y="180" width="300" height="14" rx="7" fill="#171816" opacity="0.72"/>
-  <circle cx="352" cy="187" r="9" fill="#8c5d35" stroke="#171816" stroke-opacity="0.28" stroke-width="2"/>
-  <rect x="380" y="232" width="300" height="14" rx="7" fill="#171816" opacity="0.72"/>
-  <circle cx="352" cy="239" r="9" fill="#8c5d35" stroke="#171816" stroke-opacity="0.28" stroke-width="2"/>
-  <rect x="380" y="284" width="300" height="14" rx="7" fill="#171816" opacity="0.72"/>
-  <circle cx="352" cy="291" r="9" fill="#8c5d35" stroke="#171816" stroke-opacity="0.28" stroke-width="2"/>
-  <rect x="380" y="336" width="210" height="14" rx="7" fill="#171816" opacity="0.22"/>
-  <circle cx="352" cy="343" r="9" fill="none" stroke="#171816" stroke-opacity="0.28" stroke-width="2"/>
-  <rect x="380" y="388" width="210" height="14" rx="7" fill="#171816" opacity="0.22"/>
-  <circle cx="352" cy="395" r="9" fill="none" stroke="#171816" stroke-opacity="0.28" stroke-width="2"/>
-  <rect x="380" y="440" width="210" height="14" rx="7" fill="#171816" opacity="0.22"/>
-  <circle cx="352" cy="447" r="9" fill="none" stroke="#171816" stroke-opacity="0.28" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="A purchase sequence: three tools bought now, one deferred, one deliberately skipped">
+  <title>Buy now, defer, skip</title>
+  <style>
+    .ground { fill: #f4f5f7 }
+    .spine  { stroke: #d2d6dd; stroke-width: 2; stroke-linecap: round }
+    .done   { stroke: #14605a; stroke-width: 3; stroke-linecap: round }
+    .now    { fill: #14605a }
+    .defer  { fill: #f4f5f7; stroke: #545b67; stroke-width: 2.5 }
+    .skip   { stroke: #545b67; stroke-width: 2.5; stroke-linecap: round; opacity: .5 }
+    .stem   { stroke: #d2d6dd; stroke-width: 1 }
+    .bar    { fill: #545b67 }
+    .barq   { fill: #d2d6dd }
+
+    /* The sequence draws forward once. It rests complete. */
+    .done { stroke-dasharray: 460; animation: run 1.4s cubic-bezier(.16,1,.3,1) both }
+    @keyframes run { from { stroke-dashoffset: 460 } to { stroke-dashoffset: 0 } }
+    @media (prefers-reduced-motion: reduce) { .done { animation: none } }
+  </style>
+
+  <rect class="ground" width="1200" height="630"/>
+
+  <!-- The whole sequence, including what never gets bought. -->
+  <line class="spine" x1="170" y1="315" x2="1030" y2="315"/>
+  <line class="done"  x1="170" y1="315" x2="630" y2="315"/>
+
+  <!-- Stops one to three: bought now, in this order. -->
+  <g class="stem">
+    <line x1="170" y1="315" x2="170" y2="225"/>
+    <line x1="400" y1="315" x2="400" y2="225"/>
+    <line x1="630" y1="315" x2="630" y2="225"/>
+  </g>
+  <g class="bar">
+    <rect x="120" y="185" width="100" height="12" rx="6"/>
+    <rect x="350" y="185" width="100" height="12" rx="6"/>
+    <rect x="580" y="185" width="100" height="12" rx="6"/>
+  </g>
+  <circle class="now" cx="170" cy="315" r="12"/>
+  <circle class="now" cx="400" cy="315" r="12"/>
+  <circle class="now" cx="630" cy="315" r="12"/>
+
+  <!-- Stop four: deferred. Hollow, still on the line, stem points the other way
+       so the eye reads it as pending rather than done. -->
+  <line class="stem" x1="830" y1="315" x2="830" y2="405"/>
+  <rect class="barq" x="780" y="420" width="100" height="12" rx="6"/>
+  <circle class="defer" cx="830" cy="315" r="12"/>
+
+  <!-- Stop five: skipped on purpose, which is a decision the engine records. -->
+  <line class="stem" x1="1030" y1="315" x2="1030" y2="405"/>
+  <rect class="barq" x="980" y="420" width="100" height="12" rx="6"/>
+  <g class="skip">
+    <line x1="1021" y1="306" x2="1039" y2="324"/>
+    <line x1="1039" y1="306" x2="1021" y2="324"/>
+  </g>
 </svg>

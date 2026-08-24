@@ -1,13 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img">
-  <rect width="1200" height="630" fill="#f3f0e9"/>
-  <rect x="200" y="200" width="230" height="230" rx="4" fill="#fcfaf5" stroke="#171816" stroke-opacity="0.14"/>
-  <rect x="770" y="200" width="230" height="230" rx="4" fill="#fcfaf5" stroke="#171816" stroke-opacity="0.14"/>
-  <circle cx="600" cy="315" r="76" fill="none" stroke="#171816" stroke-opacity="0.35" stroke-width="3"/>
-  <path d="M430 315 L516 315" stroke="#171816" stroke-opacity="0.5" stroke-width="3"/>
-  <path d="M684 315 L770 315" stroke="#8c5d35" stroke-width="3" stroke-dasharray="10 10"/>
-  <path d="M796 288 L840 332 M840 288 L796 332" stroke="#8c5d35" stroke-width="4" stroke-linecap="round"/>
-  <rect x="228" y="236" width="170" height="10" rx="5" fill="#171816" opacity="0.45"/>
-  <rect x="228" y="282" width="148" height="10" rx="5" fill="#171816" opacity="0.45"/>
-  <rect x="228" y="328" width="126" height="10" rx="5" fill="#171816" opacity="0.45"/>
-  <rect x="228" y="374" width="104" height="10" rx="5" fill="#171816" opacity="0.45"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="A field of candidate products narrowing through three constraint gates to a single resolved choice">
+  <title>Constraints reduce the field</title>
+  <style>
+    .ground { fill: #f4f5f7 }
+    .cand   { fill: #d2d6dd }
+    .pass   { fill: #545b67 }
+    .gate   { stroke: #14171c; stroke-width: 2; stroke-linecap: round }
+    .gatel  { stroke: #d2d6dd; stroke-width: 1; stroke-dasharray: 4 6 }
+    .final  { fill: #14605a }
+    .halo   { fill: none; stroke: #14605a; stroke-width: 2 }
+
+    /* The single authored moment: the resolved choice settles, and its ring
+       breathes slowly so the diagram has a pulse without asking for attention. */
+    .final { animation: land .6s cubic-bezier(.16,1,.3,1) both; animation-delay: .35s }
+    .halo  { animation: ring 4.5s ease-in-out infinite; transform-origin: 1000px 315px }
+    @keyframes land { from { r: 0 } to { r: 15 } }
+    @keyframes ring { 0%,100% { opacity: .95; transform: scale(1) } 50% { opacity: .45; transform: scale(1.12) } }
+    @media (prefers-reduced-motion: reduce) {
+      .final, .halo { animation: none }
+    }
+  </style>
+
+  <rect class="ground" width="1200" height="630"/>
+
+  <!-- The unfiltered field. Every candidate starts eligible. -->
+  <g class="cand">
+    <circle cx="150" cy="140" r="7"/><circle cx="215" cy="196" r="7"/><circle cx="140" cy="252" r="7"/>
+    <circle cx="205" cy="308" r="7"/><circle cx="152" cy="364" r="7"/><circle cx="220" cy="420" r="7"/>
+    <circle cx="145" cy="476" r="7"/><circle cx="196" cy="126" r="7"/><circle cx="168" cy="330" r="7"/>
+    <circle cx="228" cy="266" r="7"/><circle cx="176" cy="440" r="7"/><circle cx="238" cy="356" r="7"/>
+    <circle cx="160" cy="208" r="7"/><circle cx="210" cy="490" r="7"/><circle cx="182" cy="284" r="7"/>
+  </g>
+
+  <!-- Three gates. Each is a constraint, not a ranking: budget, then what the
+       stack already owns, then what would duplicate it. -->
+  <line class="gate" x1="360" y1="130" x2="360" y2="500"/>
+  <line class="gate" x1="580" y1="175" x2="580" y2="455"/>
+  <line class="gate" x1="800" y1="235" x2="800" y2="395"/>
+
+  <g class="gatel">
+    <line x1="240" y1="315" x2="356" y2="315"/>
+    <line x1="364" y1="315" x2="576" y2="315"/>
+    <line x1="584" y1="315" x2="796" y2="315"/>
+    <line x1="804" y1="315" x2="978" y2="315"/>
+  </g>
+
+  <!-- What survives each gate, thinning as the constraints bind. -->
+  <g class="pass">
+    <circle cx="430" cy="205" r="7"/><circle cx="470" cy="262" r="7"/><circle cx="425" cy="320" r="7"/>
+    <circle cx="478" cy="378" r="7"/><circle cx="436" cy="434" r="7"/><circle cx="500" cy="316" r="7"/>
+    <circle cx="455" cy="152" r="7"/>
+    <circle cx="650" cy="250" r="7"/><circle cx="700" cy="316" r="7"/><circle cx="655" cy="382" r="7"/>
+    <circle cx="712" cy="212" r="7"/>
+  </g>
+
+  <!-- One resolved choice, and the reasoning that produced it is the diagram. -->
+  <circle class="halo" cx="1000" cy="315" r="30"/>
+  <circle class="final" cx="1000" cy="315" r="15"/>
 </svg>
