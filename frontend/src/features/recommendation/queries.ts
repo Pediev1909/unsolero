@@ -131,5 +131,11 @@ export function useRecommendationPreview(
     enabled: enabled && input !== null,
     staleTime: 5 * 60 * 1000,
     retry: false,
+    // Keep the last answer on screen while the next one loads. Keyed on the
+    // whole brief, every answer is a new query with no cache, so without this
+    // the list emptied and refilled on every single click — the panel
+    // collapsed, the page jumped, and the reader watched their suggestion
+    // vanish each time they refined it.
+    placeholderData: (previous) => previous,
   })
 }

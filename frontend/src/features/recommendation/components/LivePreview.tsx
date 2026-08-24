@@ -26,7 +26,9 @@ export function LivePreview({ result, isPending, isError }: LivePreviewProps) {
   return (
     <section
       aria-label="Live suggestion"
-      className="mt-8 border-t border-ink/15 pt-6"
+      // A reserved minimum keeps the sidebar from resizing when the first
+      // answer arrives, which is the other half of the jump.
+      className="mt-8 min-h-56 border-t border-ink/15 pt-6"
     >
       <div className="flex items-baseline justify-between gap-3">
         <p className="eyebrow">So far we&rsquo;d suggest</p>

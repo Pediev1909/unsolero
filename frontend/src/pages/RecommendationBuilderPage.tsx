@@ -154,9 +154,14 @@ export function RecommendationBuilderPage() {
                           ? 'Saved progress is unavailable. Answers remain in this browser.'
                           : builder.saveDraft.isError
                             ? 'Your latest change could not be saved. Your answers remain in this browser.'
-                            : builder.saveDraft.isPending
-                              ? 'Saving progress…'
-                              : 'Progress saves securely to your account.'
+                            : // No "Saving progress…" state. The save takes a
+                              // couple of hundred milliseconds and fires on
+                              // every answer, so announcing it made this line
+                              // flash on every click to report something that
+                              // was never in doubt. It says the standing fact
+                              // instead, and only changes when it stops being
+                              // true.
+                              'Progress saves securely to your account.'
                       : 'Guest progress stays in this browser session. Sign in to save it to your account.'}
               </p>
 
