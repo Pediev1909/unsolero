@@ -1,7 +1,8 @@
-import { Layers3, MoveUpRight } from 'lucide-react'
+import { MoveUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { cn } from '../../lib/styles/cn'
+import { BrandMonogram } from './BrandMonogram'
 import { Badge } from '../ui/Badge'
 import { PriceDisplay } from '../ui/PriceDisplay'
 
@@ -57,23 +58,12 @@ export function ProductCard({
           />
         ) : (
           // Most software has no product photograph, so the absence is the
-          // normal case rather than a fault. Announcing "image not available"
-          // made every card look broken; setting the vendor's name reads as a
-          // deliberate mark and still tells you whose product this is.
-          // Replace with the vendor's own artwork once an affiliate programme
-          // supplies approved brand assets.
-          <div className="grid size-full place-items-center bg-paper px-4">
-            <div className="text-center">
-              <Layers3
-                aria-hidden="true"
-                className="mx-auto text-bronze/70"
-                size={26}
-              />
-              <span className="mt-3 block text-sm font-semibold tracking-[-0.01em] text-ink/70">
-                {product.brand}
-              </span>
-            </div>
-          </div>
+          // normal case rather than a fault. A generic icon above the vendor
+          // name announced the absence; a nameplate carrying the vendor's own
+          // initials reads as a mark that was drawn on purpose. Replace with
+          // the vendor's artwork once an affiliate programme supplies approved
+          // brand assets.
+          <BrandMonogram brand={product.brand} category={product.category} />
         )}
         {product.badge && (
           <Badge
