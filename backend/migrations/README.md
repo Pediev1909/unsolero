@@ -51,3 +51,8 @@ no provider, customer, conversion, revenue, or commission data.
 set with a durable worker heartbeat. It carries only success time, failure
 count, and a fixed detail code so cross-process monitoring can distinguish a
 live container from a worker that is not completing cycles.
+
+`000025_optional_recommendation_dimensions.sql` aligns immutable recommendation
+history with non-physical catalogs. Candidate dimensions and session space are
+stored as `NULL` when they do not apply, while complete positive dimensions
+remain mandatory whenever physical measurements are present.

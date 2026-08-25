@@ -2,6 +2,7 @@ package recommendationpostgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"testing"
@@ -16,7 +17,7 @@ import (
 	"rigmark/internal/modules/recommendation/ports"
 )
 
-func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
+func TestSaaSDraftAndCompletedSetupLifecycleWithoutPhysicalDimensions(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {
 		t.Skip("TEST_DATABASE_URL is not set")
@@ -42,7 +43,7 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 	var price int64
 	var currency string
 	var factRevisionID, scoreRevisionID, productName, categorySlug string
-	var dimensions catalog.Dimensions
+	var length, width, height sql.NullInt64
 	var scores catalog.Scores
 	if err = pool.QueryRow(ctx, `SELECT products.id, products.price_minor, products.currency,
 		products.published_fact_revision_id, products.published_score_revision_id,
@@ -51,10 +52,12 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 		products.beginner_score, products.advanced_score, products.apartment_score,
 		products.noise_score, products.portability_score
 		FROM catalog.products products JOIN catalog.categories categories ON categories.id=products.category_id
-		WHERE products.status = 'published' AND products.published_fact_revision_id IS NOT NULL
+		WHERE products.status = 'published'
+		  AND categories.vertical_key = 'saas'
+		  AND products.published_fact_revision_id IS NOT NULL
 		ORDER BY products.id LIMIT 1`).Scan(&productID, &price, &currency, &factRevisionID,
-		&scoreRevisionID, &productName, &categorySlug, &dimensions.LengthMM, &dimensions.WidthMM,
-		&dimensions.HeightMM, &scores.Quality, &scores.Value, &scores.Durability,
+		&scoreRevisionID, &productName, &categorySlug, &length, &width,
+		&height, &scores.Quality, &scores.Value, &scores.Durability,
 		&scores.Beginner, &scores.Advanced, &scores.Apartment, &scores.Noise, &scores.Portability); err != nil {
 		t.Fatalf("load test product: %v", err)
 	}
@@ -64,16 +67,18 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ActivePolicy(): %v", err)
 	}
-	goal := planning.GoalBuildMuscle
+	if len(policy.Config.Goals) == 0 {
+		t.Fatal("active SaaS policy has no goals")
+	}
+	goal := policy.Config.Goals[0].Goal
 	experience := planning.ExperienceBeginner
 	budget := int64(70_000)
 	draft, err := repository.SaveDraft(ctx, userID, ports.Draft{
 		CurrentStep: 5, Goal: &goal, Experience: &experience,
 		BudgetMinor: &budget, Currency: stringPointer("USD"),
-		AvailableSpace:      &recommendation.AvailableSpace{LengthMM: 2400, WidthMM: 1800, HeightMM: 2400, ApartmentLiving: true},
-		ExistingEquipment:   []recommendation.ExistingEquipment{{Name: "Pull-up bar", CategorySlug: "pull-up-bars"}},
-		TrainingPreferences: []recommendation.TrainingPreference{recommendation.TrainingPreference("bodyweight")},
-		Priorities:          []recommendation.Priority{recommendation.Priority("compact")},
+		ExistingEquipment:   []recommendation.ExistingEquipment{{Name: "Existing tool", CategorySlug: categorySlug}},
+		TrainingPreferences: []recommendation.TrainingPreference{},
+		Priorities:          []recommendation.Priority{},
 	})
 	if err != nil || draft.UpdatedAt.IsZero() {
 		t.Fatalf("SaveDraft() = %#v, %v", draft, err)
@@ -86,11 +91,11 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 	input := recommendation.Input{
 		Goal: goal, Experience: experience,
 		Budget:         catalog.Money{AmountMinor: budget, Currency: "USD"},
-		AvailableSpace: *draft.AvailableSpace,
+		AvailableSpace: recommendation.AvailableSpace{},
 		ExistingEquipment: []recommendation.ExistingEquipment{{
-			Name: "Pull-up bar", CategorySlug: "pull-up-bars",
-			Capabilities:     []recommendation.Capability{recommendation.Capability("pull_up"), recommendation.Capability("anchor_point")},
-			RedundancyGroups: []string{"pull_up_station"},
+			Name: "Existing tool", CategorySlug: categorySlug,
+			Capabilities:     []recommendation.Capability{recommendation.Capability("existing_capability"), recommendation.Capability("connected_tool")},
+			RedundancyGroups: []string{"existing_tool"},
 		}},
 		TrainingPreferences: loadedDraft.TrainingPreferences,
 		Priorities:          loadedDraft.Priorities,
@@ -100,7 +105,8 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 		Durability: 84, Compatibility: 90, Portability: 82, Noise: 91}
 	candidate, err := policy.Candidate(catalog.Product{ID: productID, FactRevisionID: factRevisionID,
 		ScoreRevisionID: scoreRevisionID, Name: productName, CategorySlug: categorySlug,
-		Price: catalog.Money{AmountMinor: price, Currency: currency}, Dimensions: dimensions, Scores: scores})
+		Price: catalog.Money{AmountMinor: price, Currency: currency}, IsPhysical: false,
+		Dimensions: catalog.Dimensions{LengthMM: length.Int64, WidthMM: width.Int64, HeightMM: height.Int64}, Scores: scores})
 	if err != nil {
 		t.Fatalf("policy Candidate(): %v", err)
 	}
@@ -134,6 +140,8 @@ func TestDraftAndCompletedSetupLifecycle(t *testing.T) {
 	}
 	if loaded.Result.PolicyVersion != policy.Config.PolicyVersion ||
 		loaded.Result.Selected[0].Product.Candidate.PolicyVersion != policy.Config.PolicyVersion ||
+		loaded.Input.AvailableSpace.LengthMM != 0 ||
+		loaded.Result.Selected[0].Product.Candidate.Dimensions.LengthMM != 0 ||
 		len(loaded.Input.ExistingEquipment) != 1 ||
 		len(loaded.Input.ExistingEquipment[0].Capabilities) != 2 ||
 		len(loaded.Input.ExistingEquipment[0].RedundancyGroups) != 1 {

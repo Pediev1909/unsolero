@@ -151,6 +151,11 @@ func (repository *Repository) SaveResult(
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	spaceLength, spaceWidth, spaceHeight := optionalDimensionValues(
+		input.AvailableSpace.LengthMM,
+		input.AvailableSpace.WidthMM,
+		input.AvailableSpace.HeightMM,
+	)
 	var sessionID domain.SessionID
 	err = tx.QueryRow(ctx, `
 		INSERT INTO recommendation.recommendation_sessions (
@@ -159,7 +164,7 @@ func (repository *Repository) SaveResult(
 			training_preferences, priorities, free_text, completed_at
 		) VALUES ($1,'completed',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,now()) RETURNING id`,
 		userID, input.Goal, input.Experience, input.Budget.AmountMinor, input.Budget.Currency,
-		input.AvailableSpace.LengthMM, input.AvailableSpace.WidthMM, input.AvailableSpace.HeightMM,
+		spaceLength, spaceWidth, spaceHeight,
 		input.AvailableSpace.AccessWidthMM, input.AvailableSpace.ApartmentLiving,
 		input.TrainingPreferences, input.Priorities, input.FreeText,
 	).Scan(&sessionID)
@@ -235,6 +240,11 @@ func insertCandidateSnapshots(
 	for _, candidate := range candidates {
 		scores := candidate.Scores
 		space := candidate.Space
+		length, width, height := optionalDimensionValues(
+			candidate.Dimensions.LengthMM,
+			candidate.Dimensions.WidthMM,
+			candidate.Dimensions.HeightMM,
+		)
 		storageLength, storageWidth, storageHeight := envelopeValues(space.StorageFootprint)
 		operating := clearanceValues(space.OperatingClearance)
 		safety := clearanceValues(space.SafetyClearance)
@@ -256,8 +266,7 @@ func insertCandidateSnapshots(
 			recommendationID, candidate.ProductID, candidate.FactRevisionID,
 			candidate.ScoreRevisionID, candidate.Name, candidate.CategorySlug,
 			candidate.Price.AmountMinor, candidate.Price.Currency,
-			candidate.Dimensions.LengthMM, candidate.Dimensions.WidthMM,
-			candidate.Dimensions.HeightMM, scores.Quality, scores.Value,
+			length, width, height, scores.Quality, scores.Value,
 			scores.Durability, scores.Beginner, scores.Advanced, scores.Apartment,
 			scores.Noise, scores.Portability, candidate.PolicyVersion,
 			capabilityStrings(candidate.Capabilities), capabilityStrings(candidate.Requires),
@@ -279,6 +288,17 @@ func insertCandidateSnapshots(
 		}
 	}
 	return nil
+}
+
+// optionalDimensionValues translates the domain's zero-value representation
+// for non-physical products and non-spatial recommendation inputs to SQL NULL.
+// Partial or negative values are intentionally passed through so the database
+// constraints reject corrupt physical data rather than silently erasing it.
+func optionalDimensionValues(length, width, height int64) (any, any, any) {
+	if length == 0 && width == 0 && height == 0 {
+		return nil, nil, nil
+	}
+	return length, width, height
 }
 
 func envelopeValues(value *domain.SpatialEnvelope) (any, any, any) {
@@ -394,6 +414,7 @@ func (repository *Repository) GetResultBySetupID(
 	var input domain.Input
 	var result domain.Result
 	var goal, experience string
+	var spaceLength, spaceWidth, spaceHeight sql.NullInt64
 	b := &result.Breakdown
 	err := repository.pool.QueryRow(ctx, `
 		SELECT r.id, s.name, rs.primary_goal, rs.experience_level, rs.budget_minor, rs.currency,
@@ -409,7 +430,7 @@ func (repository *Repository) GetResultBySetupID(
 		JOIN recommendation.recommendation_sessions rs ON rs.id = r.session_id
 		WHERE s.id = $1 AND s.user_id = $2`, setupID, userID).Scan(
 		&stored.RecommendationID, &stored.SetupName, &goal, &experience, &input.Budget.AmountMinor, &input.Budget.Currency,
-		&input.AvailableSpace.LengthMM, &input.AvailableSpace.WidthMM, &input.AvailableSpace.HeightMM,
+		&spaceLength, &spaceWidth, &spaceHeight,
 		&input.AvailableSpace.AccessWidthMM, &input.AvailableSpace.ApartmentLiving,
 		&input.TrainingPreferences, &input.Priorities, &input.FreeText,
 		&result.PolicyVersion, &result.EngineVersion, &result.ObjectiveScore,
@@ -423,6 +444,9 @@ func (repository *Repository) GetResultBySetupID(
 	if err != nil {
 		return ports.PersistedResult{}, fmt.Errorf("get saved setup: %w", err)
 	}
+	input.AvailableSpace.LengthMM = spaceLength.Int64
+	input.AvailableSpace.WidthMM = spaceWidth.Int64
+	input.AvailableSpace.HeightMM = spaceHeight.Int64
 	input.Goal, input.Experience = planning.Goal(goal), planning.ExperienceLevel(experience)
 	equipment, err := repository.listSessionEquipment(ctx, stored.RecommendationID)
 	if err != nil {
