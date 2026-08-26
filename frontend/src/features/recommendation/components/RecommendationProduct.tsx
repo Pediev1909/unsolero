@@ -51,6 +51,7 @@ export function RecommendationProduct({
             <BrandMark
               brandName={product.brand.name}
               brandSlug={product.brand.slug}
+              loading="eager"
               size="lg"
             />
             <div className="min-w-0">

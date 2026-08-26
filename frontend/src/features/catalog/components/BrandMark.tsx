@@ -13,6 +13,7 @@ interface BrandMarkProps {
   brandSlug: string
   size?: keyof typeof sizes
   className?: string
+  loading?: 'eager' | 'lazy'
 }
 
 /**
@@ -35,6 +36,7 @@ export function BrandMark({
   brandSlug,
   size = 'md',
   className,
+  loading = 'lazy',
 }: BrandMarkProps) {
   const [failed, setFailed] = useState(false)
 
@@ -65,7 +67,7 @@ export function BrandMark({
       // reader announcing the logo as well would just say everything twice.
       aria-hidden="true"
       height={128}
-      loading="lazy"
+      loading={loading}
       onError={() => setFailed(true)}
       src={`/images/brands/${brandSlug}.png`}
       width={128}

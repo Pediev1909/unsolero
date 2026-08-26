@@ -76,9 +76,9 @@ describe('RecommendationProduct', () => {
     expect(
       screen.getByRole('heading', { name: 'Shopify Basic' }),
     ).toBeInTheDocument()
-    expect(container.querySelector('img')?.getAttribute('src')).toBe(
-      '/images/brands/shopify.png',
-    )
+    const mark = container.querySelector('img')
+    expect(mark?.getAttribute('src')).toBe('/images/brands/shopify.png')
+    expect(mark).toHaveAttribute('loading', 'eager')
     expect(screen.getByText('87/100 match')).toBeInTheDocument()
     expect(screen.getByTestId('merchant-action')).toBeInTheDocument()
   })
