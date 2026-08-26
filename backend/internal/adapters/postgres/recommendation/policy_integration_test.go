@@ -35,25 +35,23 @@ func TestPolicyApprovalActivationImmutabilityAndRetirement(t *testing.T) {
 	vertical := fmt.Sprintf("integration_%d", time.Now().UnixNano())
 
 	var productID, categoryID, factRevisionID, scoreRevisionID string
-	var length, width, height int64
 	err = pool.QueryRow(ctx, `SELECT products.id,products.category_id,
-		products.published_fact_revision_id,products.published_score_revision_id,
-		products.length_mm,products.width_mm,products.height_mm
+		products.published_fact_revision_id,products.published_score_revision_id
 		FROM catalog.products products
 		WHERE products.status='published' AND products.published_fact_revision_id IS NOT NULL
 		ORDER BY products.id LIMIT 1`).Scan(&productID, &categoryID, &factRevisionID,
-		&scoreRevisionID, &length, &width, &height)
+		&scoreRevisionID)
 	if err != nil {
 		t.Fatalf("load governed product: %v", err)
 	}
 
 	_, err = pool.Exec(ctx, `INSERT INTO recommendation.policy_versions (
-		version,vertical_key,workflow_status,created_by_user_id,
+		version,vertical_key,workflow_status,spatial_constraints,created_by_user_id,
 		goal_match_weight,budget_match_weight,space_match_weight,experience_match_weight,
 		preference_match_weight,quality_weight,value_weight,durability_weight,
 		compatibility_weight,portability_weight,noise_weight,priority_boost_percent,
 		maximum_setup_items,candidates_per_slot,optional_slot_bonus,published_at
-	) VALUES ($1,$2,'draft',$3,20,12,12,10,8,8,9,7,10,2,2,150,4,12,8,now())`,
+	) VALUES ($1,$2,'draft',false,$3,20,12,0,10,8,8,9,7,10,2,0,150,4,12,8,now())`,
 		version, vertical, editor)
 	if err != nil {
 		t.Fatalf("insert policy: %v", err)
@@ -68,9 +66,6 @@ func TestPolicyApprovalActivationImmutabilityAndRetirement(t *testing.T) {
 		{`INSERT INTO recommendation.policy_setup_role_capabilities VALUES ($1,'general_fitness','primary','integration_capability')`, []any{version}},
 		{`INSERT INTO recommendation.category_policies (policy_version,category_id,support_status) VALUES ($1,$2,'supported')`, []any{version, categoryID}},
 		{`INSERT INTO recommendation.product_policies VALUES ($1,$2,$3,$4)`, []any{version, productID, factRevisionID, scoreRevisionID}},
-		{`INSERT INTO recommendation.product_space_profiles
-			(policy_version,product_id,footprint_length_mm,footprint_width_mm,footprint_height_mm)
-			VALUES ($1,$2,$3,$4,$5)`, []any{version, productID, length, width, height}},
 		{`INSERT INTO recommendation.product_goal_support VALUES ($1,$2,'general_fitness',90)`, []any{version, productID}},
 	}
 	for _, item := range configuration {

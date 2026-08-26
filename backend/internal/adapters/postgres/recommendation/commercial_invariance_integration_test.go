@@ -63,12 +63,12 @@ func TestCommercialDataCannotChangeRecommendationOutput(t *testing.T) {
 			trust_score=$3 WHERE id=$1`, merchantID, originalMerchantStatus, originalTrust)
 	})
 
-	catalogRepository := catalogpostgres.New(pool)
+	catalogRepository := catalogpostgres.NewForVertical(pool, "saas")
 	products, err := catalogRepository.ListPublished(ctx, catalogProductFilter())
 	if err != nil || len(products) == 0 {
 		t.Fatalf("load governed products: %d, %v", len(products), err)
 	}
-	policy, err := New(pool).ActivePolicy(ctx)
+	policy, err := NewForVertical(pool, "saas").ActivePolicy(ctx)
 	if err != nil {
 		t.Fatalf("load active policy: %v", err)
 	}
@@ -76,12 +76,11 @@ func TestCommercialDataCannotChangeRecommendationOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create engine: %v", err)
 	}
-	input := recommendation.Input{
-		Goal: planning.GoalBuildMuscle, Experience: planning.ExperienceBeginner,
-		Budget:         catalog.Money{AmountMinor: 250000, Currency: "USD"},
-		AvailableSpace: recommendation.AvailableSpace{LengthMM: 3000, WidthMM: 3000, HeightMM: 2500},
-		Priorities:     []recommendation.Priority{recommendation.Priority("budget")},
-	}
+	input := policy.EnrichInput(recommendation.Input{
+		Goal: planning.Goal("client_services"), Experience: planning.ExperienceBeginner,
+		Budget:     catalog.Money{AmountMinor: 12_000, Currency: "USD"},
+		Priorities: []recommendation.Priority{recommendation.Priority("budget")},
+	})
 	before, err := engine.Recommend(input, candidateSnapshots(t, policy, products))
 	if err != nil {
 		t.Fatalf("recommend before commercial change: %v", err)

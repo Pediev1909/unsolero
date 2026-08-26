@@ -32,13 +32,13 @@ func TestSeedCatalogProducesRepeatableRecommendation(t *testing.T) {
 	}
 	t.Cleanup(pool.Close)
 
-	products, err := catalogpostgres.New(pool).ListPublished(ctx, ports.ProductFilter{Limit: 100})
+	products, err := catalogpostgres.NewForVertical(pool, "saas").ListPublished(ctx, ports.ProductFilter{Limit: 100})
 	if err != nil {
 		t.Fatalf("load catalog candidates: %v", err)
 	}
-	policy, err := recommendationpostgres.New(pool).ActivePolicy(ctx)
+	policy, err := recommendationpostgres.NewForVertical(pool, "saas").ActivePolicy(ctx)
 	if errors.Is(err, recommendationports.ErrNotFound) {
-		t.Skip("the fitness vertical is not seeded in this database")
+		t.Skip("the SaaS vertical is not seeded in this database")
 	}
 	if err != nil {
 		t.Fatalf("load active policy: %v", err)
@@ -55,16 +55,10 @@ func TestSeedCatalogProducesRepeatableRecommendation(t *testing.T) {
 		t.Fatalf("create engine: %v", err)
 	}
 	input := policy.EnrichInput(recommendation.Input{
-		Goal: planning.GoalBuildMuscle, Experience: planning.ExperienceBeginner,
-		Budget: catalog.Money{AmountMinor: 70_000, Currency: "USD"},
-		AvailableSpace: recommendation.AvailableSpace{
-			LengthMM: 1800, WidthMM: 1400, HeightMM: 2400, ApartmentLiving: true,
-		},
-		ExistingEquipment: []recommendation.ExistingEquipment{{
-			Name: "pull-up bar", CategorySlug: "pull-up-bar",
-		}},
+		Goal: planning.Goal("client_services"), Experience: planning.ExperienceBeginner,
+		Budget: catalog.Money{AmountMinor: 12_000, Currency: "USD"},
 		Priorities: []recommendation.Priority{
-			recommendation.Priority("budget"), recommendation.Priority("compact"),
+			recommendation.Priority("budget"), recommendation.Priority("integrations"),
 		},
 	})
 

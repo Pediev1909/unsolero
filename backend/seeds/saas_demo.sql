@@ -54,7 +54,15 @@ FROM (VALUES
  ('team-communication','chatter','Chatter Rooms','saas-chatterroom-teams',
   'Fictional demo team chat and meetings tool.',1600,80,74,80,84,66,64),
  ('analytics','metricly','Metricly Insights','saas-metricly-insights',
-  'Fictional demo product analytics tool.',2600,82,68,78,64,86,56)
+  'Fictional demo product analytics tool.',2600,82,68,78,64,86,56),
+ ('ecommerce-platform','northwind-software','Northwind Store','saas-northwind-store',
+  'Fictional demo online storefront and product catalog.',2500,80,76,78,76,74,68),
+ ('website-builder','beacon','Beacon Sites','saas-beacon-sites',
+  'Fictional demo website and landing-page builder.',1200,78,84,76,88,62,82),
+ ('course-platform','looplane','Loop Courses','saas-loop-courses',
+  'Fictional demo course hosting and digital delivery tool.',2900,79,73,77,82,70,72),
+ ('payments','ledgerly','Ledgerly Pay','saas-ledgerly-pay',
+  'Fictional demo payment processing and checkout tool.',0,81,86,84,80,76,74)
 ) AS fixture(category_slug, brand_slug, name, slug, description, price_minor,
              quality, value, durability, beginner, advanced, portability)
 JOIN catalog.categories categories
@@ -211,7 +219,17 @@ FROM (VALUES
  ('saas-chatterroom-teams','team_chat','provides'),
  ('saas-chatterroom-teams','video_meetings','provides'),
  ('saas-chatterroom-teams','project_management','compatible_with'),
- ('saas-metricly-insights','product_analytics','provides')
+ ('saas-metricly-insights','product_analytics','provides'),
+ ('saas-northwind-store','online_store','provides'),
+ ('saas-northwind-store','payments','compatible_with'),
+ ('saas-northwind-store','email_marketing','compatible_with'),
+ ('saas-beacon-sites','website_builder','provides'),
+ ('saas-beacon-sites','landing_pages','provides'),
+ ('saas-beacon-sites','email_marketing','compatible_with'),
+ ('saas-loop-courses','course_hosting','provides'),
+ ('saas-loop-courses','email_marketing','compatible_with'),
+ ('saas-ledgerly-pay','payments','provides'),
+ ('saas-ledgerly-pay','online_store','compatible_with')
 ) AS mapping(slug, capability, relation)
 JOIN catalog.products products ON products.slug = mapping.slug
 WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='saas-v1' AND workflow_status='draft')
@@ -229,7 +247,11 @@ FROM (VALUES
  ('saas-deskline-support','sell_products_online',86), ('saas-deskline-support','software_product',88),
  ('saas-timeslot-booking','solo_consulting',90), ('saas-timeslot-booking','client_services',74),
  ('saas-chatterroom-teams','client_services',80), ('saas-chatterroom-teams','software_product',76),
- ('saas-metricly-insights','software_product',90), ('saas-metricly-insights','sell_products_online',78)
+ ('saas-metricly-insights','software_product',90), ('saas-metricly-insights','sell_products_online',78),
+ ('saas-northwind-store','sell_products_online',94),
+ ('saas-beacon-sites','creator_business',92),
+ ('saas-loop-courses','creator_business',94),
+ ('saas-ledgerly-pay','sell_products_online',94), ('saas-ledgerly-pay','software_product',82)
 ) AS mapping(slug, goal_key, score)
 JOIN catalog.products products ON products.slug = mapping.slug
 WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='saas-v1' AND workflow_status='draft')
@@ -247,7 +269,11 @@ FROM (VALUES
  ('saas-deskline-support','eu_hosted'), ('saas-deskline-support','privacy_focused'),
  ('saas-timeslot-booking','no_code'), ('saas-timeslot-booking','eu_hosted'),
  ('saas-chatterroom-teams','all_in_one'),
- ('saas-metricly-insights','privacy_focused'), ('saas-metricly-insights','api_first')
+ ('saas-metricly-insights','privacy_focused'), ('saas-metricly-insights','api_first'),
+ ('saas-northwind-store','all_in_one'), ('saas-northwind-store','no_code'),
+ ('saas-beacon-sites','no_code'),
+ ('saas-loop-courses','all_in_one'), ('saas-loop-courses','no_code'),
+ ('saas-ledgerly-pay','api_first')
 ) AS mapping(slug, tag)
 JOIN catalog.products products ON products.slug = mapping.slug
 WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='saas-v1' AND workflow_status='draft')
@@ -263,7 +289,11 @@ FROM (VALUES
  ('saas-deskline-support','support_suite'),
  ('saas-timeslot-booking','scheduling_suite'),
  ('saas-chatterroom-teams','chat_suite'),
- ('saas-metricly-insights','analytics_suite')
+ ('saas-metricly-insights','analytics_suite'),
+ ('saas-northwind-store','store_suite'),
+ ('saas-beacon-sites','site_suite'),
+ ('saas-loop-courses','course_suite'),
+ ('saas-ledgerly-pay','payment_suite')
 ) AS mapping(slug, group_key)
 JOIN catalog.products products ON products.slug = mapping.slug
 WHERE EXISTS (SELECT 1 FROM recommendation.policy_versions WHERE version='saas-v1' AND workflow_status='draft')
@@ -273,3 +303,36 @@ UPDATE recommendation.policy_versions SET workflow_status='active', activated_at
 WHERE version='saas-v1' AND workflow_status='draft'
 AND EXISTS (SELECT 1 FROM recommendation.category_policies WHERE policy_version='saas-v1' AND support_status='supported')
 AND EXISTS (SELECT 1 FROM recommendation.product_policies WHERE policy_version='saas-v1');
+
+-- One fictional commercial path keeps click, import and conversion integration
+-- tests representative without mixing any real merchant or affiliate claim
+-- into the development fixture.
+INSERT INTO commerce.merchants (name, slug, website_url, country_code, trust_score, status)
+VALUES ('Demo Software Market', 'demo-software-market', 'https://example.invalid/market', 'US', 75, 'active')
+ON CONFLICT (slug) DO UPDATE SET status='active', updated_at=now();
+
+INSERT INTO commerce.merchant_offers (
+    merchant_id, product_id, merchant_sku, product_url, price_minor,
+    shipping_minor, currency, availability, condition, last_checked_at
+)
+SELECT merchants.id, products.id, 'saas-northwind-crm-monthly',
+       'https://example.invalid/market/northwind-crm', products.price_minor,
+       0, products.currency, 'in_stock', 'new', now()
+FROM commerce.merchants AS merchants
+JOIN catalog.products AS products ON products.slug='saas-northwind-crm'
+WHERE merchants.slug='demo-software-market'
+ON CONFLICT (merchant_id, merchant_sku) DO UPDATE SET
+    price_minor=EXCLUDED.price_minor, availability='in_stock', is_active=true,
+    last_checked_at=now(), updated_at=now();
+
+INSERT INTO commerce.affiliate_links (
+    merchant_offer_id, provider, destination_url, external_reference,
+    disclosure_label, is_active
+)
+SELECT offers.id, 'demo-fixture', 'https://example.invalid/market/northwind-crm',
+       'fictional-development-only', 'Fictional development link', true
+FROM commerce.merchant_offers AS offers
+JOIN commerce.merchants AS merchants ON merchants.id=offers.merchant_id
+WHERE merchants.slug='demo-software-market' AND offers.merchant_sku='saas-northwind-crm-monthly'
+ON CONFLICT (merchant_offer_id, provider) DO UPDATE SET
+    destination_url=EXCLUDED.destination_url, is_active=true, updated_at=now();

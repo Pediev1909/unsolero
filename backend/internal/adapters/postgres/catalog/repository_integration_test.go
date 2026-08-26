@@ -36,31 +36,31 @@ func TestDemoCatalogRepositories(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListActiveCategories() returned an error: %v", err)
 	}
-	if len(categories) != 8 {
-		t.Fatalf("category count = %d, want 8", len(categories))
+	if len(categories) != 15 {
+		t.Fatalf("category count = %d, want 15", len(categories))
 	}
 
 	brands, err := catalogRepository.ListActiveBrands(ctx)
 	if err != nil {
 		t.Fatalf("ListActiveBrands() returned an error: %v", err)
 	}
-	if len(brands) != 10 {
-		t.Fatalf("brand count = %d, want 10", len(brands))
+	if len(brands) != 8 {
+		t.Fatalf("brand count = %d, want 8", len(brands))
 	}
 
 	products, err := catalogRepository.ListPublished(ctx, ports.ProductFilter{Limit: 100})
 	if err != nil {
 		t.Fatalf("ListPublished() returned an error: %v", err)
 	}
-	if len(products) != 30 {
-		t.Fatalf("product count = %d, want 30", len(products))
+	if len(products) != 14 {
+		t.Fatalf("product count = %d, want 14", len(products))
 	}
 	for _, product := range products {
-		if len(product.Images) == 0 || product.Images[0].URL == "" {
-			t.Fatalf("product %q has no catalog image", product.Slug)
+		if product.IsPhysical {
+			t.Fatalf("SaaS fixture product %q is marked physical", product.Slug)
 		}
 	}
-	requestedIDs := []catalog.ProductID{products[7].ID, products[2].ID, products[19].ID}
+	requestedIDs := []catalog.ProductID{products[7].ID, products[2].ID, products[12].ID}
 	selected, err := catalogRepository.SearchPublished(ctx, ports.ProductFilter{
 		ProductIDs: requestedIDs, Limit: len(requestedIDs),
 	})
@@ -74,7 +74,7 @@ func TestDemoCatalogRepositories(t *testing.T) {
 	}
 
 	page, err := catalogRepository.SearchPublished(ctx, ports.ProductFilter{
-		Search: "compact", Sort: "value_desc", Limit: 3,
+		Search: "fictional demo", Sort: "value_desc", Limit: 3,
 	})
 	if err != nil {
 		t.Fatalf("SearchPublished() returned an error: %v", err)
@@ -88,31 +88,31 @@ func TestDemoCatalogRepositories(t *testing.T) {
 		}
 	}
 
-	minimum := int64(15_000)
-	maximum := int64(30_000)
+	minimum := int64(900)
+	maximum := int64(2_900)
 	filtered, err := catalogRepository.SearchPublished(ctx, ports.ProductFilter{
-		CategorySlug: "adjustable-dumbbells", MinPriceMinor: &minimum,
+		CategorySlug: "crm", MinPriceMinor: &minimum,
 		MaxPriceMinor: &maximum, Sort: "price_asc", Limit: 20,
 	})
 	if err != nil {
 		t.Fatalf("filtered SearchPublished() returned an error: %v", err)
 	}
 	if len(filtered.Products) == 0 {
-		t.Fatal("expected adjustable dumbbells in the requested price range")
+		t.Fatal("expected CRM products in the requested price range")
 	}
 	for _, filteredProduct := range filtered.Products {
-		if filteredProduct.CategorySlug != "adjustable-dumbbells" ||
+		if filteredProduct.CategorySlug != "crm" ||
 			filteredProduct.Price.AmountMinor < minimum || filteredProduct.Price.AmountMinor > maximum {
 			t.Fatalf("product %q did not satisfy the requested filters", filteredProduct.Slug)
 		}
 	}
 
-	product, err := catalogRepository.GetPublishedBySlug(ctx, "demo-range-lab-adjustable-20-kettlebell")
+	product, err := catalogRepository.GetPublishedBySlug(ctx, "saas-northwind-crm")
 	if err != nil {
 		t.Fatalf("GetPublishedBySlug() returned an error: %v", err)
 	}
-	if len(product.Attributes) == 0 {
-		t.Fatal("expected typed product attributes")
+	if product.IsPhysical || product.Price.AmountMinor != 2_900 {
+		t.Fatalf("unexpected SaaS product projection: %#v", product)
 	}
 
 	commerceRepository := commercepostgres.New(pool)
@@ -120,8 +120,8 @@ func TestDemoCatalogRepositories(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListAvailableByProduct() returned an error: %v", err)
 	}
-	if len(offers) != 3 {
-		t.Fatalf("offer count = %d, want 3", len(offers))
+	if len(offers) != 1 {
+		t.Fatalf("offer count = %d, want 1", len(offers))
 	}
 	for _, offer := range offers {
 		if len(offer.AffiliateLinks) != 1 {
@@ -155,17 +155,16 @@ func TestCoreProductConstraints(t *testing.T) {
 	_, err = pool.Exec(ctx, `
 		INSERT INTO catalog.products (
 			category_id, brand_id, name, slug, description, price_minor, currency,
-			length_mm, width_mm, height_mm, weight_grams, material, warranty_months,
+			warranty_months,
 			quality_score, value_score, durability_score, beginner_score,
 			advanced_score, apartment_score, noise_score, portability_score, status
 		)
 		SELECT categories.id, brands.id, 'Invalid score', 'integration-invalid-score',
 			'Constraint test record that must never be inserted.', 1000, 'USD',
-			100, 100, 100, 1000, 'Steel', 12,
-			101, 50, 50, 50, 50, 50, 50, 50, 'draft'
+			0, 101, 50, 50, 50, 50, 0, 0, 50, 'draft'
 		FROM catalog.categories AS categories
 		CROSS JOIN catalog.brands AS brands
-		WHERE categories.slug = 'barbells' AND brands.slug = 'demo-northline'`)
+		WHERE categories.slug = 'crm' AND brands.slug = 'northwind-software'`)
 	if err == nil {
 		t.Fatal("database accepted a product score above 100")
 	}
@@ -176,7 +175,7 @@ func TestCoreProductConstraints(t *testing.T) {
 		)
 		SELECT id, 'integration_invalid_shape', 'number', 1, 'also text'
 		FROM catalog.products
-		WHERE slug = 'demo-northline-nest-24-pair'`)
+		WHERE slug = 'saas-northwind-crm'`)
 	if err == nil {
 		t.Fatal("database accepted multiple typed attribute values")
 	}

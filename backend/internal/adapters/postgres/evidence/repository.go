@@ -210,15 +210,23 @@ func (repository *Repository) CreateRevision(ctx context.Context, actor identity
 	}
 	var factID, scoreID string
 	p := input.Product
+	var isPhysical bool
+	if err = tx.QueryRow(ctx, `SELECT is_physical FROM catalog.categories WHERE id=$1`, p.CategoryID).Scan(&isPhysical); err != nil {
+		return domain.Revision{}, mapError("load revision category", err)
+	}
+	var length, width, height, weight, maxCapacity, material any
+	if isPhysical {
+		length, width, height = p.Dimensions.LengthMM, p.Dimensions.WidthMM, p.Dimensions.HeightMM
+		weight, maxCapacity, material = p.WeightGrams, p.MaxCapacityGrams, p.Material
+	}
 	err = tx.QueryRow(ctx, `INSERT INTO evidence.product_fact_revisions (
 		product_id, version, category_id, brand_id, name, slug, description,
 		price_minor, currency, length_mm, width_mm, height_mm, weight_grams,
 		max_capacity_grams, material, warranty_months, created_by_user_id
 	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
 	RETURNING id`, p.ID, factVersion, p.CategoryID, p.BrandID, p.Name, p.Slug,
-		p.Description, p.Price.AmountMinor, p.Price.Currency, p.Dimensions.LengthMM,
-		p.Dimensions.WidthMM, p.Dimensions.HeightMM, p.WeightGrams,
-		p.MaxCapacityGrams, p.Material, p.WarrantyMonths, actor).Scan(&factID)
+		p.Description, p.Price.AmountMinor, p.Price.Currency, length,
+		width, height, weight, maxCapacity, material, p.WarrantyMonths, actor).Scan(&factID)
 	if err != nil {
 		return domain.Revision{}, mapError("insert fact revision", err)
 	}
@@ -351,16 +359,18 @@ func (repository *Repository) PublishRevision(ctx context.Context, actor identit
 	defer func() { _ = tx.Rollback(ctx) }()
 	var revision domain.Revision
 	var maxCapacity sql.NullInt64
+	var isPhysical bool
 	var createdBy, submittedBy, reviewedBy sql.NullString
 	var scoreStatus domain.WorkflowStatus
 	err = tx.QueryRow(ctx, `SELECT facts.product_id, facts.version, scores.id, scores.version,
 		facts.workflow_status, scores.workflow_status, facts.created_by_user_id, facts.submitted_by_user_id,
-		facts.reviewed_by_user_id, facts.max_capacity_grams, facts.created_at
+		facts.reviewed_by_user_id, facts.max_capacity_grams, categories.is_physical, facts.created_at
 		FROM evidence.product_fact_revisions facts
 		JOIN evidence.score_revisions scores ON scores.fact_revision_id=facts.id
+		JOIN catalog.categories categories ON categories.id=facts.category_id
 		WHERE facts.id=$1 FOR UPDATE OF facts, scores`, factID).Scan(&revision.ProductID,
 		&revision.FactVersion, &revision.ScoreRevisionID, &revision.ScoreVersion,
-		&revision.Status, &scoreStatus, &createdBy, &submittedBy, &reviewedBy, &maxCapacity, &revision.CreatedAt)
+		&revision.Status, &scoreStatus, &createdBy, &submittedBy, &reviewedBy, &maxCapacity, &isPhysical, &revision.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Revision{}, ports.ErrNotFound
 	}
@@ -374,7 +384,13 @@ func (repository *Repository) PublishRevision(ctx context.Context, actor identit
 		return domain.Revision{}, ports.ErrSeparationOfDuties
 	}
 	revision.FactRevisionID = factID
-	requiredFacts := 10
+	// Non-physical products have no dimensions, weight or material to prove.
+	// Requiring provenance for absent facts made every SaaS revision
+	// permanently unpublishable through the governance workflow.
+	requiredFacts := 7
+	if isPhysical {
+		requiredFacts = 10
+	}
 	if maxCapacity.Valid {
 		requiredFacts++
 	}

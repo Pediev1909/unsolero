@@ -37,7 +37,7 @@ func TestAdminProductAndOfferLifecycle(t *testing.T) {
 	var categoryID catalog.CategoryID
 	var brandID catalog.BrandID
 	var merchantID string
-	if err := pool.QueryRow(ctx, `SELECT id FROM catalog.categories WHERE is_physical ORDER BY id LIMIT 1`).Scan(&categoryID); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT id FROM catalog.categories WHERE vertical_key='saas' AND NOT is_physical ORDER BY id LIMIT 1`).Scan(&categoryID); err != nil {
 		t.Fatalf("load category: %v", err)
 	}
 	if err := pool.QueryRow(ctx, `SELECT id FROM catalog.brands ORDER BY id LIMIT 1`).Scan(&brandID); err != nil {
@@ -48,20 +48,15 @@ func TestAdminProductAndOfferLifecycle(t *testing.T) {
 	}
 
 	slug := fmt.Sprintf("admin-test-product-%d", time.Now().UnixNano())
-	capacity := int64(100000)
 	product, err := repository.CreateProduct(ctx, actor, admin.ProductInput{
-		CategoryID:       categoryID,
-		BrandID:          brandID,
-		Name:             "Admin integration product",
-		Slug:             slug,
-		Description:      "A fictional product created only for an administrative integration test.",
-		Price:            catalog.Money{AmountMinor: 12500, Currency: "USD"},
-		Dimensions:       catalog.Dimensions{LengthMM: 500, WidthMM: 400, HeightMM: 300},
-		WeightGrams:      12000,
-		MaxCapacityGrams: &capacity,
-		Material:         "Demo steel",
-		WarrantyMonths:   12,
-		Scores:           catalog.Scores{Quality: 70, Value: 71, Durability: 72, Beginner: 73, Advanced: 74, Apartment: 75, Noise: 76, Portability: 77},
+		CategoryID:     categoryID,
+		BrandID:        brandID,
+		Name:           "Admin integration product",
+		Slug:           slug,
+		Description:    "A fictional product created only for an administrative integration test.",
+		Price:          catalog.Money{AmountMinor: 12500, Currency: "USD"},
+		WarrantyMonths: 0,
+		Scores:         catalog.Scores{Quality: 70, Value: 71, Durability: 72, Beginner: 73, Advanced: 74, Apartment: 75, Noise: 76, Portability: 77},
 	})
 	if err != nil {
 		t.Fatalf("CreateProduct() error = %v", err)
@@ -77,7 +72,7 @@ func TestAdminProductAndOfferLifecycle(t *testing.T) {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM admin.audit_log WHERE actor_user_id=$1`, actor)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM identity.users WHERE id=$1`, actor)
 	})
-	if product.Status != catalog.ProductStatusDraft || product.MaxCapacityGrams == nil || *product.MaxCapacityGrams != capacity {
+	if product.Status != catalog.ProductStatusDraft || product.IsPhysical || product.MaxCapacityGrams != nil {
 		t.Fatalf("created product = %#v", product)
 	}
 	if err := repository.SetProductStatus(ctx, actor, product.ID, catalog.ProductStatusDiscontinued); err != nil {

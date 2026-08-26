@@ -41,7 +41,7 @@ func TestGovernedPublicationLifecycle(t *testing.T) {
 
 	var categoryID catalog.CategoryID
 	var brandID catalog.BrandID
-	if err = pool.QueryRow(ctx, `SELECT id FROM catalog.categories WHERE is_physical ORDER BY id LIMIT 1`).Scan(&categoryID); err != nil {
+	if err = pool.QueryRow(ctx, `SELECT id FROM catalog.categories WHERE vertical_key='saas' AND NOT is_physical ORDER BY id LIMIT 1`).Scan(&categoryID); err != nil {
 		t.Fatalf("load category: %v", err)
 	}
 	if err = pool.QueryRow(ctx, `SELECT id FROM catalog.brands ORDER BY id LIMIT 1`).Scan(&brandID); err != nil {
@@ -51,11 +51,11 @@ func TestGovernedPublicationLifecycle(t *testing.T) {
 	var productID catalog.ProductID
 	err = pool.QueryRow(ctx, `INSERT INTO catalog.products (
 		category_id, brand_id, name, slug, description, price_minor, currency,
-		length_mm, width_mm, height_mm, weight_grams, material, warranty_months,
+		warranty_months,
 		quality_score, value_score, durability_score, beginner_score, advanced_score,
 		apartment_score, noise_score, portability_score
 	) VALUES ($1,$2,'Evidence integration product',$3,'Integration-only governed product.',
-		10000,'USD',500,400,300,10000,'Steel',12,80,80,80,80,80,80,80,80)
+		10000,'USD',0,80,80,80,80,80,0,0,80)
 	RETURNING id`, categoryID, brandID, slug).Scan(&productID)
 	if err != nil {
 		t.Fatalf("insert product: %v", err)
@@ -93,15 +93,14 @@ func TestGovernedPublicationLifecycle(t *testing.T) {
 
 	product := catalog.Product{ID: productID, CategoryID: categoryID, BrandID: brandID,
 		Name: "Published evidence product", Slug: slug,
-		Description: "Published through the evidence workflow.",
-		Price:       catalog.Money{AmountMinor: 10000, Currency: "USD"},
-		Dimensions:  catalog.Dimensions{LengthMM: 500, WidthMM: 400, HeightMM: 300},
-		WeightGrams: 10000, Material: "Steel", WarrantyMonths: 12,
+		Description:    "Published through the evidence workflow.",
+		Price:          catalog.Money{AmountMinor: 10000, Currency: "USD"},
+		WarrantyMonths: 0,
 		Scores: catalog.Scores{Quality: 81, Value: 82, Durability: 83, Beginner: 84,
 			Advanced: 85, Apartment: 86, Noise: 87, Portability: 88},
 		Status: catalog.ProductStatusDraft}
-	factLinks := make([]evidence.FactLink, 0, 10)
-	for _, key := range []string{"category", "brand", "name", "slug", "description", "price", "dimensions", "weight", "material", "warranty"} {
+	factLinks := make([]evidence.FactLink, 0, 7)
+	for _, key := range []string{"category", "brand", "name", "slug", "description", "price", "warranty"} {
 		factLinks = append(factLinks, evidence.FactLink{FactKey: key,
 			ObservationID: observation.ID, Classification: evidence.ClassificationVerified})
 	}
@@ -159,7 +158,7 @@ func TestGovernedPublicationLifecycle(t *testing.T) {
 		t.Fatalf("published projection = status=%s fact=%s score=%s name=%s", status, factID, scoreID, name)
 	}
 	governance, err := repository.GetProductGovernance(ctx, productID)
-	if err != nil || len(governance.Revisions) != 2 || len(governance.Provenance) != 36 || len(governance.Audit) < 7 {
+	if err != nil || len(governance.Revisions) != 2 || len(governance.Provenance) != 30 || len(governance.Audit) < 7 {
 		t.Fatalf("GetProductGovernance() = %#v, %v", governance, err)
 	}
 	if _, err = repository.ReviewSource(ctx, reviewer, source.ID, evidence.ReviewRejected, "Source withdrawn"); err != nil {

@@ -102,7 +102,8 @@ func (repository *Repository) TransitionPolicy(ctx context.Context, actor identi
 				 LEFT JOIN recommendation.product_space_profiles space USING(policy_version,product_id)
 				 LEFT JOIN catalog.products catalog_products ON catalog_products.id=products.product_id
 				 LEFT JOIN recommendation.category_policies categories ON categories.policy_version=products.policy_version AND categories.category_id=catalog_products.category_id
-				 WHERE products.policy_version=$1 AND categories.support_status='supported' AND (space.product_id IS NULL OR products.fact_revision_id<>catalog_products.published_fact_revision_id OR products.score_revision_id<>catalog_products.published_score_revision_id OR NOT EXISTS (
+				 LEFT JOIN recommendation.policy_versions policies ON policies.version=products.policy_version
+				 WHERE products.policy_version=$1 AND categories.support_status='supported' AND ((policies.spatial_constraints AND space.product_id IS NULL) OR products.fact_revision_id<>catalog_products.published_fact_revision_id OR products.score_revision_id<>catalog_products.published_score_revision_id OR NOT EXISTS (
 				  SELECT 1 FROM recommendation.product_goal_support goals WHERE goals.policy_version=products.policy_version AND goals.product_id=products.product_id)))`, version).Scan(&invalid)
 			if err == nil && invalid != 0 {
 				err = ports.ErrConflict
