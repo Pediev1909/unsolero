@@ -108,11 +108,28 @@ export function PrivacyPage() {
                     When you follow a link to a vendor
                   </Heading>
                   <p>
-                    Following a link to a software vendor records which product,
-                    which link and which page it came from, so we can tell what
-                    people found useful. The vendor receives whatever their own
-                    site collects; their privacy policy governs that, not this
-                    one.
+                    Some vendor links are affiliate links. They are visibly
+                    labelled, and UNSOLERO may receive a commission if you later
+                    buy after choosing to follow one. Affiliate commission does
+                    not change recommendation scores or rankings.
+                  </p>
+                  <p className="mt-3">
+                    Following a vendor link records the product, offer, page or
+                    campaign, time, a pseudonymous visitor or account reference,
+                    the referring site&apos;s origin and a one-way hash of the
+                    browser identifier. These affiliate-click records are
+                    anonymized after <strong>397 days</strong>. This processing
+                    supports attribution, reporting and abuse prevention.
+                  </p>
+                  <p className="mt-3">
+                    UNSOLERO does not place the vendor&apos;s tracking cookie
+                    before you click. After you choose the link, the vendor or
+                    its affiliate platform may store an attribution cookie or
+                    similar identifier under its own privacy and cookie policy.
+                    That identifier can connect your visit with a later signup
+                    or purchase so the vendor can attribute commission. You can
+                    avoid that handoff by not following the vendor link and by
+                    visiting the vendor independently instead.
                   </p>
                 </div>
 
