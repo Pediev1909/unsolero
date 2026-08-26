@@ -18,7 +18,8 @@ FROM nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e591939
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY nginx-static-security.conf /etc/nginx/rigmark-static-security.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-RUN sed -i 's/listen 80;/listen 8080;/' /etc/nginx/conf.d/default.conf && \
+RUN apk upgrade --no-cache && \
+    sed -i 's/listen 80;/listen 8080;/' /etc/nginx/conf.d/default.conf && \
     chown -R nginx:nginx /var/cache/nginx /var/run /usr/share/nginx/html /etc/nginx/conf.d
 USER nginx
 EXPOSE 8080
