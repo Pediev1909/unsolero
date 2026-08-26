@@ -2,10 +2,10 @@
 
 ## Result
 
-Eleven offers have current first-party pricing evidence, an exact destination
+Twelve offers have current first-party pricing evidence, an exact destination
 copied from an approved programme dashboard, and an active public UNSOLERO
-redirect. Zoho Books is intentionally blocked because its recorded price is no
-longer current.
+redirect. Zoho Books has been corrected to its reviewed $20 monthly-billing
+price and reactivated.
 
 No affiliate URL was followed during this audit. Provider terms prohibit
 automated or artificial clicks, and a redirect request can itself be recorded
@@ -29,6 +29,7 @@ signup, self-referral, or test purchase.
 | monday.com Basic | $9/seat/month, yearly | PartnerStack | Link copied from the approved dashboard |
 | SE Ranking Core | $103.20/month | SE Ranking | Official link-builder account `5233991` |
 | Zoho Bookings Basic | $8/user/month | Zoho | Approved affiliate ID `PE2263909`, portal link code `POSi` |
+| Zoho Books Standard | $20/organization/month | Zoho | Approved affiliate ID `PE2263909`, portal link code `K0nf` |
 | Zoho Campaigns Standard | $5.25/month at 1,000 contacts, yearly | Zoho | Approved affiliate ID `PE2263909`, portal link code `UCST` |
 | Zoho CRM Standard | $20/user/month | Zoho | Approved affiliate ID `PE2263909`, portal link code `dNbV` |
 | Zoho Invoice | Free | Zoho | Approved affiliate ID `PE2263909`, portal link code `dIhI` |
@@ -44,20 +45,21 @@ First-party sources used for the current check:
 - Zoho live pricing pages and the JSON pricing data those pages use
 - approved partner-dashboard evidence already recorded beside each link seed
 
-## Blocked: Zoho Books Standard
+## Corrected: Zoho Books Standard
 
-UNSOLERO records $12 per organization per month. Zoho's current US pricing page
-shows $20 monthly or $15/month billed annually. The old offer is disabled, not
-silently refreshed.
+Zoho's current US pricing page shows $20 monthly or $15/month billed annually.
+UNSOLERO compares monthly-billing prices, so the product, offer, and public
+recommendation policy now use $20.
 
-Correcting it requires:
+The correction includes:
 
 1. a new dated manufacturer observation;
-2. a new product fact revision with the chosen billing basis stated clearly;
-3. review of the value score affected by the price increase;
-4. independent approval and publication of the fact and score revision;
-5. a new $20 monthly (or explicitly $15 annual-billing) merchant offer;
-6. another no-follow UNSOLERO redirect audit.
+2. product fact revision 2 with the monthly billing basis stated clearly;
+3. an affiliate-independent value-score review;
+4. published fact and score revision 2;
+5. a $20 monthly merchant offer;
+6. immutable recommendation policy `saas-v11`;
+7. another no-follow UNSOLERO redirect audit.
 
 This separation prevents affiliate availability from overriding product truth.
 
@@ -67,6 +69,5 @@ The idempotent, assertion-backed audit operation is:
 
 `backend/seeds/affiliate_offer_audit_2026_08_26.sql`
 
-It fails the transaction unless all eleven approved links, providers, products,
-currencies, and verified prices match exactly. It also requires exactly one
-stale Zoho Books offer to be disabled.
+It fails the transaction unless all twelve approved links, providers, products,
+currencies, and verified prices match exactly.

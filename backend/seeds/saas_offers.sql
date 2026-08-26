@@ -23,8 +23,9 @@ INSERT INTO commerce.merchant_offers (
     merchant_id, product_id, merchant_sku, product_url,
     price_minor, shipping_minor, currency, availability, condition, last_checked_at
 )
-SELECT m.id, p.id, 'zoho-books-standard', 'https://www.zoho.com/books/pricing/',
-       1200, 0, 'USD', 'in_stock', 'new', now()
+SELECT m.id, p.id, 'zoho-books-standard',
+       'https://www.zoho.com/us/books/pricing/pricing-comparison.html?highlight=standard',
+       2000, 0, 'USD', 'in_stock', 'new', now()
 FROM commerce.merchants m, catalog.products p
 WHERE m.slug = 'zoho' AND p.slug = 'zoho-books-standard'
 ON CONFLICT (merchant_id, merchant_sku) DO UPDATE SET

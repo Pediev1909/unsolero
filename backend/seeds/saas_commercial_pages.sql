@@ -101,7 +101,7 @@ FROM author CROSS JOIN (VALUES
       {"type":"paragraph","text":"If that is not your brief, the answer changes, which is the point. A CRM recommendation with no stated constraints is a preference wearing a suit."},
       {"type":"heading","heading":"Why the CRM is not the first purchase"},
       {"type":"paragraph","text":"It usually is bought first and usually should not be. At four people the jobs that stop work or stop payment are delivery tracking and invoicing. A shared record of clients matters, but it can start free while the other two cannot start at all."},
-      {"type":"paragraph","text":"Cover it within the whole stack: ClickUp Unlimited at 10 USD per user for delivery, Zoho Books Standard at 12 USD for invoicing, and the CRM on a free tier until it hurts. That leaves most of the budget unspent, which is a result rather than a failure."},
+      {"type":"paragraph","text":"Cover it within the whole stack: ClickUp Unlimited at 10 USD per user for delivery, Zoho Books Standard at 20 USD for invoicing, and the CRM on a free tier until it hurts. That leaves most of the budget unspent, which is a result rather than a failure."},
       {"type":"heading","heading":"What we rejected, and why"},
       {"type":"paragraph","text":"A help desk and an analytics tool. At four people the shared inbox already covers support, and there is no traffic to analyse yet. Both are good products bought two years early, which is the most common way a small stack becomes expensive."},
       {"type":"callout","heading":"Where the real cost hides","text":"Not the subscriptions. It is the afternoon a week somebody spends re-typing between two tools that do not connect. Pick for the connection before the feature list."},

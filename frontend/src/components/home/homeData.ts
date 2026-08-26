@@ -42,11 +42,11 @@ export const exampleSetup = {
     {
       name: 'Zoho Books Standard',
       reason: 'Invoices generated from what was actually agreed.',
-      priceMinor: 1200,
+      priceMinor: 2000,
     },
   ] satisfies SetupItem[],
-  totalMinor: 4200,
-  remainingMinor: 7800,
+  totalMinor: 5000,
+  remainingMinor: 7000,
   rejected:
     'A help desk and an analytics tool were left out: at four people they duplicate work the inbox and the project tool already cover, and neither stops work or stops payment.',
   upgrade:

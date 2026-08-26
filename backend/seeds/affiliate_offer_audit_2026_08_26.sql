@@ -6,17 +6,14 @@
 -- the exact approved destinations already copied from partner dashboards and
 -- refreshes only offers whose current price was independently confirmed.
 --
--- Zoho Books is the single exception. The catalog records $12/month, while
--- Zoho's current US pricing page publishes Standard at $20/month ($15/month
--- billed annually). Its offer is disabled until a new fact revision and its
--- dependent score review are approved through the evidence workflow.
+-- Zoho Books now uses its reviewed fact and score revision 2: $20/month at
+-- monthly billing. The separate $15/month figure requires annual billing.
 
 BEGIN;
 
 DO $$
 DECLARE
     verified_count integer;
-    disabled_count integer;
 BEGIN
     SELECT count(*)
     INTO verified_count
@@ -40,6 +37,8 @@ BEGIN
          'https://seranking.com/subscription.html?ga=5233991&source=link'),
         ('zoho-bookings-basic', 800::bigint, 'USD', 'zoho',
          'https://go.zoho.com/POSi'),
+        ('zoho-books-standard', 2000::bigint, 'USD', 'zoho',
+         'https://go.zoho.com/K0nf'),
         ('zoho-campaigns-standard', 525::bigint, 'USD', 'zoho',
          'https://go.zoho.com/UCST'),
         ('zoho-crm-standard', 2000::bigint, 'USD', 'zoho',
@@ -57,9 +56,9 @@ BEGIN
     WHERE offers.is_active
       AND links.is_active;
 
-    IF verified_count <> 11 THEN
+    IF verified_count <> 12 THEN
         RAISE EXCEPTION
-            'Affiliate audit failed: expected 11 exact active offer/link matches, found %',
+            'Affiliate audit failed: expected 12 exact active offer/link matches, found %',
             verified_count;
     END IF;
 
@@ -76,30 +75,13 @@ BEGIN
           ('monday-basic', 900, 'USD'),
           ('se-ranking-core', 10320, 'USD'),
           ('zoho-bookings-basic', 800, 'USD'),
+          ('zoho-books-standard', 2000, 'USD'),
           ('zoho-campaigns-standard', 525, 'USD'),
           ('zoho-crm-standard', 2000, 'USD'),
           ('zoho-invoice', 0, 'USD'),
           ('zoho-projects-premium', 400, 'USD')
       );
 
-    UPDATE commerce.merchant_offers offers
-    SET is_active = false,
-        updated_at = now()
-    FROM catalog.products products, commerce.merchants merchants
-    WHERE products.id = offers.product_id
-      AND merchants.id = offers.merchant_id
-      AND products.slug = 'zoho-books-standard'
-      AND merchants.slug = 'zoho'
-      AND offers.merchant_sku = 'zoho-books-standard'
-      AND offers.price_minor = 1200
-      AND offers.currency = 'USD';
-
-    GET DIAGNOSTICS disabled_count = ROW_COUNT;
-    IF disabled_count <> 1 THEN
-        RAISE EXCEPTION
-            'Affiliate audit failed: expected to disable one stale Zoho Books offer, changed %',
-            disabled_count;
-    END IF;
 END
 $$;
 
