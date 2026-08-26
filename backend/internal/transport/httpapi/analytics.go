@@ -196,6 +196,7 @@ func (h *Handler) issueAnalyticsSubject(response http.ResponseWriter) ([]byte, e
 	if maxAge <= 0 {
 		maxAge = 397 * 24 * 60 * 60
 	}
+	// nosemgrep: go.lang.security.audit.net.cookie-missing-secure.cookie-missing-secure -- production/staging configuration rejects Secure=false; local HTTP development remains supported.
 	http.SetCookie(response, &http.Cookie{
 		Name: h.analyticsSubjectCookieName(), Value: base64.RawURLEncoding.EncodeToString(raw),
 		Path: "/", HttpOnly: true, Secure: h.cookie.Secure, SameSite: http.SameSiteLaxMode,

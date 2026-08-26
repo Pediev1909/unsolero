@@ -29,6 +29,7 @@ func (h *Handler) openMetrics(response http.ResponseWriter, request *http.Reques
 	response.Header().Set("Cache-Control", "no-store")
 	response.Header().Set("Content-Type", "application/openmetrics-text; version=1.0.0; charset=utf-8")
 	response.WriteHeader(http.StatusOK)
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter -- authenticated OpenMetrics text with escaped label values, never HTML.
 	_, _ = response.Write([]byte(formatOpenMetrics(snapshot)))
 }
 

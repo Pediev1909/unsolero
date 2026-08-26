@@ -128,6 +128,7 @@ func (h *Handler) publicRouteStatus(response http.ResponseWriter, request *http.
 				response.Header().Set("Content-Security-Policy", documentContentSecurityPolicy)
 				response.Header().Set("Content-Type", "text/html; charset=utf-8")
 				response.WriteHeader(http.StatusOK)
+				// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter -- renderShell HTML-escapes metadata and JSON-escapes structured data; prerendered bodies use the same escaping helpers.
 				if _, err := response.Write([]byte(rendered)); err != nil {
 					h.logger.Error("write public route html", "error", err)
 				}

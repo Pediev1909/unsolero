@@ -92,6 +92,7 @@ func (h *Handler) productImage(response http.ResponseWriter, request *http.Reque
 	response.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	response.Header().Set("X-Content-Type-Options", "nosniff")
 	response.WriteHeader(http.StatusOK)
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter -- validated binary image bytes with a nosniff media content type, never HTML.
 	_, _ = response.Write(data)
 }
 

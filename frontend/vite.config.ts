@@ -18,6 +18,19 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: false,
       manifest: true,
+      rollupOptions: {
+        output: {
+          // Keep framework code in a stable cacheable file instead of making
+          // every application edit invalidate one oversized entry bundle.
+          // The initial-transfer budget still counts this chunk, so this is a
+          // delivery improvement rather than a hidden budget exception.
+          manualChunks(id) {
+            if (id.includes('/node_modules/')) {
+              return 'vendor'
+            }
+          },
+        },
+      },
     },
     server: {
       proxy,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 
 // The server already returns an otpauth:// URI, which is exactly what an
@@ -6,41 +6,46 @@ import QRCode from 'qrcode'
 // meant transcribing 32 characters by hand — slow, and easy to get wrong in a
 // way that only surfaces as a rejected code.
 //
-// Rendered as an SVG string rather than a canvas so it stays sharp at any size,
-// and generated in the browser so the URI never travels anywhere new.
+// Generated directly into a local canvas so the URI never travels anywhere
+// new and no generated markup has to pass through an unsafe HTML sink.
 export function EnrollmentQrCode({ uri }: { uri: string }) {
-  const [svg, setSvg] = useState('')
-  const [failed, setFailed] = useState(false)
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const [renderedUri, setRenderedUri] = useState<string | null>(null)
+  const [failedUri, setFailedUri] = useState<string | null>(null)
+  const ready = renderedUri === uri
+  const failed = failedUri === uri
 
   useEffect(() => {
     let current = true
-    QRCode.toString(uri, {
-      type: 'svg',
+    if (!canvas.current) return
+    QRCode.toCanvas(canvas.current, uri, {
+      width: 176,
       margin: 1,
       errorCorrectionLevel: 'M',
       color: { dark: '#14171c', light: '#ffffff' },
     })
-      .then((value) => {
-        if (current) setSvg(value)
+      .then(() => {
+        if (current) {
+          setFailedUri(null)
+          setRenderedUri(uri)
+        }
       })
       .catch(() => {
         // The secret below the code is the complete fallback, so a failure
         // here costs convenience rather than the ability to enrol.
-        if (current) setFailed(true)
+        if (current) setFailedUri(uri)
       })
     return () => {
       current = false
     }
   }, [uri])
 
-  if (failed || !svg) return null
-
   return (
-    <div className="mt-4">
-      <div
+    <div className={`mt-4 ${ready && !failed ? '' : 'invisible'}`}>
+      <canvas
         aria-label="Enrollment QR code"
-        className="inline-block border border-ink/15 bg-surface p-3 [&>svg]:size-44"
-        dangerouslySetInnerHTML={{ __html: svg }}
+        className="size-44 border border-ink/15 bg-surface p-3"
+        ref={canvas}
         role="img"
       />
     </div>

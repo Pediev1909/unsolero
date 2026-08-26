@@ -221,6 +221,7 @@ func (h *Handler) sitemap(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	response.Header().Set("Cache-Control", "public, max-age=3600")
 	response.WriteHeader(http.StatusOK)
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter -- encoding/xml escapes every dynamic sitemap value and the response is XML, not HTML.
 	_, _ = response.Write(append([]byte(xml.Header), data...))
 }
 
@@ -236,6 +237,7 @@ func (h *Handler) llmsTxt(response http.ResponseWriter, _ *http.Request) {
 	base := h.content.AbsoluteURL("")
 	response.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	response.Header().Set("Cache-Control", "public, max-age=3600")
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter -- deliberate plain-text response; AbsoluteURL is configuration-validated.
 	_, _ = response.Write([]byte(`# UNSOLERO
 
 > An independent decision engine for business software. It turns a company's
@@ -271,5 +273,6 @@ read; confirm the current figure with the vendor before relying on it.
 func (h *Handler) robots(response http.ResponseWriter, _ *http.Request) {
 	response.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	response.Header().Set("Cache-Control", "public, max-age=3600")
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter -- deliberate plain-text robots response; AbsoluteURL is configuration-validated.
 	_, _ = response.Write([]byte("User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\nDisallow: /account\nDisallow: /setups\nDisallow: /wishlist\nDisallow: /build\nDisallow: /login\nDisallow: /register\nDisallow: /design-system\nSitemap: " + h.content.AbsoluteURL("/sitemap.xml") + "\n"))
 }

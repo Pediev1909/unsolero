@@ -171,6 +171,7 @@ func run(arguments []string, output, errorOutput io.Writer) error {
 		if !isLocalHTTPS(opts.url) || opts.setupURL != "" && !isLocalHTTPS(opts.setupURL) {
 			return errors.New("self-signed certificate bypass is restricted to an HTTPS localhost target")
 		}
+		// nosemgrep: problem-based-packs.insecure-transport.go-stdlib.bypass-tls-verification.bypass-tls-verification -- guarded by isLocalHTTPS for isolated localhost staging only.
 		opts.transport = &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}} // #nosec G402 -- hostname-restricted local staging only
 	}
 	var err error
