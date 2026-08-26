@@ -127,7 +127,7 @@ jobs:
       - run: docker compose --profile tools run --rm seed
       - run: docker compose up -d api commerce-worker
       - name: Verify readiness
-        run: curl --fail --retry 20 --retry-delay 2 http://127.0.0.1:8080/api/v1/health/ready
+        run: curl --fail --retry 20 --retry-delay 2 --retry-all-errors http://127.0.0.1:8080/api/v1/health/ready
       - run: npm --prefix frontend ci
       - run: npx --prefix frontend playwright install --with-deps chromium
       - name: Browser and accessibility tests
