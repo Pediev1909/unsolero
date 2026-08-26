@@ -131,7 +131,6 @@ test('recommendation flow is keyboard-addressable and produces a real determinis
     page.getByRole('checkbox', { name: 'Best value' }),
     page,
   )
-  await activateWithKeyboard(page.getByRole('button', { name: 'Next' }), page)
   await activateWithKeyboard(
     page.getByRole('button', { name: 'Build my setup' }),
     page,
@@ -345,11 +344,19 @@ test('core public layouts do not overflow the required viewport widths', async (
 })
 
 test('modal focus and dismissal work from the keyboard', async ({ page }) => {
-  await page.goto('/design-system')
-  const openModal = page.getByRole('button', { name: 'Open modal' })
+  await page.goto('/products')
+  const selectForComparison = page
+    .getByRole('button', { name: 'Compare', exact: true })
+    .first()
+  await selectForComparison.focus()
+  await page.keyboard.press('Enter')
+
+  const openModal = page
+    .getByRole('button', { name: 'Compare 1', exact: true })
+    .first()
   await openModal.focus()
   await page.keyboard.press('Enter')
-  const dialog = page.getByRole('dialog', { name: 'Confirm tool choice' })
+  const dialog = page.getByRole('dialog', { name: 'Compare software' })
   await expect(dialog).toBeVisible()
   await expect(
     dialog.getByRole('button', { name: 'Close dialog' }),
