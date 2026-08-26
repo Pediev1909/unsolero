@@ -7,14 +7,14 @@ import type { ContentSummary } from '../schemas'
 
 export function ContentCard({ entry }: { entry: ContentSummary }) {
   return (
-    <article className="group flex h-full flex-col border border-ink/15 bg-surface">
+    <article className="group border border-ink/15 bg-surface">
       <Link
         aria-label={`Read ${entry.title}`}
-        className="flex h-full flex-col"
+        className="flex flex-col"
         to={entry.path}
       >
         <CardNameplate entry={entry} />
-        <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <div className="p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4 text-[0.625rem] font-bold uppercase tracking-[0.14em] text-bronze-dark">
             <span>{contentTypeLabel(entry.type)}</span>
             <ArrowUpRight aria-hidden="true" size={16} />
@@ -25,7 +25,7 @@ export function ContentCard({ entry }: { entry: ContentSummary }) {
           <p className="mt-4 text-sm leading-6 text-ink/70">
             {entry.description}
           </p>
-          <p className="mt-auto pt-7 text-xs text-ink/65">
+          <p className="mt-7 text-xs text-ink/65">
             {entry.author_name} · {formatEditorialDate(entry.published_at)}
           </p>
         </div>

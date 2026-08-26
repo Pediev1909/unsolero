@@ -68,12 +68,12 @@ export function CardNameplate({ entry }: { entry: ContentSummary }) {
         )}
       </p>
 
-      <p className="flex flex-wrap gap-x-4 gap-y-1 border-t border-ink/12 pt-2.5 text-[0.6875rem] text-ink/60">
+      <p className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-ink/12 pt-2.5 text-xs text-ink/60">
         <span>
           <span className="font-semibold text-ink">{covered.length}</span> tools
         </span>
         <span>
-          <span className="font-semibold text-bronze tabular-nums">
+          <span className="text-sm font-bold text-bronze-dark tabular-nums">
             {priceRange(covered)}
           </span>{' '}
           a month

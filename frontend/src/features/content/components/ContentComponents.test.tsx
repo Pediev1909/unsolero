@@ -88,13 +88,13 @@ describe('editorial card nameplate', () => {
             ...summary,
             covered: [
               { name: 'Wave', price_minor: 0, currency: 'USD' },
-              { name: 'Zoho Books', price_minor: 1200, currency: 'USD' },
+              { name: 'Zoho Books', price_minor: 2000, currency: 'USD' },
             ],
           }}
         />
       </MemoryRouter>,
     )
-    expect(screen.getByText('Free–$12')).toBeInTheDocument()
+    expect(screen.getByText('Free–$20')).toBeInTheDocument()
   })
 
   // A piece with no product set keeps its illustration; the alternative is a
