@@ -5,6 +5,7 @@ import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { ButtonLink } from '../../../components/ui/ButtonLink'
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
+import { BrandMark } from '../../catalog/components/BrandMark'
 import { MerchantAction } from '../../catalog/components/MerchantAction'
 import type { ProductSummary } from '../../catalog/schemas'
 import type { RecommendationResult } from '../schemas'
@@ -37,51 +38,47 @@ export function RecommendationProduct({
 }: RecommendationProductProps) {
   const product = item.product
   return (
-    <article className="grid overflow-hidden border border-ink/15 bg-surface lg:grid-cols-[minmax(16rem,0.72fr)_1.28fr]">
-      <Link
-        className="block min-h-64 bg-paper"
-        to={`/products/${product.slug}`}
-      >
-        {product.primary_image ? (
-          <img
-            alt={product.primary_image.alt_text}
-            className="size-full object-cover"
-            height={product.primary_image.height_px}
-            loading="lazy"
-            src={product.primary_image.url}
-            width={product.primary_image.width_px}
-          />
-        ) : (
-          // Software has no product photograph, so the absence is the normal
-          // case rather than a fault. Naming the vendor reads as a deliberate
-          // mark and still says whose product this is; "Image unavailable"
-          // made every card look broken.
-          <span className="grid size-full place-items-center px-4 text-center text-sm font-semibold text-ink/70">
-            {product.brand.name}
-          </span>
-        )}
-      </Link>
-      <div className="p-5 sm:p-7 lg:p-8">
+    <article className="flex h-full flex-col border border-ink/15 bg-surface">
+      <div className="flex h-full flex-col p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="accent">Choice {item.rank}</Badge>
           <Badge variant="success">{item.score}/100 match</Badge>
           {product.is_demo && <Badge>Demo product</Badge>}
         </div>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-ink/65">
-          {product.brand.name}
-        </p>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-          <h2 className="font-display text-3xl font-medium tracking-[-0.045em]">
-            {product.name}
-          </h2>
+
+        <div className="mt-4 flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <BrandMark
+              brandName={product.brand.name}
+              brandSlug={product.brand.slug}
+              size="lg"
+            />
+            <div className="min-w-0">
+              <Link
+                className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-ink/65 hover:text-bronze-dark"
+                to={`/brands/${product.brand.slug}`}
+              >
+                {product.brand.name}
+              </Link>
+              <h2 className="mt-1 font-display text-2xl font-medium leading-tight tracking-[-0.04em]">
+                <Link
+                  className="hover:text-bronze-dark"
+                  to={`/products/${product.slug}`}
+                >
+                  {product.name}
+                </Link>
+              </h2>
+            </div>
+          </div>
           <PriceDisplay
             amountMinor={product.price.amount_minor}
+            className="shrink-0"
             currency={product.price.currency}
-            size="lg"
+            size="md"
           />
         </div>
 
-        <ul className="mt-6 grid gap-2 text-sm leading-6 sm:grid-cols-2">
+        <ul className="mt-4 grid gap-2 text-sm leading-5 sm:grid-cols-2">
           {item.reasons.slice(0, 4).map((reason) => (
             <li className="border-l border-moss pl-3" key={reason.code}>
               {reason.message}
@@ -89,7 +86,7 @@ export function RecommendationProduct({
           ))}
         </ul>
 
-        <div className="mt-6 grid gap-4 border-y border-ink/10 py-5 text-sm sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-2 gap-4 border-y border-ink/10 py-3 text-sm">
           <Spec
             label={product.key_specification.label}
             value={product.key_specification.value}
@@ -104,7 +101,7 @@ export function RecommendationProduct({
         </div>
 
         {alternative && (
-          <div className="mt-5 bg-paper p-4 text-sm">
+          <div className="mt-4 bg-paper p-3 text-sm">
             <span className="font-semibold">
               {alternative.type === 'cheaper' ? 'Lower-cost' : 'Premium'}{' '}
               alternative:
@@ -118,7 +115,7 @@ export function RecommendationProduct({
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-auto flex flex-wrap gap-2 pt-5">
           <Button
             aria-pressed={compared}
             onClick={() => onCompare(product)}
@@ -151,6 +148,7 @@ export function RecommendationProduct({
           </ButtonLink>
         </div>
         <MerchantAction
+          className="mt-4"
           recommendationID={recommendationID}
           slug={product.slug}
           source={merchantSource}

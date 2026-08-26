@@ -142,7 +142,7 @@ export function RecommendationResults({
         </div>
       </div>
 
-      <div className="mt-12 space-y-6">
+      <div className="mt-10 grid gap-5 xl:grid-cols-2">
         {result.recommended_products.map((item) => (
           <RecommendationProduct
             alternative={result.alternatives.find(
