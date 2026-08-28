@@ -90,6 +90,7 @@ type CommerceService interface {
 	ListOffers(context.Context, catalogdomain.ProductID, string) ([]commercedomain.Offer, error)
 	TrackOfferClick(context.Context, commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error)
 	TrackLegacyLinkClick(context.Context, commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error)
+	TrackPromotionClick(context.Context, commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error)
 }
 
 type CommerceOperationsService interface {
@@ -359,6 +360,9 @@ func NewRouter(
 		mux.HandleFunc("GET /api/catalog/products/{slug}/offers", handler.listOffers)
 		mux.Handle("GET /api/affiliate/click/{offerID}", handler.attachOptionalAuthenticationFailOpen(http.HandlerFunc(handler.affiliateClickRedirect)))
 		mux.Handle("GET /api/out/{affiliateLinkID}", handler.attachOptionalAuthenticationFailOpen(http.HandlerFunc(handler.outboundRedirect)))
+	}
+	if handler.commerce != nil {
+		mux.Handle("GET /api/affiliate/promotion/{slug}", handler.attachOptionalAuthenticationFailOpen(http.HandlerFunc(handler.affiliatePromotionRedirect)))
 	}
 	if handler.analytics != nil {
 		mux.Handle("POST /api/analytics/events", handler.attachAuthentication(http.HandlerFunc(handler.recordAnalyticsEvent)))

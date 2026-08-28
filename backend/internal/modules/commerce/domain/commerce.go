@@ -11,6 +11,7 @@ import (
 type MerchantID string
 type OfferID string
 type AffiliateLinkID string
+type PromotionSlug string
 
 type Merchant struct {
 	ID          MerchantID
@@ -62,6 +63,7 @@ type Offer struct {
 type AffiliateClick struct {
 	OfferID          OfferID
 	LinkID           AffiliateLinkID
+	PromotionSlug    PromotionSlug
 	UserID           *string
 	AnonymousID      *string
 	SessionID        *string
@@ -95,6 +97,15 @@ type ResolvedAffiliateDestination struct {
 	ProductID          catalog.ProductID
 	RecommendationItem *string
 	DestinationURL     string
+}
+
+// ResolvedPromotionDestination carries only what the standalone promotion
+// redirect needs. It deliberately has no catalog product or recommendation
+// fields: promotional economics cannot become recommendation inputs.
+type ResolvedPromotionDestination struct {
+	PromotionID    string
+	PromotionSlug  PromotionSlug
+	DestinationURL string
 }
 
 type AffiliateRedirectResult struct {

@@ -17,11 +17,12 @@ import (
 )
 
 type commerceStub struct {
-	offers       []commercedomain.Offer
-	destination  string
-	trackedID    commercedomain.AffiliateLinkID
-	trackedOffer commercedomain.OfferID
-	surface      string
+	offers           []commercedomain.Offer
+	destination      string
+	trackedID        commercedomain.AffiliateLinkID
+	trackedOffer     commercedomain.OfferID
+	trackedPromotion commercedomain.PromotionSlug
+	surface          string
 }
 
 func (stub *commerceStub) ListOffers(context.Context, catalogdomain.ProductID, string) ([]commercedomain.Offer, error) {
@@ -36,6 +37,12 @@ func (stub *commerceStub) TrackOfferClick(_ context.Context, click commercedomai
 
 func (stub *commerceStub) TrackLegacyLinkClick(_ context.Context, click commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error) {
 	stub.trackedID = click.LinkID
+	stub.surface = click.Source
+	return commercedomain.AffiliateRedirectResult{DestinationURL: stub.destination}, nil
+}
+
+func (stub *commerceStub) TrackPromotionClick(_ context.Context, click commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error) {
+	stub.trackedPromotion = click.PromotionSlug
 	stub.surface = click.Source
 	return commercedomain.AffiliateRedirectResult{DestinationURL: stub.destination}, nil
 }
@@ -110,6 +117,31 @@ func TestOutboundRedirectRejectsMalformedIdentifier(t *testing.T) {
 	}
 	if commerce.trackedOffer != "" {
 		t.Fatal("malformed identifier reached the commerce service")
+	}
+}
+
+func TestAffiliatePromotionRedirectUsesStableSlugAndAttribution(t *testing.T) {
+	const sessionID = "1191bb26-a9a2-41df-9346-74d693350ce8"
+	commerce := &commerceStub{destination: "https://merchant.invalid/training?affiliate_id=123"}
+	handler := &Handler{
+		commerce: commerce,
+		logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+	request := httptest.NewRequest(http.MethodGet,
+		"/api/affiliate/promotion/funnel-training?source=promotion&session_id="+sessionID, nil)
+	request.SetPathValue("slug", "funnel-training")
+	response := httptest.NewRecorder()
+
+	handler.affiliatePromotionRedirect(response, request)
+
+	if response.Code != http.StatusFound {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusFound)
+	}
+	if commerce.trackedPromotion != "funnel-training" || commerce.surface != "promotion" {
+		t.Fatalf("tracked promotion = (%q, %q)", commerce.trackedPromotion, commerce.surface)
+	}
+	if response.Header().Get("Location") != commerce.destination {
+		t.Fatalf("Location = %q", response.Header().Get("Location"))
 	}
 }
 

@@ -49,6 +49,13 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: '/offers/funnel-hacking-secrets',
+        lazy: async () => ({
+          Component: (await import('../pages/FunnelHackingSecretsPage'))
+            .FunnelHackingSecretsPage,
+        }),
+      },
+      {
         path: '/login',
         lazy: async () => ({
           Component: (await import('../pages/LoginPage')).LoginPage,

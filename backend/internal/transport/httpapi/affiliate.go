@@ -46,6 +46,21 @@ func (h *Handler) outboundRedirect(response http.ResponseWriter, request *http.R
 	h.finishAffiliateRedirect(response, request, result, err)
 }
 
+func (h *Handler) affiliatePromotionRedirect(response http.ResponseWriter, request *http.Request) {
+	slug := request.PathValue("slug")
+	if !publicRouteSlugPattern.MatchString(slug) {
+		h.writeAffiliateNotFound(response)
+		return
+	}
+	click, ok := h.affiliateAttribution(response, request)
+	if !ok {
+		return
+	}
+	click.PromotionSlug = commercedomain.PromotionSlug(slug)
+	result, err := h.commerce.TrackPromotionClick(request.Context(), click)
+	h.finishAffiliateRedirect(response, request, result, err)
+}
+
 func (h *Handler) affiliateAttribution(response http.ResponseWriter, request *http.Request) (commercedomain.AffiliateClick, bool) {
 	values := request.URL.Query()
 	source := strings.TrimSpace(values.Get("source"))

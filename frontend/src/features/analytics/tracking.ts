@@ -75,7 +75,12 @@ const firstPartyProvider = new FirstPartyAnalyticsProvider()
 const dispatch = createAnalyticsDispatcher([firstPartyProvider])
 
 export type AffiliateSource =
-  'product_detail' | 'wishlist' | 'recommendation' | 'comparison' | 'setup'
+  | 'product_detail'
+  | 'wishlist'
+  | 'recommendation'
+  | 'comparison'
+  | 'setup'
+  | 'promotion'
 
 export function createAnalyticsDispatcher(
   providers: readonly AnalyticsProvider[],
@@ -162,7 +167,8 @@ export function affiliateClickPath(
   const destination = new URL(purchasePath, window.location.origin)
   if (
     destination.origin !== window.location.origin ||
-    !destination.pathname.startsWith('/api/affiliate/click/')
+    (!destination.pathname.startsWith('/api/affiliate/click/') &&
+      !destination.pathname.startsWith('/api/affiliate/promotion/'))
   ) {
     return purchasePath
   }

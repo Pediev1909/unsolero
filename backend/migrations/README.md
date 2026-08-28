@@ -56,3 +56,8 @@ live container from a worker that is not completing cycles.
 history with non-physical catalogs. Candidate dimensions and session space are
 stored as `NULL` when they do not apply, while complete positive dimensions
 remain mandatory whenever physical measurements are present.
+
+`000026_affiliate_promotions.sql` adds privacy-bounded affiliate promotions and
+click records for editorial offers such as free training. Promotions have no
+catalog product or recommendation relationship, so a webinar, book, or bundle
+cannot enter software scoring merely because it has an affiliate destination.

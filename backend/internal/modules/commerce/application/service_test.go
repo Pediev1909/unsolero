@@ -19,7 +19,13 @@ func (stub redirectStub) ResolveOfferDestination(context.Context, domain.Affilia
 func (stub redirectStub) ResolveLegacyDestination(context.Context, domain.AffiliateClick) (domain.ResolvedAffiliateDestination, error) {
 	return domain.ResolvedAffiliateDestination{DestinationURL: stub.destination}, nil
 }
+func (stub redirectStub) ResolvePromotionDestination(context.Context, domain.AffiliateClick) (domain.ResolvedPromotionDestination, error) {
+	return domain.ResolvedPromotionDestination{PromotionID: "promotion-id", PromotionSlug: "training", DestinationURL: stub.destination}, nil
+}
 func (stub redirectStub) RecordClick(context.Context, domain.ResolvedAffiliateDestination, domain.AffiliateClick) error {
+	return stub.recordErr
+}
+func (stub redirectStub) RecordPromotionClick(context.Context, domain.ResolvedPromotionDestination, domain.AffiliateClick) error {
 	return stub.recordErr
 }
 
@@ -52,6 +58,33 @@ func TestTrackOfferClickPreservesNavigationWhenRecordingFails(t *testing.T) {
 	result, err := service.TrackOfferClick(context.Background(), validClick())
 	if err != nil || result.DestinationURL == "" || !errors.Is(result.TrackingError, recordErr) {
 		t.Fatalf("result = %#v, error = %v", result, err)
+	}
+}
+
+func TestTrackPromotionClickAcceptsStandaloneHTTPSDestination(t *testing.T) {
+	anonymousID := "anonymous"
+	service := &Service{redirects: redirectStub{destination: "https://merchant.example/training?affiliate_id=123"}}
+	result, err := service.TrackPromotionClick(context.Background(), domain.AffiliateClick{
+		PromotionSlug: "training", Source: "promotion", AnonymousID: &anonymousID,
+	})
+	if err != nil {
+		t.Fatalf("track promotion: %v", err)
+	}
+	if result.DestinationURL != "https://merchant.example/training?affiliate_id=123" {
+		t.Fatalf("unexpected destination %q", result.DestinationURL)
+	}
+}
+
+func TestTrackPromotionClickCannotCarryRecommendationAttribution(t *testing.T) {
+	anonymousID := "anonymous"
+	recommendationID := "8f045a40-37d8-4f83-a2d1-8953153dd3e9"
+	service := &Service{redirects: redirectStub{destination: "https://merchant.example/training"}}
+	_, err := service.TrackPromotionClick(context.Background(), domain.AffiliateClick{
+		PromotionSlug: "training", Source: "promotion", AnonymousID: &anonymousID,
+		RecommendationID: &recommendationID,
+	})
+	if err != ErrInvalidAttribution {
+		t.Fatalf("error = %v, want ErrInvalidAttribution", err)
 	}
 }
 

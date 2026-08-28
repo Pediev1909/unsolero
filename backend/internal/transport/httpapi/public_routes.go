@@ -43,7 +43,7 @@ var staticPublicRoutes = map[string]bool{
 	// both look for these two before approving or ranking a commercial site,
 	// so a 404 here is expensive.
 	"/about": true, "/privacy": true, "/affiliate-disclosure": true,
-	"/terms": true,
+	"/terms": true, "/offers/funnel-hacking-secrets": true,
 	"/login": false, "/register": false, "/check-email": false,
 	"/verify-email": false, "/forgot-password": false, "/reset-password": false,
 	"/login/mfa": false, "/build": false, "/compare": false,
@@ -334,6 +334,9 @@ func staticRouteMetadata(path string) (string, string) {
 	case "/affiliate-disclosure":
 		return "Affiliate disclosure | UNSOLERO",
 			"How UNSOLERO earns, and why commission is excluded from the ranking."
+	case "/offers/funnel-hacking-secrets":
+		return "Funnel Hacking Secrets free training | UNSOLERO",
+			"What the free Funnel Hacking Secrets training covers, what happens after it, and the affiliate relationship behind the links."
 	// Not indexable, so these titles never reach a search result. They reach the
 	// browser tab on the first paint, before the app has booted and set its own.
 	case "/login":
