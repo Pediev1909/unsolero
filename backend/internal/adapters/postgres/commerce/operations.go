@@ -502,7 +502,24 @@ func (repository *Repository) AnonymizeExpiredClicks(ctx context.Context, now ti
 	if err != nil {
 		return 0, fmt.Errorf("anonymize expired affiliate clicks: %w", err)
 	}
-	return count, nil
+	remaining := limit - int(count)
+	if remaining <= 0 {
+		return count, nil
+	}
+	var promotionCount int64
+	err = repository.pool.QueryRow(ctx, `WITH expired AS MATERIALIZED (
+		SELECT id FROM commerce.affiliate_promotion_clicks WHERE anonymized_at IS NULL
+		AND retention_expires_at <= $1 ORDER BY retention_expires_at,id LIMIT $2 FOR UPDATE SKIP LOCKED
+	), anonymized AS (
+	UPDATE commerce.affiliate_promotion_clicks clicks SET user_id=NULL, anonymous_id=NULL,
+		session_id=NULL, campaign=NULL, referrer=NULL, request_id=NULL, traffic_source=NULL,
+		traffic_medium=NULL, referrer_host=NULL, user_agent_hash=NULL, idempotency_key=NULL,
+		anonymized_at=$1 FROM expired WHERE clicks.id=expired.id RETURNING clicks.id
+	) SELECT count(*) FROM anonymized`, now, remaining).Scan(&promotionCount)
+	if err != nil {
+		return count, fmt.Errorf("anonymize expired affiliate promotion clicks: %w", err)
+	}
+	return count + promotionCount, nil
 }
 
 func (repository *Repository) getImport(ctx context.Context, id domain.ImportRunID) (domain.ImportRun, error) {

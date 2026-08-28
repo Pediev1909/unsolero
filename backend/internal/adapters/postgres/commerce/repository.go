@@ -245,6 +245,28 @@ func (repository *Repository) ResolveLegacyDestination(ctx context.Context, clic
 	return repository.resolveDestination(ctx, string(click.LinkID), click, false)
 }
 
+func (repository *Repository) ResolvePromotionDestination(ctx context.Context, click domain.AffiliateClick) (domain.ResolvedPromotionDestination, error) {
+	var destination domain.ResolvedPromotionDestination
+	err := repository.pool.QueryRow(ctx, `
+		SELECT promotions.id, promotions.slug, promotions.destination_url
+		FROM commerce.affiliate_promotions promotions
+		JOIN commerce.merchants merchants ON merchants.id=promotions.merchant_id
+		WHERE promotions.slug=$1 AND promotions.is_active=true
+			AND (promotions.valid_from IS NULL OR promotions.valid_from<=now())
+			AND (promotions.valid_until IS NULL OR promotions.valid_until>now())
+			AND promotions.last_checked_at >= now() - make_interval(secs => $2::double precision)
+			AND merchants.status='active'
+		LIMIT 1`, click.PromotionSlug, int64(repository.maxOfferAge.Seconds())).Scan(
+		&destination.PromotionID, &destination.PromotionSlug, &destination.DestinationURL)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.ResolvedPromotionDestination{}, ports.ErrAffiliateDestinationNotFound
+	}
+	if err != nil {
+		return domain.ResolvedPromotionDestination{}, fmt.Errorf("resolve affiliate promotion: %w", err)
+	}
+	return destination, nil
+}
+
 func (repository *Repository) resolveDestination(
 	ctx context.Context,
 	targetID string,
@@ -334,6 +356,33 @@ func (repository *Repository) RecordClick(ctx context.Context, destination domai
 		click.UserAgentHash, click.IdempotencyKey, retentionExpires)
 	if err != nil {
 		return fmt.Errorf("record affiliate click: %w", err)
+	}
+	return nil
+}
+
+func (repository *Repository) RecordPromotionClick(ctx context.Context, destination domain.ResolvedPromotionDestination, click domain.AffiliateClick) error {
+	retentionExpires := click.RetentionExpires
+	if retentionExpires.IsZero() {
+		retentionExpires = time.Now().UTC().Add(397 * 24 * time.Hour)
+	}
+	var userID any
+	if click.UserID != nil {
+		userID = *click.UserID
+	}
+	_, err := repository.pool.Exec(ctx, `
+		INSERT INTO commerce.affiliate_promotion_clicks (
+			promotion_id, user_id, anonymous_id, session_id, source, campaign,
+			referrer, request_id, traffic_source, traffic_medium, referrer_host,
+			classification, is_countable, user_agent_hash, idempotency_key,
+			retention_expires_at)
+		VALUES ($1,$2::uuid,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+		ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`,
+		destination.PromotionID, userID, click.AnonymousID, click.SessionID, click.Source,
+		click.Campaign, click.Referrer, click.RequestID, click.TrafficSource,
+		click.TrafficMedium, click.ReferrerHost, click.Classification, click.IsCountable,
+		click.UserAgentHash, click.IdempotencyKey, retentionExpires)
+	if err != nil {
+		return fmt.Errorf("record affiliate promotion click: %w", err)
 	}
 	return nil
 }

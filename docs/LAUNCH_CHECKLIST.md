@@ -146,10 +146,18 @@ is why those six were chosen.
 | Zoho | https://www.zoho.com/affiliate/ | 15% recurring for the first 12 months; 90-day cookie; reviewed in about 3 business days |
 | FreshBooks | https://www.freshbooks.com/affiliates | up to $10 per free trial, up to $200 per paying customer; paid on the 20th after a 30-day lock |
 | Teamwork | https://www.teamwork.com/partners/ | 15% recurring for the lifetime of the customer |
-| Salesflare | https://www.salesflare.com/affiliates | 30% recurring |
+| Salesflare | programme page withdrawn — ask sales for current terms | 30% recurring when last published |
 
 Rates and terms are what each programme published when this was written. Verify
-on the programme page before building a page around a number.
+on the programme page before building a page around a number. Checked again on
+2026-08-28: every URL above still resolves except Salesflare's, which now 404s
+on `/affiliates`, `/affiliate-program`, `/partner` and `/referral`. Treat that
+programme as unverified rather than substituting a guessed address.
+
+> **This step is no longer hypothetical.** Six programmes have approved the
+> site and twelve offers are live. The current state of every programme is in
+> [AFFILIATE_PROGRAMS.md](./AFFILIATE_PROGRAMS.md); this section is kept as the
+> application playbook for programmes not yet applied to.
 
 ### What the applications look at
 

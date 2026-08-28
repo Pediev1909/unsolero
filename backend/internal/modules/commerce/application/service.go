@@ -24,6 +24,7 @@ var allowedSources = map[string]bool{
 	"recommendation": true,
 	"comparison":     true,
 	"setup":          true,
+	"promotion":      true,
 }
 
 type Service struct {
@@ -46,7 +47,7 @@ func (service *Service) ListOffers(ctx context.Context, productID catalog.Produc
 
 func (service *Service) TrackOfferClick(ctx context.Context, click domain.AffiliateClick) (domain.AffiliateRedirectResult, error) {
 	click = normalizeAttribution(click)
-	if click.OfferID == "" || click.LinkID != "" || validateAttribution(click) != nil {
+	if click.OfferID == "" || click.LinkID != "" || click.PromotionSlug != "" || validateAttribution(click) != nil {
 		return domain.AffiliateRedirectResult{}, ErrInvalidAttribution
 	}
 	destination, err := service.redirects.ResolveOfferDestination(ctx, click)
@@ -58,7 +59,7 @@ func (service *Service) TrackOfferClick(ctx context.Context, click domain.Affili
 
 func (service *Service) TrackLegacyLinkClick(ctx context.Context, click domain.AffiliateClick) (domain.AffiliateRedirectResult, error) {
 	click = normalizeAttribution(click)
-	if click.LinkID == "" || click.OfferID != "" || validateAttribution(click) != nil {
+	if click.LinkID == "" || click.OfferID != "" || click.PromotionSlug != "" || validateAttribution(click) != nil {
 		return domain.AffiliateRedirectResult{}, ErrInvalidAttribution
 	}
 	destination, err := service.redirects.ResolveLegacyDestination(ctx, click)
@@ -66,6 +67,31 @@ func (service *Service) TrackLegacyLinkClick(ctx context.Context, click domain.A
 		return domain.AffiliateRedirectResult{}, err
 	}
 	return service.recordResolvedClick(ctx, destination, click)
+}
+
+func (service *Service) TrackPromotionClick(ctx context.Context, click domain.AffiliateClick) (domain.AffiliateRedirectResult, error) {
+	click = normalizeAttribution(click)
+	if click.PromotionSlug == "" || click.OfferID != "" || click.LinkID != "" ||
+		click.Source != "promotion" || click.RecommendationID != nil || validateAttribution(click) != nil {
+		return domain.AffiliateRedirectResult{}, ErrInvalidAttribution
+	}
+	destination, err := service.redirects.ResolvePromotionDestination(ctx, click)
+	if err != nil {
+		return domain.AffiliateRedirectResult{}, err
+	}
+	validated, err := validatedDestination(destination.DestinationURL)
+	if err != nil {
+		return domain.AffiliateRedirectResult{}, err
+	}
+	if click.Classification == "" {
+		click.Classification = domain.ClickUnknown
+	}
+	click.IsCountable = click.Classification == domain.ClickHuman
+	if click.RetentionExpires.IsZero() {
+		click.RetentionExpires = time.Now().UTC().Add(service.clickRetention)
+	}
+	trackingErr := service.redirects.RecordPromotionClick(ctx, destination, click)
+	return domain.AffiliateRedirectResult{DestinationURL: validated, TrackingError: trackingErr}, nil
 }
 
 func (service *Service) recordResolvedClick(ctx context.Context, destination domain.ResolvedAffiliateDestination, click domain.AffiliateClick) (domain.AffiliateRedirectResult, error) {

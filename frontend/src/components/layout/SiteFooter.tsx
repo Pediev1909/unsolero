@@ -30,6 +30,10 @@ const footerGroups: {
       { label: 'Comparisons', to: '/comparisons' },
       { label: 'Guides', to: '/guides' },
       { label: 'Articles', to: '/articles' },
+      {
+        label: 'Free funnel training',
+        to: '/offers/funnel-hacking-secrets',
+      },
       { label: 'About', to: '/about' },
       // Partner programmes and press open the site looking for a human to
       // write to, and the address existed only on the About page.

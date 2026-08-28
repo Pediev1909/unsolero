@@ -104,6 +104,7 @@ func TestPublicRouteStatusManifestAndCanonicalBehavior(t *testing.T) {
 		{"about", "/about", http.StatusOK, true, false},
 		{"privacy policy", "/privacy", http.StatusOK, true, false},
 		{"affiliate disclosure", "/affiliate-disclosure", http.StatusOK, true, false},
+		{"funnel training offer", "/offers/funnel-hacking-secrets", http.StatusOK, true, false},
 		{"known dynamic public", "/products/known-product", http.StatusOK, true, false},
 		{"known editorial", "/guides/known-guide", http.StatusOK, true, false},
 		{"unknown public", "/products/not-present", http.StatusNotFound, false, true},

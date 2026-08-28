@@ -145,6 +145,12 @@ Editorial pages should lead naturally to structured category facts, comparisons,
 
 Affiliate commerce is the best initial model because payment can occur downstream of a useful decision and does not require UNSOLERO to operate checkout, inventory, fulfillment, returns, or warranty service.
 
+Editorial affiliate promotions are permitted only when the destination is not
+misrepresented as a catalog product, the commercial relationship is disclosed
+next to the action, and the promotion remains technically separate from
+recommendation eligibility and scoring. A free training registration and a
+paid order form are separate actions and must be labelled as such.
+
 ### Operating model
 
 1. The recommendation engine finalizes product eligibility, score, ranking, reasons, and alternatives without commerce data.

@@ -65,6 +65,21 @@ describe('affiliate and analytics tracking', () => {
     )
   })
 
+  it('adds first-party attribution to a standalone promotion path', () => {
+    window.history.replaceState({}, '', '/offers/funnel-hacking-secrets')
+    const path = affiliateClickPath(
+      '/api/affiliate/promotion/funnel-hacking-secrets-webinar',
+      'promotion',
+    )
+    const url = new URL(path, window.location.origin)
+    expect(url.pathname).toBe(
+      '/api/affiliate/promotion/funnel-hacking-secrets-webinar',
+    )
+    expect(url.searchParams.get('source')).toBe('promotion')
+    expect(url.searchParams.get('session_id')).toMatch(/^[0-9a-f-]{36}$/)
+    expect(url.searchParams.get('recommendation_id')).toBeNull()
+  })
+
   it('sends only the typed event envelope', async () => {
     const fetchMock = vi
       .fn()

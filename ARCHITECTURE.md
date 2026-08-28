@@ -4,7 +4,7 @@ Status: approved architecture with incremental implementation status
 Scope: target architecture with implemented sections called out explicitly  
 Last reviewed: 2026-08-18
 
-This document is the architectural source of truth for UNSOLERO. It expands and supersedes the preliminary notes in `docs/architecture.md`. The current repository implements the consumer and admin web surfaces, API and health checks, the core relational model, PostgreSQL adapters, opaque-session authentication, deterministic recommendations, provider-neutral merchant ingestion and affiliate operations, first-party analytics, and the provider-neutral AI boundary described below.
+This document is the architectural source of truth for UNSOLERO. It supersedes the Phase 1 sketch that was in `docs/architecture.md`, now reduced to a stub pointing here. The current repository implements the consumer and admin web surfaces, API and health checks, the core relational model, PostgreSQL adapters, opaque-session authentication, deterministic recommendations, provider-neutral merchant ingestion and affiliate operations, first-party analytics, and the provider-neutral AI boundary described below.
 
 ## Phase 11 operational edge
 
@@ -661,6 +661,14 @@ metadata, then proves the deterministic result is unchanged.
 ## 8. Affiliate architecture
 
 Affiliate behavior belongs entirely to the commerce module and begins only after the recommendation result is finalized.
+
+Standalone editorial promotions use `commerce.affiliate_promotions` and the
+stable `/api/affiliate/promotion/:slug` redirect boundary. They are for offers
+such as training or books that are not a merchant offer for a catalog product.
+Their clicks have the same attribution filtering and retention policy as
+product affiliate clicks, but promotions have no product, recommendation item,
+score, commission input, or recommendation relationship. This prevents a
+commercial campaign from being misrepresented as software inventory.
 
 ### Phase 3 merchant operations
 

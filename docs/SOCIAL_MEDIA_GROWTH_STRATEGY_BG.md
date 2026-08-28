@@ -960,7 +960,6 @@ Disclosure-ът не трябва да бъде скрит след дълъг �
 - [Meta Reels guidance](https://www.facebook.com/business/ads/facebook-instagram-reels-ads)
 - [Instagram Best Practices hub](https://about.fb.com/news/2024/10/best-practices-education-hub-creators-instagram/)
 - [Instagram Trial Reels](https://about.fb.com/news/2024/12/trial-reels-try-content-non-followers-first-see-what-perfoms-best/)
-- [Meta guidance on original creators](https://about.fb.com/news/2024/05/helping-creators-find-new-audiences/)
 
 ### Изследвания и B2B
 

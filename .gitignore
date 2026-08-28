@@ -23,3 +23,6 @@ frontend/playwright-report/
 # TLS material for the single-box deployment. internal-ca.key can mint
 # certificates that the running services trust, so nothing here is committable.
 secrets/
+
+# Local Claude Code permissions (machine-specific, holds server details)
+.claude/settings.local.json

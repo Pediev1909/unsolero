@@ -29,7 +29,9 @@ type OfferRepository interface {
 type AffiliateRedirectRepository interface {
 	ResolveOfferDestination(context.Context, domain.AffiliateClick) (domain.ResolvedAffiliateDestination, error)
 	ResolveLegacyDestination(context.Context, domain.AffiliateClick) (domain.ResolvedAffiliateDestination, error)
+	ResolvePromotionDestination(context.Context, domain.AffiliateClick) (domain.ResolvedPromotionDestination, error)
 	RecordClick(context.Context, domain.ResolvedAffiliateDestination, domain.AffiliateClick) error
+	RecordPromotionClick(context.Context, domain.ResolvedPromotionDestination, domain.AffiliateClick) error
 }
 
 type ProviderAdapter interface {
