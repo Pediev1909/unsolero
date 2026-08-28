@@ -15,6 +15,8 @@ The current implementation includes the project foundation, core relational data
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the approved target architecture and dependency rules, and [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) for the deployment, backup, monitoring, and known-limitation checklist.
 
+Every other document is indexed in [docs/README.md](./docs/README.md), with a line each on what it decides. Two are worth knowing by name: [docs/AFFILIATE_PROGRAMS.md](./docs/AFFILIATE_PROGRAMS.md) is the current state of every affiliate programme, and [docs/DEPLOY_SINGLE_BOX.md](./docs/DEPLOY_SINGLE_BOX.md) is the deployment actually in use.
+
 ## Repository layout
 
 ```text
