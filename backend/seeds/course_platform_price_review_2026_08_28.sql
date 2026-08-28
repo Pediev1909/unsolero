@@ -57,12 +57,18 @@ INSERT INTO evidence.sources (
 (
     'thinkific-pricing-2026-08-28','manufacturer_documentation',
     'Thinkific pricing','Thinkific','https://www.thinkific.com/pricing/',
-    false,'pending',now(),
-    'Attempted 2026-08-28 and NOT usable for a USD figure. The page geolocates and served EUR only: Basic at 53 EUR per month billed monthly and 39 EUR per month billed annually. The catalog''s 40.00 USD is consistent with the annual rate read on 2026-08-21, but the USD monthly rate remains unread. Left at review_status pending so this gap is visible rather than assumed closed; the schema allows only pending, verified or rejected. Re-read through a US connection.'
+    false,'pending',NULL,
+    'Attempted 2026-08-28 and NOT usable for a USD figure. The page geolocates and served EUR only: Basic at 53 EUR per month billed monthly and 39 EUR per month billed annually. The catalog''s 40.00 USD is consistent with the annual rate read on 2026-08-21, but the USD monthly rate remains unread. Left at review_status pending so this gap is visible rather than assumed closed, which is also why it carries no review timestamp. Re-read through a US connection.'
 )
 ON CONFLICT (external_key) DO UPDATE SET
     review_status=EXCLUDED.review_status,
-    reviewed_at=COALESCE(evidence.sources.reviewed_at, now()),
+    -- A pending source must carry no review timestamp, and a verified one
+    -- must carry one: evidence.sources enforces
+    -- CHECK ((review_status = 'pending') = (reviewed_at IS NULL)).
+    reviewed_at=CASE
+        WHEN EXCLUDED.review_status = 'pending' THEN NULL
+        ELSE COALESCE(evidence.sources.reviewed_at, now())
+    END,
     source_url=EXCLUDED.source_url,
     review_note=EXCLUDED.review_note,
     updated_at=now();
