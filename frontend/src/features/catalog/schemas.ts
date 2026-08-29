@@ -40,6 +40,16 @@ export const productSummarySchema = z.object({
   suitability: z.array(insightSchema),
   scores: scoresSchema,
   is_demo: z.boolean(),
+  // Set by every endpoint that returns a grid the reader can act on. Null
+  // means there is no servable affiliate offer, not that nobody looked: the
+  // API runs each page through one batched lookup that applies the same
+  // freshness and liveness checks the redirect will apply again.
+  //
+  // Optional rather than nullable-required, because a cached response from
+  // before these fields existed must not fail validation and blank the page.
+  purchase_path: z.string().nullish(),
+  disclosure_label: z.string().nullish(),
+  merchant_name: z.string().nullish(),
 })
 
 export const productPageSchema = z.object({

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -67,6 +68,45 @@ type productSummaryResponse struct {
 	Suitability      []insightResponse        `json:"suitability"`
 	Scores           scoresResponse           `json:"scores"`
 	IsDemo           bool                     `json:"is_demo"`
+	// Set only where the response is a grid the reader can act on. Null means
+	// "no servable affiliate offer", never "not looked up" — every handler
+	// that returns summaries runs them through attachPurchasePaths.
+	PurchasePath    *string `json:"purchase_path"`
+	DisclosureLabel *string `json:"disclosure_label"`
+	MerchantName    *string `json:"merchant_name"`
+}
+
+// attachPurchasePaths fills the vendor-button fields on a page of summaries
+// with one query rather than one per card.
+//
+// It is deliberately non-fatal. A catalog that will not render because the
+// commerce lookup failed is a worse outcome than a catalog rendering without
+// buttons: the facts are the product, and the button is the business model.
+func (h *Handler) attachPurchasePaths(ctx context.Context, summaries []productSummaryResponse) {
+	if len(summaries) == 0 || h.commerce == nil {
+		return
+	}
+	ids := make([]domain.ProductID, 0, len(summaries))
+	for _, summary := range summaries {
+		ids = append(ids, domain.ProductID(summary.ID))
+	}
+	offers, err := h.commerce.ListPurchasable(ctx, ids)
+	if err != nil {
+		h.logger.Error("attach purchase paths", "error", err)
+		return
+	}
+	for index := range summaries {
+		offer, found := offers[domain.ProductID(summaries[index].ID)]
+		if !found {
+			continue
+		}
+		path := "/api/affiliate/click/" + string(offer.OfferID)
+		label := offer.DisclosureLabel
+		merchant := offer.MerchantName
+		summaries[index].PurchasePath = &path
+		summaries[index].DisclosureLabel = &label
+		summaries[index].MerchantName = &merchant
+	}
 }
 
 type attributeResponse struct {
@@ -158,6 +198,7 @@ func (h *Handler) listProducts(response http.ResponseWriter, request *http.Reque
 	for _, product := range page.Products {
 		products = append(products, productSummaryDTO(product))
 	}
+	h.attachPurchasePaths(request.Context(), products)
 	response.Header().Set("Cache-Control", "public, max-age=60")
 	writeJSON(response, http.StatusOK, productPageResponse{
 		Products: products, Page: page.Page, PageSize: page.PageSize,

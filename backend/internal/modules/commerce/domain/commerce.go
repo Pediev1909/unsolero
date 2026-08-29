@@ -60,6 +60,21 @@ type Offer struct {
 	AffiliateLinks     []AffiliateLink
 }
 
+// PurchasableOffer is the least an interface needs in order to draw a working
+// vendor button: which offer to redirect through, whose name goes on it, and
+// the disclosure that must sit beside it.
+//
+// It exists so a grid of products can be answered in one query. Asking for the
+// full Offer per card is a request per card, and the catalog listing draws
+// twenty-four of them.
+type PurchasableOffer struct {
+	OfferID          OfferID
+	MerchantName     string
+	DisclosureLabel  string
+	Price            catalog.Money
+	LandedPriceMinor int64
+}
+
 type AffiliateClick struct {
 	OfferID          OfferID
 	LinkID           AffiliateLinkID

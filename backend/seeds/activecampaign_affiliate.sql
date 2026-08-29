@@ -39,21 +39,35 @@
 -- dead-ended. Their prefixes also match the dashboard screenshot, which
 -- truncates every URL for display.
 --
--- Commission columns are left NULL on purpose, which is not the same as their
--- being unresearched.
+-- Commission: 20%, which is the entry rate and not the advertised one.
 --
--- The published terms give a 90-day cookie that restarts on every click, and
+-- Three sources, and they do not say the same thing.
+--
+--   activecampaign.com/partners/affiliate    "starting at 20% commission and
+--                                             climbing up to 30% based on new
+--                                             business and retention"
+--   activecampaign.com/legal/affiliate-...    a flat "thirty percent (30%) of
+--                                             the monthly recurring revenue"
+--   PartnerStack programme card               flat 30%
+--
+-- The affiliate page is the one describing how a partner is actually paid, and
+-- it says the rate is earned rather than granted. 30% is the top of a ladder;
+-- every directory repeats it because it is the number ActiveCampaign markets.
+-- A partner with no referred revenue is on the first rung, and this account
+-- has referred nobody, so 20% is what the next conversion pays. Recording 30%
+-- would overstate expected revenue by half.
+--
+-- Read 2026-08-29. Raise it when the PartnerStack dashboard shows a higher
+-- tier, not before — and if the dashboard shows 30% today then this comment is
+-- wrong rather than merely cautious, which is worth knowing.
+--
+-- The rest is not in dispute: a 90-day cookie restarting on every click, and
 -- commission recurring for the first twelve months of the referred
--- subscription. The rate is where a single number stops being honest:
--- ActiveCampaign tiers it on referred MRR — Silver 20%, Gold 25%, Platinum
--- 30% — so a partner starts at 20%, while PartnerStack's own programme card
--- states a flat 30%. The two contradict each other, and the 30% that every
--- affiliate directory repeats is the top of a ladder rather than the entry.
+-- subscription. Nothing is paid until the customer has held a paid
+-- subscription for sixty days.
 --
--- commission_rate_bps holds one integer. Until the tier shown in our own
--- dashboard is read, any value written here is a number nobody has seen, in a
--- column about money, on the optimistic side. Read the tier from PartnerStack
--- and fill these in the shape of mailerlite_affiliate.sql.
+-- commission_amount_minor and commission_currency stay NULL, which is what
+-- affiliate_links_commission_shape_check requires of a percentage rate.
 --
 -- ---------------------------------------------------------------------------
 -- On the price.
@@ -90,17 +104,25 @@ ON CONFLICT (merchant_id, merchant_sku) DO UPDATE SET
 
 INSERT INTO commerce.affiliate_links (
     merchant_offer_id, provider, destination_url, external_reference,
-    disclosure_label, is_active)
+    disclosure_label, is_active, program_id, commission_type,
+    commission_rate_bps, commission_amount_minor, commission_currency)
 SELECT o.id, 'partnerstack',
        'https://try.activecampaign.com/ydwpszsmins9',
-       'ydwpszsmins9', 'Affiliate link', true
+       'ydwpszsmins9', 'Affiliate link', true, 'activecampaign', 'percentage',
+       2000, NULL, NULL
 FROM commerce.merchant_offers o
 JOIN commerce.merchants m ON m.id=o.merchant_id
 WHERE m.slug='activecampaign' AND o.merchant_sku='activecampaign-starter'
 ON CONFLICT (merchant_offer_id, provider) DO UPDATE SET
     destination_url=EXCLUDED.destination_url,
     external_reference=EXCLUDED.external_reference,
-    is_active=EXCLUDED.is_active, updated_at=now();
+    is_active=EXCLUDED.is_active,
+    program_id=EXCLUDED.program_id,
+    commission_type=EXCLUDED.commission_type,
+    commission_rate_bps=EXCLUDED.commission_rate_bps,
+    commission_amount_minor=EXCLUDED.commission_amount_minor,
+    commission_currency=EXCLUDED.commission_currency,
+    updated_at=now();
 
 DO $$
 BEGIN
@@ -116,6 +138,8 @@ BEGIN
           AND offers.currency = 'USD'
           AND links.provider = 'partnerstack'
           AND links.destination_url = 'https://try.activecampaign.com/ydwpszsmins9'
+          AND links.commission_type = 'percentage'
+          AND links.commission_rate_bps = 2000
           AND links.is_active
           AND offers.is_active
     ) THEN

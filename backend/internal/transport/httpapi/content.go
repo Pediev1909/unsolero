@@ -40,6 +40,13 @@ type contentBlockResponse struct {
 	Text        string   `json:"text,omitempty"`
 	Items       []string `json:"items,omitempty"`
 	Attribution string   `json:"attribution,omitempty"`
+	// A cta block is only a heading and a paragraph without these two. The
+	// first version of this struct omitted them, and the result was a call to
+	// action that appeared in the prerendered body for crawlers and readers
+	// without JavaScript, and rendered as text with no button for everybody
+	// else — the entire audience that can actually click it.
+	Promotion string `json:"promotion,omitempty"`
+	Label     string `json:"label,omitempty"`
 }
 
 type contentAuthorResponse struct {
@@ -125,8 +132,15 @@ func (h *Handler) getContent(response http.ResponseWriter, request *http.Request
 		h.writeContentError(response, err)
 		return
 	}
+	detail := contentDetailDTO(entry)
+	// The "Products referenced" grid on an alternatives or versus page is the
+	// closest a reader gets to a decision anywhere on this site. The slice is
+	// filled in place, so this has to run before the response is written and
+	// cannot live in contentDetailDTO, which has neither the handler nor the
+	// request.
+	h.attachPurchasePaths(request.Context(), detail.RelatedProducts)
 	response.Header().Set("Cache-Control", "public, max-age=300, stale-while-revalidate=600")
-	writeJSON(response, http.StatusOK, contentDetailDTO(entry), h.logger)
+	writeJSON(response, http.StatusOK, detail, h.logger)
 }
 
 func contentSummaryDTO(entry domain.Summary) contentSummaryResponse {
@@ -151,6 +165,7 @@ func contentDetailDTO(entry domain.Entry) contentDetailResponse {
 		blocks = append(blocks, contentBlockResponse{
 			Type: string(block.Type), Heading: block.Heading, Text: block.Text,
 			Items: block.Items, Attribution: block.Attribution,
+			Promotion: block.Promotion, Label: block.Label,
 		})
 	}
 	products := make([]productSummaryResponse, 0, len(entry.RelatedProducts))

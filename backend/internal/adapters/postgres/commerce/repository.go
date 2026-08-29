@@ -392,3 +392,85 @@ var (
 	_ ports.OfferRepository             = (*Repository)(nil)
 	_ ports.AffiliateRedirectRepository = (*Repository)(nil)
 )
+
+// ListPurchasableByProducts returns, for each product that has one, the single
+// offer a vendor button should redirect through.
+//
+// Every condition here is copied from ListAvailableByProduct and from
+// resolveDestination rather than approximated, including the freshness window.
+// The three have to agree: this decides whether a button is drawn,
+// resolveDestination decides whether the click resolves, and a card that
+// offers a link the redirect then refuses sends a reader to an error message
+// instead of a vendor. The affiliate join is inner, not left — a product with
+// an offer but no live link is not purchasable in the sense this method means.
+//
+// DISTINCT ON collapses to one row per product using the same precedence the
+// offers endpoint sorts by, so the button and the product page agree on which
+// merchant they name.
+func (repository *Repository) ListPurchasableByProducts(
+	ctx context.Context,
+	productIDs []catalog.ProductID,
+) (map[catalog.ProductID]domain.PurchasableOffer, error) {
+	result := make(map[catalog.ProductID]domain.PurchasableOffer, len(productIDs))
+	if len(productIDs) == 0 {
+		return result, nil
+	}
+	ids := make([]string, 0, len(productIDs))
+	seen := make(map[catalog.ProductID]struct{}, len(productIDs))
+	for _, id := range productIDs {
+		if _, duplicate := seen[id]; duplicate || id == "" {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, string(id))
+	}
+	if len(ids) == 0 {
+		return result, nil
+	}
+
+	rows, err := repository.pool.Query(ctx, `
+		SELECT DISTINCT ON (offers.product_id)
+			offers.product_id,
+			offers.id,
+			merchants.name,
+			affiliate_links.disclosure_label,
+			offers.price_minor,
+			offers.currency,
+			offers.price_minor + offers.shipping_minor
+		FROM commerce.merchant_offers AS offers
+		JOIN commerce.merchants AS merchants ON merchants.id = offers.merchant_id
+		JOIN commerce.affiliate_links AS affiliate_links
+			ON affiliate_links.merchant_offer_id = offers.id
+			AND affiliate_links.is_active = true
+			AND (affiliate_links.valid_from IS NULL OR affiliate_links.valid_from <= now())
+			AND (affiliate_links.valid_until IS NULL OR affiliate_links.valid_until > now())
+		WHERE offers.product_id = ANY($1::uuid[])
+			AND offers.is_active = true
+			AND offers.availability IN ('in_stock', 'backorder')
+			AND offers.last_checked_at >= now() - make_interval(secs => $2::double precision)
+			AND (offers.expires_at IS NULL OR offers.expires_at > now())
+			AND merchants.status = 'active'
+		ORDER BY offers.product_id,
+			offers.price_minor + offers.shipping_minor, merchants.trust_score DESC,
+			affiliate_links.priority DESC, affiliate_links.provider`,
+		ids, int64(repository.maxOfferAge.Seconds()))
+	if err != nil {
+		return nil, fmt.Errorf("list purchasable offers: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var productID string
+		var offer domain.PurchasableOffer
+		if err := rows.Scan(&productID, &offer.OfferID, &offer.MerchantName,
+			&offer.DisclosureLabel, &offer.Price.AmountMinor, &offer.Price.Currency,
+			&offer.LandedPriceMinor); err != nil {
+			return nil, fmt.Errorf("scan purchasable offer: %w", err)
+		}
+		result[catalog.ProductID(productID)] = offer
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read purchasable offers: %w", err)
+	}
+	return result, nil
+}

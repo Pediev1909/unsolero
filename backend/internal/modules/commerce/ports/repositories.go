@@ -24,6 +24,12 @@ type MerchantRepository interface {
 
 type OfferRepository interface {
 	ListAvailableByProduct(context.Context, catalog.ProductID, string) ([]domain.Offer, error)
+	// ListPurchasableByProducts answers a whole grid in one query. The result
+	// holds an entry only for products that have a servable affiliate offer,
+	// under exactly the conditions the redirect will later re-check — a card
+	// that offers a button the redirect would refuse is worse than a card with
+	// no button.
+	ListPurchasableByProducts(context.Context, []catalog.ProductID) (map[catalog.ProductID]domain.PurchasableOffer, error)
 }
 
 type AffiliateRedirectRepository interface {

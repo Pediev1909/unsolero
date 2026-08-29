@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -53,5 +54,33 @@ func TestSitemapAndRobotsExposePublicEditorialDiscovery(t *testing.T) {
 	if robotsResponse.Code != http.StatusOK || !strings.Contains(robots, "Sitemap: https://rigmark.example/sitemap.xml") ||
 		!strings.Contains(robots, "Disallow: /admin/") {
 		t.Fatalf("robots response = %d %q", robotsResponse.Code, robots)
+	}
+}
+
+// A cta block that reaches the client without its promotion and label is a
+// heading and a paragraph. That shipped once: the link rendered in the
+// prerendered body for crawlers and readers without JavaScript, and rendered
+// as text with no button for everyone who could actually click it.
+func TestContentDetailCarriesCTAPromotionAndLabel(t *testing.T) {
+	entry := domain.Entry{Content: []domain.Block{{
+		Type:      domain.BlockCTA,
+		Heading:   "If automation is why you are leaving",
+		Text:      "Their own comparison is the honest place to start.",
+		Label:     "See ActiveCampaign against Mailchimp",
+		Promotion: "activecampaign-mailchimp-switch",
+	}}}
+
+	encoded, err := json.Marshal(contentDetailDTO(entry))
+	if err != nil {
+		t.Fatalf("marshal content detail: %v", err)
+	}
+	body := string(encoded)
+	for _, want := range []string{
+		`"promotion":"activecampaign-mailchimp-switch"`,
+		`"label":"See ActiveCampaign against Mailchimp"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("content response is missing %s:\n%s", want, body)
+		}
 	}
 }

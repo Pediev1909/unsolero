@@ -45,6 +45,15 @@ func (service *Service) ListOffers(ctx context.Context, productID catalog.Produc
 	return service.offers.ListAvailableByProduct(ctx, productID, currency)
 }
 
+// ListPurchasable answers a grid of products in one query. See the port for
+// why the conditions must match the redirect's exactly.
+func (service *Service) ListPurchasable(
+	ctx context.Context,
+	productIDs []catalog.ProductID,
+) (map[catalog.ProductID]domain.PurchasableOffer, error) {
+	return service.offers.ListPurchasableByProducts(ctx, productIDs)
+}
+
 func (service *Service) TrackOfferClick(ctx context.Context, click domain.AffiliateClick) (domain.AffiliateRedirectResult, error) {
 	click = normalizeAttribution(click)
 	if click.OfferID == "" || click.LinkID != "" || click.PromotionSlug != "" || validateAttribution(click) != nil {

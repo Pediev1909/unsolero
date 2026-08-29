@@ -1,5 +1,10 @@
-import { Bookmark, Check, Scale } from 'lucide-react'
+import { Bookmark, Check, ExternalLink, Scale } from 'lucide-react'
 import { Link } from 'react-router-dom'
+
+import {
+  affiliateClickPath,
+  type AffiliateSource,
+} from '../../analytics/tracking'
 
 import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
@@ -15,6 +20,7 @@ interface CatalogProductCardProps {
   compared: boolean
   saved: boolean
   savePending?: boolean
+  source?: AffiliateSource
   onCompare: (product: ProductSummary) => void
   onSave: (product: ProductSummary) => void
 }
@@ -24,10 +30,12 @@ export function CatalogProductCard({
   compared,
   saved,
   savePending = false,
+  source = 'product_detail',
   onCompare,
   onSave,
 }: CatalogProductCardProps) {
   const suitability = prominentSuitability(product)
+  const purchasePath = product.purchase_path
 
   return (
     <article className="group flex h-full flex-col border-b border-r border-ink/15 bg-surface">
@@ -148,6 +156,35 @@ export function CatalogProductCard({
             View details
           </ButtonLink>
         </div>
+
+        {/* The vendor exit, on the card rather than two clicks past it.
+            This one component draws the catalog, the category and brand
+            pages, and the "Products referenced" grid under every alternatives
+            and versus article — the pages written for people about to choose,
+            which until now ended in an internal link.
+
+            It sits below Compare and View details, not above them, because
+            the card's job is still to help someone decide and this is what
+            they do after deciding. Cards with no live offer show nothing
+            here: a disabled button would imply we are withholding something,
+            and an empty slot reads as what it is. */}
+        {purchasePath && (
+          <div className="mt-3 border-t border-ink/10 pt-3">
+            <a
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 bg-charcoal px-4 text-sm font-semibold text-canvas hover:bg-ink"
+              href={affiliateClickPath(purchasePath, source)}
+              rel="nofollow noopener sponsored"
+              target="_blank"
+            >
+              View at {product.merchant_name ?? 'vendor'}
+              <ExternalLink aria-hidden="true" size={14} />
+            </a>
+            <p className="mt-2 text-[0.6875rem] leading-4 text-ink/65">
+              {product.disclosure_label ?? 'Affiliate link'}. Commission never
+              changes the ranking.
+            </p>
+          </div>
+        )}
       </div>
     </article>
   )

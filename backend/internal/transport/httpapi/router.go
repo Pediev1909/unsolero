@@ -88,6 +88,7 @@ type CatalogService interface {
 
 type CommerceService interface {
 	ListOffers(context.Context, catalogdomain.ProductID, string) ([]commercedomain.Offer, error)
+	ListPurchasable(context.Context, []catalogdomain.ProductID) (map[catalogdomain.ProductID]commercedomain.PurchasableOffer, error)
 	TrackOfferClick(context.Context, commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error)
 	TrackLegacyLinkClick(context.Context, commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error)
 	TrackPromotionClick(context.Context, commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error)

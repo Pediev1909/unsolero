@@ -158,21 +158,27 @@ Every code on this page came from the dashboard's copy control, confirmed by
 the account owner on 2026-08-29 — not read off the screen, which is the failure
 [affiliate-links-zoho.md](./affiliate-links-zoho.md) exists to warn about.
 
-**Commission: read, but deliberately not written to the columns.** The
-programme's published terms are a 90-day cookie that restarts on each click,
-and commission recurring for the first twelve months of the referred
-subscription. The rate is where it stops being a single number: ActiveCampaign
-tiers it — Silver 20%, Gold 25%, Platinum 30% — on referred MRR, so a new
-partner starts at 20% and the 30% that most summaries quote is the top of a
-ladder, not the entry rate. PartnerStack's own programme card states 30% flat,
-which contradicts the tier table.
+**Commission: 20%, the entry rate.** Three sources disagree, and the disagreement is the finding:
 
-`commission_rate_bps` holds one integer, and there is no honest single value
-here until the tier showing in our own dashboard is read. Writing 30% because a
-directory says so would put a number in a money column that we have not seen
-and are almost certainly not on. The columns stay NULL, and the seed header
-says why. Read the tier from PartnerStack and fill them in the shape of
-`mailerlite_affiliate.sql`.
+| Source | Says |
+| --- | --- |
+| `activecampaign.com/partners/affiliate` | "starting at 20% … climbing up to 30% based on new business and retention" |
+| `activecampaign.com/legal/affiliate-partner-terms` | a flat "thirty percent (30%) of the monthly recurring revenue" |
+| PartnerStack programme card | flat 30% |
+
+The affiliate page is the one describing how a partner is actually paid, and it
+says the rate is earned rather than granted. 30% is the top of a ladder; every
+directory repeats it because it is the number ActiveCampaign markets. This
+account has referred nobody, so 20% is what the next conversion pays, and
+recording 30% would overstate expected revenue by half.
+
+The seed records 2000 bps. Raise it when the PartnerStack dashboard shows a
+higher tier — and if the dashboard shows 30% today, the seed comment is wrong
+rather than merely cautious, which is worth knowing.
+
+Not in dispute: a 90-day cookie restarting on every click, commission recurring
+for the first twelve months of the referred subscription, and nothing paid
+until the customer has held a paid subscription for sixty days.
 
 ### Two further ActiveCampaign links, activated and unassigned
 

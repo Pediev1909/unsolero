@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -23,10 +24,23 @@ type commerceStub struct {
 	trackedOffer     commercedomain.OfferID
 	trackedPromotion commercedomain.PromotionSlug
 	surface          string
+	purchasable      map[catalogdomain.ProductID]commercedomain.PurchasableOffer
+	purchasableIDs   []catalogdomain.ProductID
+	purchasableErr   error
+	purchasableCalls int
 }
 
 func (stub *commerceStub) ListOffers(context.Context, catalogdomain.ProductID, string) ([]commercedomain.Offer, error) {
 	return stub.offers, nil
+}
+
+func (stub *commerceStub) ListPurchasable(
+	_ context.Context,
+	ids []catalogdomain.ProductID,
+) (map[catalogdomain.ProductID]commercedomain.PurchasableOffer, error) {
+	stub.purchasableCalls++
+	stub.purchasableIDs = ids
+	return stub.purchasable, stub.purchasableErr
 }
 
 func (stub *commerceStub) TrackOfferClick(_ context.Context, click commercedomain.AffiliateClick) (commercedomain.AffiliateRedirectResult, error) {
@@ -149,5 +163,71 @@ func TestCatalogQueryRejectsInvalidPagination(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/api/catalog/products?page=0", nil)
 	if _, err := catalogQuery(request); err != catalog.ErrInvalidQuery {
 		t.Fatalf("catalogQuery() error = %v, want %v", err, catalog.ErrInvalidQuery)
+	}
+}
+
+// A grid of cards must cost one commerce query, not one per card. The catalog
+// listing draws twenty-four, and the per-card alternative is what kept the
+// vendor button off these surfaces in the first place.
+func TestAttachPurchasePathsAsksOnceForTheWholePage(t *testing.T) {
+	commerce := &commerceStub{
+		purchasable: map[catalogdomain.ProductID]commercedomain.PurchasableOffer{
+			"product-1": {
+				OfferID: "offer-1", MerchantName: "ActiveCampaign",
+				DisclosureLabel: "Affiliate link",
+			},
+		},
+	}
+	handler := &Handler{commerce: commerce, logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	summaries := []productSummaryResponse{
+		{ID: "product-1"}, {ID: "product-2"}, {ID: "product-3"},
+	}
+
+	handler.attachPurchasePaths(context.Background(), summaries)
+
+	if commerce.purchasableCalls != 1 {
+		t.Fatalf("commerce queried %d times for one page", commerce.purchasableCalls)
+	}
+	if len(commerce.purchasableIDs) != 3 {
+		t.Fatalf("asked about %d products, want 3", len(commerce.purchasableIDs))
+	}
+	if summaries[0].PurchasePath == nil ||
+		*summaries[0].PurchasePath != "/api/affiliate/click/offer-1" {
+		t.Fatalf("purchase path = %v", summaries[0].PurchasePath)
+	}
+	if summaries[0].MerchantName == nil || *summaries[0].MerchantName != "ActiveCampaign" {
+		t.Fatalf("merchant name = %v", summaries[0].MerchantName)
+	}
+	// A product with no servable offer gets no button, not a broken one.
+	if summaries[1].PurchasePath != nil || summaries[1].MerchantName != nil {
+		t.Fatal("product without an offer was given a purchase path")
+	}
+}
+
+// The catalog is the product; the button is the business model. If commerce is
+// down, a reader should still get the facts.
+func TestAttachPurchasePathsSurvivesACommerceFailure(t *testing.T) {
+	commerce := &commerceStub{purchasableErr: errors.New("commerce unavailable")}
+	handler := &Handler{commerce: commerce, logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	summaries := []productSummaryResponse{{ID: "product-1", Name: "ActiveCampaign Starter"}}
+
+	handler.attachPurchasePaths(context.Background(), summaries)
+
+	if summaries[0].PurchasePath != nil {
+		t.Fatal("a failed lookup produced a purchase path")
+	}
+	if summaries[0].Name != "ActiveCampaign Starter" {
+		t.Fatal("a failed lookup damaged the product facts")
+	}
+}
+
+// A nil commerce service is how several tests and the admin router build a
+// handler. It must not panic a public listing.
+func TestAttachPurchasePathsToleratesNoCommerceService(t *testing.T) {
+	handler := &Handler{logger: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	summaries := []productSummaryResponse{{ID: "product-1"}}
+	handler.attachPurchasePaths(context.Background(), summaries)
+	if summaries[0].PurchasePath != nil {
+		t.Fatal("purchase path set without a commerce service")
 	}
 }
