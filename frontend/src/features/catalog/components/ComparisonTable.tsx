@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Checkbox } from '../../../components/ui/Checkbox'
 import { cn } from '../../../lib/styles/cn'
+import { MerchantAction } from './MerchantAction'
 import {
   priceSource,
   rowIsIdentical,
@@ -141,14 +142,51 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
               </tbody>
             )
           })}
+
+          {/* The comparison used to end on a fact and leave the reader to find
+              their own way to the vendor — back to the card, into the product
+              page, then out. Three clicks from the moment they had decided.
+              This row is the exit, placed where the decision actually happens.
+
+              It is not a recommendation and it names no winner: every column
+              that has a verified offer gets the same button, in the same
+              place, whether or not the offer pays us. Columns without one show
+              nothing rather than a disabled control, because an empty cell
+              says "no offer" and a greyed button says "we are hiding
+              something". */}
+          <tfoot>
+            <tr>
+              <th
+                className="sticky left-0 z-10 w-44 border-r border-t border-ink/15 bg-paper p-4 text-left align-middle text-xs tracking-[0.12em] text-ink/68 uppercase"
+                scope="row"
+              >
+                Go to vendor
+              </th>
+              {products.map((product) => (
+                <td
+                  className="min-w-52 border-r border-t border-ink/15 p-4 align-middle last:border-r-0"
+                  key={product.id}
+                >
+                  <MerchantAction
+                    className=""
+                    compact
+                    slug={product.slug}
+                    source="comparison"
+                  />
+                </td>
+              ))}
+            </tr>
+          </tfoot>
         </table>
       </div>
 
       <p className="mt-4 text-xs leading-5 text-ink/65">
         Prices are read from each vendor&rsquo;s own page on the date shown.
-        Scores are our judgement, not customer ratings, and no ranking here is
-        affected by commission. We deliberately do not name a winner — which of
-        these matters is your decision, not ours.
+        Scores are our judgement, not customer ratings. The vendor buttons above
+        are affiliate links where we have a programme, and some of these tools
+        pay us and some do not — neither the scores nor the order of these
+        columns is affected by that. We deliberately do not name a winner —
+        which of these matters is your decision, not ours.
       </p>
     </div>
   )

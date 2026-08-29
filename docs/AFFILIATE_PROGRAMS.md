@@ -4,7 +4,7 @@ The single answer to "which programmes have accepted us, and which link is
 live where". Everything else about affiliate links — the per-vendor detail, the
 audit method, the application playbook — hangs off this page.
 
-Last reconciled against the repository on **2026-08-28**.
+Last reconciled against the repository on **2026-08-29**.
 
 Two things this page deliberately does not do. It does not follow an affiliate
 URL: provider terms prohibit automated or artificial clicks, and a redirect
@@ -17,22 +17,28 @@ dashboard proves provider-side attribution, conversion, and payment.
 | | Count |
 | --- | ---: |
 | Brands in the SaaS catalog | 46 |
-| Brands with an approved, active affiliate link | 6 |
-| Live merchant offers behind those links | 12 |
-| Approved and seeded, pending application | 2 (Pipedrive, Teachable) |
-| Standalone promotions staged but not deployed | 2 (ClickFunnels) |
+| Brands with an approved, active affiliate link | 8 |
+| Live merchant offers behind those links | 14 |
+| Approved and seeded, pending application | 1 (ActiveCampaign) |
+| Standalone promotions deployed | 2 (ClickFunnels) |
 
-Six of forty-six is the number that matters. Forty brands are in the catalog
+Eight of forty-six is the number that matters. Thirty-eight brands are in the catalog
 because the ranking has to be honest about the market, not because they pay.
 That is the design — but it also means most of the catalog cannot earn, and
 adding a programme is the cheapest growth lever available.
 
 ## Approved and live
 
-Twelve offers. Each is asserted by
+Fourteen offers, all confirmed against the production API on 2026-08-29 —
+`/api/catalog/products/{slug}/offers` returns a `purchase_path` only when the
+offer carries an active affiliate link, so a non-null value is proof the link
+is live rather than merely seeded.
+
+Twelve of the fourteen are additionally asserted by
 `backend/seeds/affiliate_offer_audit_2026_08_26.sql`, which fails its
 transaction unless the product, price, currency, provider, and destination all
-match exactly.
+match exactly. Pipedrive and Teachable are not in it: that file is a dated
+audit, and each of their seeds carries its own assertion block instead.
 
 | Product | Price basis | Provider | Ownership evidence |
 | --- | --- | --- | --- |
@@ -41,7 +47,9 @@ match exactly.
 | Kit Creator | $39/month at 1,000 subscribers | PartnerStack | copied from approved dashboard |
 | MailerLite Comfort | $19/month at 1,000 subscribers | Trackdesk | source `unsolero`, link `lp_170762` |
 | monday.com Basic | $9/seat/month, yearly | PartnerStack | copied from approved dashboard |
+| Pipedrive Lite | $19.90/seat/month | PartnerStack | link code `8c0fqmk2j8mc` |
 | SE Ranking Core | $103.20/month | SE Ranking | link-builder account `5233991` |
+| Teachable Starter | $29/month, yearly | PartnerStack | link code `y6u7cxavunjg` |
 | Zoho Bookings Basic | $8/user/month | Zoho | `PE2263909`, code `POSi` |
 | Zoho Books Standard | $20/organization/month | Zoho | `PE2263909`, code `K0nf` |
 | Zoho Campaigns Standard | $5.25/month at 1,000 contacts, yearly | Zoho | `PE2263909`, code `UCST` |
@@ -63,17 +71,23 @@ not retract Kit or monday.com.
 | Kit | `backend/seeds/kit_affiliate.sql` | via PartnerStack |
 | MailerLite | `backend/seeds/mailerlite_affiliate.sql` | detail in [affiliate-links-mailerlite.md](./affiliate-links-mailerlite.md) |
 | monday.com | `backend/seeds/monday_affiliate.sql` | via PartnerStack |
+| Pipedrive | `backend/seeds/pipedrive_affiliate.sql` | via PartnerStack; destination caveat below |
 | SE Ranking | `backend/seeds/se_ranking_affiliate.sql` | |
-| all twelve | `backend/seeds/affiliate_offer_audit_2026_08_26.sql` | the assertion that keeps them honest |
+| Teachable | `backend/seeds/teachable_affiliate.sql` | via PartnerStack, 30% for one year |
+| the original twelve | `backend/seeds/affiliate_offer_audit_2026_08_26.sql` | the assertion that keeps them honest |
 
-## Approved and seeded, not yet applied to the database
+### Caveats on the two newest live links
+
+Pipedrive and Teachable went live on 2026-08-28. Both carry open items that
+this page tracked while they were still staged, and neither was closed by
+deploying them.
 
 **Pipedrive** — PartnerStack, default link created by the programme
 2026-08-23. Seed: `backend/seeds/pipedrive_affiliate.sql`, attached to
 `pipedrive-lite` at $19.90/seat/month.
 
 Two caveats are recorded in the seed's own header and repeated here because
-both affect money:
+both affect money, and the first is still costing conversions today:
 
 - The destination is `www.pipedrive.com/programLP`, an affiliate programme
   landing page rather than the pricing page. Every other link here targets
@@ -88,6 +102,7 @@ both affect money:
 `partnerstack.teachable.com/y6u7cxavunjg`, destination already set by the
 programme to `teachable.com/pricing`. Seed:
 `backend/seeds/teachable_affiliate.sql`, attached to `teachable-starter`.
+No open item; recorded here because its price review is worth keeping.
 
 Its price was re-read before the link was attached, recorded in
 `backend/seeds/course_platform_price_review_2026_08_28.sql`:
@@ -108,6 +123,84 @@ already like for like. Moving Teachable alone would put it a dollar from
 Thinkific on screen while the real monthly gap is far wider — replacing a
 correct comparison with a misleading one in order to satisfy a rule.
 
+## Approved and seeded, not yet applied to the database
+
+**ActiveCampaign** — PartnerStack, approved and read from the partner dashboard
+2026-08-29. The only programme currently in this state: the seed is written and
+`/api/catalog/products/activecampaign-starter/offers` returns `[]` in
+production, so nothing earns until it is applied. Seed:
+`backend/seeds/activecampaign_affiliate.sql`, attached to
+`activecampaign-starter` at $15/month for 1,000 contacts, billed annually.
+
+The dashboard publishes three default links. Only one is used, and only one
+*could* be: `commerce.affiliate_links` is unique on
+`(merchant_offer_id, provider)`, and `ResolveOfferDestination` returns a single
+row per offer. A second link for the same product has nowhere to live and
+nothing that would serve it.
+
+| Dashboard link | Destination | Used |
+| --- | --- | --- |
+| Pricing Page | `try.activecampaign.com/ydwpszsmins9` | **yes** |
+| Free Trial Page | `try.activecampaign.com/egv7yratfy4m-rvs4jt` | held in reserve |
+| Affiliate Homepage | `try.activecampaign.com/4iq2pjt98jsg-b9q17i` | no |
+
+Pricing wins on the same reasoning as Kit: a visitor who has just read the
+price is looking for that plan. The trial link is the only real alternative,
+since ActiveCampaign Starter has no free tier — but the pricing page carries
+its own trial call to action, so pricing reaches the trial in one more click
+while the trial page never shows the price. Keep the trial link for editorial
+placements where no price has been shown.
+
+As with Pipedrive and Teachable, the partner key is never exposed — PartnerStack
+fills it at redirect time — so the external reference is the link code.
+
+Every code on this page came from the dashboard's copy control, confirmed by
+the account owner on 2026-08-29 — not read off the screen, which is the failure
+[affiliate-links-zoho.md](./affiliate-links-zoho.md) exists to warn about.
+
+One thing is outstanding: **commission terms are not recorded.** The rate and
+cookie window were not read from the dashboard, and the commission columns
+exist to hold what a programme states rather than what a seed assumes. Fill
+them in from the PartnerStack programme terms in the shape of
+`mailerlite_affiliate.sql`.
+
+### Two further ActiveCampaign links, activated and unassigned
+
+Two of the seven links ActiveCampaign recommends were activated on 2026-08-29
+and copied from the dashboard:
+
+- `https://try.activecampaign.com/am4yesxqhxo9-c8qk4`
+- `https://try.activecampaign.com/yb5i7jsind0c-txqy7s`
+
+**Which is which is not recorded, and cannot be recovered from the codes.**
+Determining it by following either one is exactly what this page refuses to do,
+because a redirect request can be recorded as an artificial click. They were
+activated as the MailChimp Switch and CRM landing pages; the dashboard states
+the pairing and it needs reading off, not guessing.
+
+Neither can be attached yet, and neither is blocked on the pairing alone:
+
+- **MailChimp Switch** needs the promotions path, not an offer — it sells no
+  single catalog plan. The site already publishes `mailchimp-alternatives`,
+  with ActiveCampaign third in it, so the intent it serves already has an
+  audience here. It needs a promotion row and a public page in the shape of
+  `/offers/funnel-hacking-secrets`.
+- **CRM** needs ActiveCampaign to exist as a product in the `crm` category
+  first, with its own price read from the vendor page and its own evidence
+  source. Today ActiveCampaign is only in `email-marketing`, and an offer
+  cannot attach to a product that is not there.
+
+The remaining five recommended links — Active Intelligence, Marketing
+Automation, SMS Marketing, WhatsApp Messaging, Email Marketing Platform — were
+deliberately not activated. The catalog has no SMS, WhatsApp or automation
+category to hang them on, and Email Marketing Platform duplicates the pricing
+destination already in use.
+
+The price itself is not stale — read from the vendor page 2026-08-20 — but
+ActiveCampaign is one of the twenty-five annual-basis products below. Unlike
+Teachable there is no monthly figure to move to: the vendor publishes no
+monthly rate for this plan at all.
+
 ## The billing-basis defect
 
 The rule is right and the catalog is inconsistent with it, but not one product
@@ -127,7 +220,7 @@ means a migration adding an explicit billing period, a backfill, a policy
 revision in the shape of the Zoho Books correction, and surfacing the basis
 wherever a price is shown. It is not started.
 
-## Approved, staged, not yet deployed
+## Standalone promotions, deployed
 
 **ClickFunnels — Funnel Hacking Secrets**, affiliate ID `4330879`, two
 destinations copied from the approved dashboard on 2026-08-26.
@@ -143,10 +236,20 @@ own redirect path, and no product or recommendation columns at all.
 | `funnel-hacking-secrets-webinar` | lead | funnelhackingsecrets.com |
 | `funnel-hacking-secrets-order` | purchase | funnelhackingsecrets.com/go |
 
-Everything is written and green — migration, repository, service, handler,
-route, public page at `/offers/funnel-hacking-secrets`, tests. It is not
-deployed: `https://unsolero.com/offers/funnel-hacking-secrets` returns 404 as of
-2026-08-28 because the work is uncommitted on `fix/ci-and-faceless-guide`.
+Everything is written, green and **deployed**: migration, repository, service,
+handler, route, public page, tests. `https://unsolero.com/offers/funnel-hacking-secrets`
+returned 200 with its own title and canonical on 2026-08-29, while an unknown
+path on the same host returns 404 — so this is a real route, not an SPA
+catch-all. The work reached `main` in `2c6dea8`.
+
+One thing is **not** confirmed from outside: whether the two
+`commerce.affiliate_promotions` rows exist in the production database. The only
+endpoint that would prove it is the redirect itself, and requesting it would
+record a click. Check it on the server instead:
+
+```sql
+SELECT slug, is_active, last_checked_at FROM commerce.affiliate_promotions;
+```
 
 ## Not applied, or unverified
 
