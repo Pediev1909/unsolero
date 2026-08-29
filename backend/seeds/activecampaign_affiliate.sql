@@ -39,10 +39,21 @@
 -- dead-ended. Their prefixes also match the dashboard screenshot, which
 -- truncates every URL for display.
 --
--- Commission terms are deliberately absent. The programme's rate and cookie
--- window were not read from the dashboard, and the commission columns exist to
--- record what a programme states, not what a seed assumes. Fill them in from
--- the PartnerStack programme terms in the shape of mailerlite_affiliate.sql.
+-- Commission columns are left NULL on purpose, which is not the same as their
+-- being unresearched.
+--
+-- The published terms give a 90-day cookie that restarts on every click, and
+-- commission recurring for the first twelve months of the referred
+-- subscription. The rate is where a single number stops being honest:
+-- ActiveCampaign tiers it on referred MRR — Silver 20%, Gold 25%, Platinum
+-- 30% — so a partner starts at 20%, while PartnerStack's own programme card
+-- states a flat 30%. The two contradict each other, and the 30% that every
+-- affiliate directory repeats is the top of a ladder rather than the entry.
+--
+-- commission_rate_bps holds one integer. Until the tier shown in our own
+-- dashboard is read, any value written here is a number nobody has seen, in a
+-- column about money, on the optimistic side. Read the tier from PartnerStack
+-- and fill these in the shape of mailerlite_affiliate.sql.
 --
 -- ---------------------------------------------------------------------------
 -- On the price.

@@ -158,10 +158,20 @@ Every code on this page came from the dashboard's copy control, confirmed by
 the account owner on 2026-08-29 — not read off the screen, which is the failure
 [affiliate-links-zoho.md](./affiliate-links-zoho.md) exists to warn about.
 
-One thing is outstanding: **commission terms are not recorded.** The rate and
-cookie window were not read from the dashboard, and the commission columns
-exist to hold what a programme states rather than what a seed assumes. Fill
-them in from the PartnerStack programme terms in the shape of
+**Commission: read, but deliberately not written to the columns.** The
+programme's published terms are a 90-day cookie that restarts on each click,
+and commission recurring for the first twelve months of the referred
+subscription. The rate is where it stops being a single number: ActiveCampaign
+tiers it — Silver 20%, Gold 25%, Platinum 30% — on referred MRR, so a new
+partner starts at 20% and the 30% that most summaries quote is the top of a
+ladder, not the entry rate. PartnerStack's own programme card states 30% flat,
+which contradicts the tier table.
+
+`commission_rate_bps` holds one integer, and there is no honest single value
+here until the tier showing in our own dashboard is read. Writing 30% because a
+directory says so would put a number in a money column that we have not seen
+and are almost certainly not on. The columns stay NULL, and the seed header
+says why. Read the tier from PartnerStack and fill them in the shape of
 `mailerlite_affiliate.sql`.
 
 ### Two further ActiveCampaign links, activated and unassigned
@@ -172,11 +182,12 @@ and copied from the dashboard:
 - `https://try.activecampaign.com/am4yesxqhxo9-c8qk4`
 - `https://try.activecampaign.com/yb5i7jsind0c-txqy7s`
 
-**Which is which is not recorded, and cannot be recovered from the codes.**
-Determining it by following either one is exactly what this page refuses to do,
-because a redirect request can be recorded as an artificial click. They were
-activated as the MailChimp Switch and CRM landing pages; the dashboard states
-the pairing and it needs reading off, not guessing.
+The pairing, confirmed by the account owner on 2026-08-29:
+
+| Link | Landing page |
+| --- | --- |
+| `try.activecampaign.com/am4yesxqhxo9-c8qk4` | MailChimp Switch |
+| `try.activecampaign.com/yb5i7jsind0c-txqy7s` | CRM |
 
 Neither can be attached yet, and neither is blocked on the pairing alone:
 

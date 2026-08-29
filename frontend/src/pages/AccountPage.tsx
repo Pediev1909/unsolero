@@ -38,7 +38,6 @@ export function AccountPage() {
     <>
       <SiteHeader
         position="static"
-        showNavigation={false}
         actions={
           <Button
             loading={logout.isPending}

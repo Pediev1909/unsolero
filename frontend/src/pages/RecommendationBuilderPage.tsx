@@ -76,7 +76,6 @@ export function RecommendationBuilderPage() {
           </ButtonLink>
         }
         position="static"
-        showNavigation={false}
       />
       <main className="min-h-[calc(100vh-5rem)]" id="main-content">
         <Container className="py-8 sm:py-12 lg:py-16">

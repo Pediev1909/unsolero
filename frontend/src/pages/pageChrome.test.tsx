@@ -5,11 +5,13 @@ import { describe, expect, it } from 'vitest'
 
 import { renderWithProviders } from '../test/renderWithProviders'
 import { AboutPage } from './AboutPage'
+import { AccountPage } from './AccountPage'
 import { AffiliateDisclosurePage } from './AffiliateDisclosurePage'
 import { HomePage } from './HomePage'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { PrivacyPage } from './PrivacyPage'
+import { RecommendationBuilderPage } from './RecommendationBuilderPage'
 import { RegisterPage } from './RegisterPage'
 
 // Each page renders its own header and footer, so a new one can ship without
@@ -30,6 +32,25 @@ describe.each(standalonePages)('%s', (_name, Page) => {
     renderWithProviders(<Page />)
     expect(screen.getByRole('banner')).toBeInTheDocument()
     expect(screen.getByRole('contentinfo')).toBeInTheDocument()
+  })
+})
+
+// The check above passes on a header that is only a logo, which is what the
+// builder and the account page were: both passed showNavigation={false}, so a
+// visitor part-way through the six-step brief had the logo or the browser's
+// back button and nothing else. Asserting the banner exists never caught it —
+// the banner did exist. This asserts the navigation inside it.
+const navigatedPages: [string, () => React.JSX.Element][] = [
+  ['RecommendationBuilderPage', RecommendationBuilderPage],
+  ['AccountPage', AccountPage],
+]
+
+describe.each(navigatedPages)('%s', (_name, Page) => {
+  it('keeps the primary navigation, not just the logo', () => {
+    renderWithProviders(<Page />)
+    expect(
+      screen.getByRole('navigation', { name: 'Primary navigation' }),
+    ).toBeInTheDocument()
   })
 })
 
