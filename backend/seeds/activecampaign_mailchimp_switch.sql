@@ -101,20 +101,34 @@ BEGIN
         RAISE EXCEPTION 'mailchimp-alternatives entry is missing';
     END IF;
 
-    IF current_content @> '[{"type":"cta","promotion":"activecampaign-mailchimp-switch"}]'::jsonb THEN
-        RAISE NOTICE 'CTA already present; leaving the article unchanged';
-        RETURN;
-    END IF;
+    -- Strip any copy of this CTA first, then place one. Running this file
+    -- twice must leave the article identical, and the first run of it placed
+    -- the block one position too low: jsonb_insert's fourth argument is
+    -- insert_after, and passing true put the CTA after index 6 rather than at
+    -- it. That landed a "switch to ActiveCampaign" button directly beneath the
+    -- heading "When you should stay on Mailchimp", arguing against the section
+    -- it opened. Removing before inserting is what lets this file correct that
+    -- rather than only avoid repeating it.
+    SELECT COALESCE(jsonb_agg(element ORDER BY position), '[]'::jsonb)
+    INTO current_content
+    FROM jsonb_array_elements(current_content)
+         WITH ORDINALITY AS blocks(element, position)
+    WHERE NOT (element ->> 'type' = 'cta'
+               AND element ->> 'promotion' = 'activecampaign-mailchimp-switch');
 
     IF current_content -> 4 ->> 'heading' IS DISTINCT FROM 'Which one, in one line each'
-       OR current_content -> 5 ->> 'type' IS DISTINCT FROM 'unordered_list' THEN
+       OR current_content -> 5 ->> 'type' IS DISTINCT FROM 'unordered_list'
+       OR current_content -> 6 ->> 'heading' IS DISTINCT FROM 'When you should stay on Mailchimp' THEN
         RAISE EXCEPTION
-            'mailchimp-alternatives has been re-edited: expected the "Which one" list at index 5, found %',
-            current_content -> 5 ->> 'type';
+            'mailchimp-alternatives has been re-edited: expected the "Which one" list at index 5 and the "stay" heading at index 6, found % and %',
+            current_content -> 5 ->> 'type', current_content -> 6 ->> 'heading';
     END IF;
 
+    -- insert_after = false: the block takes index 6 and pushes the "stay"
+    -- heading to 7, so the CTA closes the section that recommends
+    -- ActiveCampaign instead of opening the one that argues for staying put.
     UPDATE editorial.entries
-    SET content = jsonb_insert(current_content, '{6}', block, true),
+    SET content = jsonb_insert(current_content, '{6}', block, false),
         updated_at = now()
     WHERE slug = 'mailchimp-alternatives';
 END $$;
@@ -130,12 +144,34 @@ BEGIN
         RAISE EXCEPTION 'ActiveCampaign MailChimp Switch promotion activation failed';
     END IF;
 
+    -- Presence and position, because the first version of this file asserted
+    -- only presence and passed while the block sat one place too low. For a
+    -- sponsored link inside somebody else's argument, where it is IS whether
+    -- it is correct.
     IF NOT EXISTS (
         SELECT 1 FROM editorial.entries
         WHERE slug = 'mailchimp-alternatives'
-          AND content @> '[{"type":"cta","promotion":"activecampaign-mailchimp-switch"}]'::jsonb
+          AND content -> 6 ->> 'type' = 'cta'
+          AND content -> 6 ->> 'promotion' = 'activecampaign-mailchimp-switch'
+          AND content -> 7 ->> 'heading' = 'When you should stay on Mailchimp'
     ) THEN
-        RAISE EXCEPTION 'mailchimp-alternatives did not receive the CTA block';
+        RAISE EXCEPTION
+            'mailchimp-alternatives CTA is missing or misplaced: index 6 is %, index 7 heading is %',
+            (SELECT content -> 6 ->> 'type' FROM editorial.entries WHERE slug = 'mailchimp-alternatives'),
+            (SELECT content -> 7 ->> 'heading' FROM editorial.entries WHERE slug = 'mailchimp-alternatives');
+    END IF;
+
+    -- Exactly one. A second copy would mean the strip-then-insert above stopped
+    -- matching what it is meant to remove.
+    IF (
+        SELECT count(*)
+        FROM editorial.entries entries,
+             jsonb_array_elements(entries.content) AS element
+        WHERE entries.slug = 'mailchimp-alternatives'
+          AND element ->> 'type' = 'cta'
+          AND element ->> 'promotion' = 'activecampaign-mailchimp-switch'
+    ) <> 1 THEN
+        RAISE EXCEPTION 'mailchimp-alternatives carries a duplicated CTA block';
     END IF;
 END $$;
 
