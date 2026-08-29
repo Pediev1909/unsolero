@@ -278,3 +278,50 @@ func TestRenderedBodiesEscapeCatalogValues(t *testing.T) {
 		t.Errorf("listing heading was not escaped\ngot: %s", listing)
 	}
 }
+
+// The prerendered body is what a crawler and a JavaScript-less reader get, so
+// the CTA has to be a working, disclosed link there and not only in React.
+func TestEntryBodyRendersCTAAsADisclosedTrackedLink(t *testing.T) {
+	entry := content.Entry{Content: []content.Block{
+		{
+			Type:      content.BlockCTA,
+			Heading:   "If automation is why you are leaving",
+			Text:      "Their own comparison is the honest place to start.",
+			Label:     "See ActiveCampaign against Mailchimp",
+			Promotion: "activecampaign-mailchimp-switch",
+		},
+	}}
+	entry.Title = "Mailchimp alternatives"
+
+	body := renderEntryBody(entry)
+
+	// source=promotion is load-bearing. TrackPromotionClick rejects any other
+	// source and the handler defaults an absent one to product_detail, so
+	// without it every no-JS click resolves to an error instead of a vendor.
+	if !strings.Contains(body,
+		"/api/affiliate/promotion/activecampaign-mailchimp-switch?source=promotion") {
+		t.Fatalf("CTA did not render a tracked promotion path:\n%s", body)
+	}
+	// An undisclosed paid link in indexed HTML is what search engines penalise.
+	for _, want := range []string{`rel="nofollow noopener sponsored"`,
+		"See ActiveCampaign against Mailchimp",
+		"Their own comparison is the honest place to start."} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("CTA body is missing %q:\n%s", want, body)
+		}
+	}
+}
+
+// A CTA missing either half is a button with no destination or a destination
+// with no button. Neither should reach the document.
+func TestEntryBodySkipsIncompleteCTA(t *testing.T) {
+	for name, block := range map[string]content.Block{
+		"no promotion": {Type: content.BlockCTA, Text: "t", Label: "Go"},
+		"no label":     {Type: content.BlockCTA, Text: "t", Promotion: "a-promo"},
+	} {
+		body := renderEntryBody(content.Entry{Content: []content.Block{block}})
+		if strings.Contains(body, "/api/affiliate/promotion/") {
+			t.Fatalf("%s produced a link:\n%s", name, body)
+		}
+	}
+}

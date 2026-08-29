@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -27,7 +28,23 @@ const (
 	BlockOrdered   BlockType = "ordered_list"
 	BlockQuote     BlockType = "quote"
 	BlockCallout   BlockType = "callout"
+	// BlockCTA carries an affiliate destination inside an article.
+	//
+	// It names a promotion by slug and never a URL. An editor who could type a
+	// href into a content block would be able to publish an untracked link, a
+	// link to anywhere, or somebody else's affiliate code, and the body is
+	// rendered into the served HTML where that would be invisible until it had
+	// already been crawled. A slug can only resolve to a row in
+	// commerce.affiliate_promotions, which already enforces https, an active
+	// merchant, a freshness window and a disclosure label — so the block
+	// chooses which approved destination to show and nothing else.
+	BlockCTA BlockType = "cta"
 )
+
+// A promotion slug, matching the column constraint in
+// commerce.affiliate_promotions. Anchored, so a block cannot smuggle a path
+// separator or a scheme past the redirect handler.
+var promotionSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 type Author struct {
 	ID        string
@@ -43,6 +60,10 @@ type Block struct {
 	Text        string    `json:"text,omitempty"`
 	Items       []string  `json:"items,omitempty"`
 	Attribution string    `json:"attribution,omitempty"`
+	// Promotion and Label belong to BlockCTA. Promotion is the slug of an
+	// affiliate promotion; Label is the text on the control.
+	Promotion string `json:"promotion,omitempty"`
+	Label     string `json:"label,omitempty"`
 }
 
 type CategoryReference struct {
@@ -169,7 +190,20 @@ func (block Block) Validate() error {
 		if textLength < 1 || textLength > 2_000 || len(strings.TrimSpace(block.Heading)) < 2 || len(block.Heading) > 120 {
 			return ErrInvalidContent
 		}
+	case BlockCTA:
+		// Text is required, not optional. A button in the middle of an article
+		// that a reader is trusting to be impartial has to say what it is and
+		// why it is there; the disclosure is the content, not decoration.
+		label := len(strings.TrimSpace(block.Label))
+		if !promotionSlugPattern.MatchString(block.Promotion) || len(block.Promotion) > 120 ||
+			label < 2 || label > 60 || textLength < 1 || textLength > 600 ||
+			len(block.Heading) > 120 || len(block.Items) > 0 || block.Attribution != "" {
+			return ErrInvalidContent
+		}
 	default:
+		return ErrInvalidContent
+	}
+	if block.Type != BlockCTA && (block.Promotion != "" || block.Label != "") {
 		return ErrInvalidContent
 	}
 	return nil

@@ -47,11 +47,17 @@ const contentBlockSchema = z.object({
     'ordered_list',
     'quote',
     'callout',
+    'cta',
   ]),
   heading: z.string().optional(),
   text: z.string().optional(),
   items: z.array(z.string()).optional(),
   attribution: z.string().optional(),
+  // 'cta' only. `promotion` is a slug, never a URL — the destination lives in
+  // commerce.affiliate_promotions and the block only chooses which approved
+  // one to show. See the BlockCTA comment in the Go domain for why.
+  promotion: z.string().optional(),
+  label: z.string().optional(),
 })
 
 export const contentDetailSchema = contentSummarySchema.extend({

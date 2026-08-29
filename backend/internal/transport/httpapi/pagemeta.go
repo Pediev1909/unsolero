@@ -7,6 +7,7 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -460,6 +461,28 @@ func writeEntryBlock(body *strings.Builder, block content.Block) {
 				html.EscapeString(block.Attribution) + `</footer>`)
 		}
 		body.WriteString(`</blockquote>`)
+	case content.BlockCTA:
+		if block.Promotion == "" || block.Label == "" {
+			return
+		}
+		// source=promotion is not decoration: TrackPromotionClick rejects a
+		// click whose source is anything else, and the handler defaults an
+		// absent source to product_detail. Without it this link resolves to an
+		// error for every reader who has JavaScript off, which is exactly the
+		// reader this server-rendered body exists for.
+		//
+		// rel carries sponsored as well as nofollow. The body is served to
+		// crawlers, and an undisclosed paid link in indexed HTML is the thing
+		// search engines penalise a site for.
+		href := "/api/affiliate/promotion/" + url.PathEscape(block.Promotion) + "?source=promotion"
+		body.WriteString(`<aside class="mt-6 border border-ink/15 p-5">`)
+		if block.Heading != "" {
+			body.WriteString(`<h3 class="font-semibold">` + html.EscapeString(block.Heading) + `</h3>`)
+		}
+		body.WriteString(`<p class="mt-2 text-body">` + html.EscapeString(block.Text) + `</p>`)
+		body.WriteString(`<p class="mt-4"><a class="underline" rel="nofollow noopener sponsored" target="_blank" href="` +
+			html.EscapeString(href) + `">` + html.EscapeString(block.Label) + `</a></p>`)
+		body.WriteString(`</aside>`)
 	}
 }
 

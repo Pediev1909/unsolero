@@ -189,17 +189,47 @@ The pairing, confirmed by the account owner on 2026-08-29:
 | `try.activecampaign.com/am4yesxqhxo9-c8qk4` | MailChimp Switch |
 | `try.activecampaign.com/yb5i7jsind0c-txqy7s` | CRM |
 
-Neither can be attached yet, and neither is blocked on the pairing alone:
+**MailChimp Switch is built and seeded** as
+`backend/seeds/activecampaign_mailchimp_switch.sql`. It goes in as a
+*promotion*, not an offer: the offer slot on `activecampaign-starter` already
+holds the pricing link, and more importantly the destination is a vendor-level
+page for people leaving Mailchimp, tied to no tier and no price — attaching it
+to a $15 plan would claim it sells something it never mentions. Its
+unaffiliated equivalent, recorded so anyone can see where it goes without
+following it, is `activecampaign.com/compare/mailchimp`, read 2026-08-29.
 
-- **MailChimp Switch** needs the promotions path, not an offer — it sells no
-  single catalog plan. The site already publishes `mailchimp-alternatives`,
-  with ActiveCampaign third in it, so the intent it serves already has an
-  audience here. It needs a promotion row and a public page in the shape of
-  `/offers/funnel-hacking-secrets`.
-- **CRM** needs ActiveCampaign to exist as a product in the `crm` category
-  first, with its own price read from the vendor page and its own evidence
-  source. Today ActiveCampaign is only in `email-marketing`, and an offer
-  cannot attach to a product that is not there.
+Rather than a standalone page nobody lands on, it appears inside the already
+published `mailchimp-alternatives` guide, immediately after the line that tells
+an automation-driven reader ActiveCampaign is their answer. The seed asserts
+the article's shape before inserting and fails loudly if it has been re-edited.
+
+This needed a new editorial block type, `cta` — see below.
+
+**CRM is still held.** It needs ActiveCampaign to exist as a product in the
+`crm` category first, with its own price read from the vendor page and its own
+evidence source. Today ActiveCampaign is only in `email-marketing`, and an
+offer cannot attach to a product that is not there.
+
+### The `cta` editorial block
+
+A block that can put a paid destination inside an article is the one place an
+editor could publish an untracked link, a link to anywhere, or another
+affiliate's code — and the article body is rendered into the served HTML, so it
+would be indexed before anyone noticed.
+
+So the block **names a promotion by slug and never a URL**. A slug can only
+resolve to a row in `commerce.affiliate_promotions`, which already enforces
+`https://`, an active merchant, a freshness window and a disclosure label. The
+block chooses which approved destination to show; it cannot invent one.
+
+Both renderers build the href themselves — React through `affiliateClickPath`,
+and the Go prerenderer as
+`/api/affiliate/promotion/{slug}?source=promotion`. That query parameter is
+load-bearing rather than decorative: `TrackPromotionClick` rejects any other
+source and the handler defaults an absent one to `product_detail`, so without
+it every click from a reader without JavaScript resolves to an error. Both
+carry `rel="nofollow noopener sponsored"`, and the block's own text says it
+pays us, because a reader mid-article has seen no disclosure anywhere else.
 
 The remaining five recommended links — Active Intelligence, Marketing
 Automation, SMS Marketing, WhatsApp Messaging, Email Marketing Platform — were
