@@ -106,10 +106,18 @@ export function ProductOffers({ slug }: { slug: string }) {
                   </>
                 )}
                 {offer.condition !== 'new' && <>{offer.condition} · </>}
-                Checked{' '}
+                {/* The date was always here. What was missing is the word
+                    that tells a reader whether it is recent, which they
+                    should not have to work out by subtracting dates. */}
+                {offer.freshness_status === 'stale'
+                  ? 'Price last read'
+                  : 'Checked'}{' '}
                 {new Intl.DateTimeFormat('en-US', {
                   dateStyle: 'medium',
                 }).format(new Date(offer.last_checked_at))}
+                {offer.freshness_status === 'stale' && (
+                  <> · not re-verified since</>
+                )}
                 {offer.expires_at
                   ? ` · Valid until ${new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(offer.expires_at))}`
                   : ''}

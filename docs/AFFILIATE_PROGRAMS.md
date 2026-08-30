@@ -248,6 +248,45 @@ ActiveCampaign is one of the twenty-five annual-basis products below. Unlike
 Teachable there is no monthly figure to move to: the vendor publishes no
 monthly rate for this plan at all.
 
+## The 72-hour decay
+
+**On 2026-08-30, thirteen of the fifteen live offers were dark.** Not disabled,
+not expired by the vendor — invisible. `/api/catalog/products/kit-creator/offers`
+returned `[]`, and `guides/mailchimp-alternatives` drew one vendor button
+instead of four.
+
+`OFFER_MAXIMUM_AGE` defaults to 72 hours, and every offer query, the offer
+redirect and the promotion redirect filter on
+`last_checked_at >= now() - OFFER_MAXIMUM_AGE`. `last_checked_at` is written
+only by running a seed, and nothing re-reads prices on a schedule. So the whole
+affiliate estate goes dark three days after its seed last ran, silently: no
+error, the button simply stops being drawn.
+
+Everything seeded 2026-08-26 — Zoho ×7, Kit, MailerLite, Bigin, monday.com,
+SE Ranking, Cal.com — had crossed the line. Only ActiveCampaign (08-29) and
+Teachable (08-28) still resolved.
+
+**The window is right for physical goods and wrong for SaaS.** It was written
+for a catalog where price and stock move daily. A SaaS list price moves
+quarterly, and the affiliate link itself does not expire at all.
+
+The fix is two parts, because raising the window alone would make the API lie:
+
+1. **`OFFER_MAXIMUM_AGE=720h`** in the production `.env` — 30 days, the highest
+   the config validator accepts. This is a deployment setting, not code.
+2. **`freshness_status` is now computed** rather than being the literal
+   `"fresh"` it had always been. Under 7 days it reads `fresh`; beyond that,
+   `stale`, and the product page says "Price last read … · not re-verified
+   since" instead of "Checked …".
+
+The two settings deliberately belong to different people. Widening the window
+keeps links alive; the seven-day editorial standard is fixed in code so that
+widening it cannot also silence the statement about how old a price is.
+
+What this does not fix: nothing still re-reads vendor prices on a schedule. At
+30 days the estate survives a month between seed runs instead of three days,
+which buys time rather than solving it. A price-refresh job remains unwritten.
+
 ## The billing-basis defect
 
 The rule is right and the catalog is inconsistent with it, but not one product

@@ -524,6 +524,29 @@ func (h *Handler) listOffers(response http.ResponseWriter, request *http.Request
 	writeJSON(response, http.StatusOK, result, h.logger)
 }
 
+// offerFreshWindow is how recently a price must have been read from the
+// vendor's own page for the figure to be presented without qualification.
+//
+// It is a fixed editorial standard rather than a deployment setting, which is
+// the point: OFFER_MAXIMUM_AGE decides how long an offer is served at all, and
+// an operator raising it to keep links alive must not thereby also silence the
+// statement about how old the price is. Those two decisions pull in opposite
+// directions and belong to different people.
+const offerFreshWindow = 7 * 24 * time.Hour
+
+// offerFreshness reports the age of the price, truthfully.
+//
+// This used to be the literal "fresh" on every offer ever served. It was
+// harmless only while OFFER_MAXIMUM_AGE was 72 hours and nothing older could
+// be returned; the moment that window is widened so links stop dying, the
+// constant becomes a claim about a price nobody has looked at in weeks.
+func offerFreshness(lastCheckedAt time.Time) string {
+	if time.Since(lastCheckedAt) <= offerFreshWindow {
+		return "fresh"
+	}
+	return "stale"
+}
+
 func offerDTO(offer commercedomain.Offer) offerResponse {
 	var purchasePath *string
 	var disclosure *string
@@ -550,8 +573,9 @@ func offerDTO(offer commercedomain.Offer) offerResponse {
 		ShippingMinor: offer.ShippingMinor, LandedPriceMinor: offer.LandedPriceMinor(),
 		Availability: offer.Availability, Condition: offer.Condition,
 		LastCheckedAt: offer.LastCheckedAt.UTC().Format("2006-01-02T15:04:05Z"),
-		ObservedAt:    observedAt, ExpiresAt: expiresAt, FreshnessStatus: "fresh",
-		PurchasePath: purchasePath, DisclosureLabel: disclosure,
+		ObservedAt:    observedAt, ExpiresAt: expiresAt,
+		FreshnessStatus: offerFreshness(offer.LastCheckedAt),
+		PurchasePath:    purchasePath, DisclosureLabel: disclosure,
 	}
 }
 

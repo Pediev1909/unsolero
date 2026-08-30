@@ -152,7 +152,11 @@ export const offerSchema = z.object({
   last_checked_at: z.string(),
   observed_at: z.string().nullable(),
   expires_at: z.string().nullable(),
-  freshness_status: z.literal('fresh'),
+  // Was z.literal('fresh'), which matched a Go constant that said 'fresh' for
+  // every offer regardless of age. Both were honest only while the server
+  // refused to serve anything older than 72 hours — and that refusal is what
+  // silently took every affiliate link offline three days after its last seed.
+  freshness_status: z.enum(['fresh', 'stale']),
   purchase_path: z.string().nullable(),
   disclosure_label: z.string().nullable(),
 })

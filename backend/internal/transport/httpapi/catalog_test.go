@@ -231,3 +231,53 @@ func TestAttachPurchasePathsToleratesNoCommerceService(t *testing.T) {
 		t.Fatal("purchase path set without a commerce service")
 	}
 }
+
+// freshness_status was the literal "fresh" on every offer this API ever
+// served. That was survivable only because OFFER_MAXIMUM_AGE was 72 hours and
+// nothing older could be returned — and that same 72-hour cut is what took
+// every affiliate link offline three days after its seed last ran. Widening
+// the window is the fix; this is what stops the widening from turning the
+// field into a claim nobody checked.
+func TestOfferFreshnessReportsTheAgeOfThePriceRatherThanAConstant(t *testing.T) {
+	cases := map[string]struct {
+		age  time.Duration
+		want string
+	}{
+		"read minutes ago": {time.Minute, "fresh"},
+		"read yesterday":   {24 * time.Hour, "fresh"},
+		"read a week ago":  {6 * 24 * time.Hour, "fresh"},
+		"read eight days":  {8 * 24 * time.Hour, "stale"},
+		"read last month":  {30 * 24 * time.Hour, "stale"},
+	}
+	for name, testCase := range cases {
+		offer := commercedomain.Offer{
+			ID: "offer-1", LastCheckedAt: time.Now().Add(-testCase.age),
+			Price: catalogdomain.Money{AmountMinor: 1500, Currency: "USD"},
+		}
+		if got := offerDTO(offer).FreshnessStatus; got != testCase.want {
+			t.Fatalf("%s: freshness = %q, want %q", name, got, testCase.want)
+		}
+	}
+}
+
+// The date a price was read is the site's whole claim to being trustworthy
+// about prices. It must survive into the response whatever the status says.
+func TestOfferResponseAlwaysCarriesTheDateThePriceWasRead(t *testing.T) {
+	// Fixed and long past, so the assertion below does not quietly change
+	// meaning as the calendar moves past the seven-day window.
+	checked := time.Date(2026, 6, 26, 10, 48, 13, 0, time.UTC)
+	offer := commercedomain.Offer{
+		ID: "offer-1", LastCheckedAt: checked,
+		Price: catalogdomain.Money{AmountMinor: 1500, Currency: "USD"},
+	}
+	encoded, err := json.Marshal(offerDTO(offer))
+	if err != nil {
+		t.Fatalf("marshal offer: %v", err)
+	}
+	if !strings.Contains(string(encoded), `"last_checked_at":"2026-06-26T10:48:13Z"`) {
+		t.Fatalf("response lost the read date: %s", encoded)
+	}
+	if !strings.Contains(string(encoded), `"freshness_status":"stale"`) {
+		t.Fatalf("a price read two months ago is not fresh: %s", encoded)
+	}
+}
