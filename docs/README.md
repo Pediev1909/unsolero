@@ -24,9 +24,7 @@ Start with [../README.md](../README.md) for setup and
 
 | Document | What it settles |
 | --- | --- |
-| [SOCIAL_MEDIA_GROWTH_STRATEGY_BG.md](./SOCIAL_MEDIA_GROWTH_STRATEGY_BG.md) | The distribution strategy (Bulgarian) |
-| [FACELESS_VIDEO_PLAYBOOK_BG.md](./FACELESS_VIDEO_PLAYBOOK_BG.md) | Full faceless-video production playbook (Bulgarian) |
-| [FACELESS_VIDEO_QUICK_GUIDE_BG.md](./FACELESS_VIDEO_QUICK_GUIDE_BG.md) | The same, compressed to what you do today (Bulgarian) |
+| [GROWTH_PLAYBOOK_BG.md](./GROWTH_PLAYBOOK_BG.md) | Growth, content and video, end to end (Bulgarian). Replaces the three documents that used to split this subject |
 | [ROUTING_SEO.md](./ROUTING_SEO.md) · [ROUTING_SEO_AUDIT.md](./ROUTING_SEO_AUDIT.md) | Which routes are indexable, and the evidence they behave |
 | [ANALYTICS.md](./ANALYTICS.md) | What is measured, and what deliberately is not |
 
