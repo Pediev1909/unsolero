@@ -78,9 +78,13 @@ worth keeping.
   It logs a count only when it deleted something.
 - Unsubscribing does not delete the row, and that is deliberate rather than
   neglect. The row is kept with status `unsubscribed` and the timestamp as a
-  suppression record: it is what makes a later sign-up, import or re-added list
-  fail to bring back an address whose owner opted out. Deleting the row would
-  destroy the only evidence that the person said no. The confirmation hash is
+  suppression record: it is what stops a later sign-up, import or re-added list
+  quietly putting an address whose owner opted out back on the sending list. A
+  deliberate re-subscription still works — `UpsertPending` returns an
+  unsubscribed row to `pending` with fresh tokens — but it has to pass the
+  double opt-in again, so nothing is sent until the owner of the address clicks
+  a new link. Deleting the row would destroy the only evidence that the person
+  said no. The confirmation hash is
   cleared at the same time, so the confirmation link is dead; the unsubscribe
   hash is kept, because the server matches on it whatever the row's status and
   a second click on the same link must succeed rather than accuse the reader of

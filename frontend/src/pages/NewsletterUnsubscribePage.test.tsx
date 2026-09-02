@@ -92,10 +92,15 @@ describe('NewsletterUnsubscribePage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       /nothing else will arrive/i,
     )
-    // Putting the sign-up form on this page would undo the click that got the
-    // reader here, so no state of it may render one.
+    // Asking for the address again in the page's own answer would undo the
+    // click that got the reader here, so no state of it may render the form.
+    // Scoped to the main region on purpose: the site footer carries the
+    // sign-up panel on every page, and this page cannot suppress it without a
+    // prop on SiteFooter — see the note in the handover report.
     expect(
-      screen.queryByRole('button', { name: /send me the changes/i }),
+      within(screen.getByRole('main')).queryByRole('button', {
+        name: /send me the changes/i,
+      }),
     ).not.toBeInTheDocument()
   })
 

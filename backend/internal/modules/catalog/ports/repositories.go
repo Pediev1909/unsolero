@@ -50,3 +50,14 @@ type ProductRepository interface {
 	ListPublished(context.Context, ProductFilter) ([]domain.Product, error)
 	SearchPublished(context.Context, ProductFilter) (ProductPage, error)
 }
+
+// PriceRecordRepository reads the dated price history of one product out of its
+// immutable fact revisions.
+//
+// It is deliberately separate from ProductRepository and takes one product at a
+// time: this is a detail-page read, and no listing wants ten historic prices
+// per card. A caller asking for a page of products must not be able to reach
+// it by accident.
+type PriceRecordRepository interface {
+	ListPriceRecord(context.Context, domain.ProductID) ([]domain.PriceObservation, error)
+}
