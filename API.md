@@ -171,6 +171,45 @@ rate, billed yearly", "At 1,000 contacts, monthly billing", "2.9% + 30¢ per
 transaction". The same phrase follows the price in the server-rendered product
 body.
 
+#### Price record
+
+Product **detail** adds `price_record`: what this product has cost, newest
+first, built from its own immutable fact revisions.
+
+```json
+"price_record": [
+  {"observed_at": "2026-09-02T09:28:00Z", "price_minor": 3900, "currency": "USD",
+   "billing": {"period": "monthly", "unit": "flat", "unit_note": "per account", "annual_price_minor": 2900},
+   "is_current": true},
+  {"observed_at": "2026-08-21T11:05:00Z", "price_minor": 2900, "currency": "USD",
+   "billing": null, "note": "Price read from the vendor pricing page on 2026-08-21.",
+   "is_current": false}
+]
+```
+
+- `observed_at` is the revision's publication date (its creation date if it was
+  never stamped), and is the **earliest** date the entry's figure was recorded:
+  consecutive revisions repeating the same claim are collapsed into one entry,
+  so a row says what the price has been and since when. A revision is written
+  whenever any fact changes — the billing-basis audit of 2026-09-02 wrote one
+  for all fifty-three products — and a row repeating the number above it would
+  be noise rather than history.
+- `billing` has the same shape as the product's own `billing`, or is `null`
+  where that revision stated no basis. Every revision published before
+  2026-09-02 predates the billing columns and states none; the basis is not
+  guessed at from the current one. Where a run of collapsed revisions contains
+  one that states a basis, the entry carries the most recently stated.
+- `note` is absent unless a reviewer wrote a sentence worth publishing. It is
+  their first sentence, unedited; notes that only restate the basis the entry
+  already carries are left out.
+- `is_current` is true on the first entry only, and its figure always equals
+  the product's `price`.
+- Only revisions that were published (`published` or `superseded`) appear.
+  Drafts and rejected revisions are prices nobody ever saw. Entries are capped
+  at the ten most recent distinct figures.
+- The list is empty or one entry long for most products; a single figure is not
+  a history and clients should render nothing rather than a one-row table.
+
 ### Categories and brands
 
 - `GET /api/catalog/categories`
@@ -241,8 +280,11 @@ cleared once used. The list stores the lower-cased address, status, source,
 consent text version, and timestamps only: no IP address, user agent, or
 account link. In development the confirmation intent is visible through
 `GET /api/dev/email-deliveries` as kind `newsletter_confirmation`. Unsubscribe
-tokens are issued with each newsletter; no newsletter is sent yet, so the
-unsubscribe route has no caller until sending exists.
+tokens are issued at sign-up and spent at `/newsletter/unsubscribe#<token>`,
+the same fragment form the confirmation link uses. The page exists and the
+route works; no newsletter is sent yet, so nothing mails that link, and the
+first send has to carry it before the form's "unsubscribe in one click" is a
+promise the site can keep.
 
 ## Product analytics
 

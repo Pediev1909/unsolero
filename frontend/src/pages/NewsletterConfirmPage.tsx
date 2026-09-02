@@ -125,7 +125,7 @@ export function NewsletterConfirmPage() {
           )}
         </Container>
       </main>
-      <SiteFooter />
+      <SiteFooter newsletter={false} />
     </>
   )
 }

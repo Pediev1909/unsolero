@@ -56,6 +56,25 @@ export const billingSchema = z.object({
   annual_price_minor: z.number().int().nonnegative().nullable(),
 })
 
+/**
+ * One dated figure in what a product has cost, from the detail endpoint.
+ *
+ * `observed_at` is the earliest date the figure was recorded: the API collapses
+ * consecutive revisions that repeat the same claim, so a row says what the
+ * price has been and since when. `billing` is null where that revision stated
+ * no basis — every revision published before 2026-09-02 predates the billing
+ * columns — rather than the current basis repeated back over history. `note` is
+ * present only where a reviewer wrote a sentence worth publishing.
+ */
+export const priceRecordEntrySchema = z.object({
+  observed_at: z.string().datetime(),
+  price_minor: z.number().int().nonnegative(),
+  currency: z.string().length(3),
+  billing: billingSchema.nullable(),
+  note: z.string().optional(),
+  is_current: z.boolean(),
+})
+
 export const productSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -123,6 +142,9 @@ export const productDetailSchema = productSummarySchema.extend({
   material: z.string(),
   warranty_months: z.number().int().nonnegative(),
   attributes: z.array(attributeSchema),
+  // Optional so a response cached before the field existed still parses. An
+  // absent list and an empty one mean the same thing: no history to show.
+  price_record: z.array(priceRecordEntrySchema).optional(),
   strengths: z.array(insightSchema),
   weaknesses: z.array(insightSchema),
   use_cases: z.array(insightSchema),
@@ -227,6 +249,7 @@ export const wishlistSchema = productSelectionSchema.extend({
 })
 
 export type Billing = z.infer<typeof billingSchema>
+export type PriceRecordEntry = z.infer<typeof priceRecordEntrySchema>
 export type ProductSummary = z.infer<typeof productSummarySchema>
 export type ProductPage = z.infer<typeof productPageSchema>
 export type ProductDetail = z.infer<typeof productDetailSchema>

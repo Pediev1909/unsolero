@@ -58,18 +58,26 @@ const footerGroups: {
 const footerLinkStyle =
   'flex min-h-6 items-center text-sm text-canvas/75 transition-colors duration-150 hover:text-canvas'
 
-export function SiteFooter() {
+/**
+ * `newsletter` is false on the pages that are the end of a newsletter
+ * decision. Offering "one email when a price changes" directly beneath "You
+ * are unsubscribed." reads as not having listened, and a sign-up form on a
+ * confirmation page competes with the thing the reader just did.
+ */
+export function SiteFooter({ newsletter = true }: { newsletter?: boolean }) {
   return (
     <footer className="border-t border-canvas/10 bg-ink py-10 text-canvas">
       <Container>
         {/* The newsletter panel is light on the dark footer so the shared Input
             and Button keep the contrast they were designed for: the footer's
             inverse palette has no error colour that reads on ink. */}
-        <div className="mb-8 border-b border-canvas/15 pb-8">
-          <div className="bg-canvas px-5 py-6 text-ink sm:px-7 sm:py-7">
-            <NewsletterForm compact source="footer" />
+        {newsletter && (
+          <div className="mb-8 border-b border-canvas/15 pb-8">
+            <div className="bg-canvas px-5 py-6 text-ink sm:px-7 sm:py-7">
+              <NewsletterForm compact source="footer" />
+            </div>
           </div>
-        </div>
+        )}
         <div className="grid gap-8 border-b border-canvas/15 pb-8 md:grid-cols-[1fr_auto] md:gap-16">
           <div>
             <BrandMark inverse />

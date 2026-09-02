@@ -127,6 +127,10 @@ func TestPriceRecordNoteKeepsOneSentenceOrNothing(t *testing.T) {
 			raw:  "Billing basis audit 2026-09-02: re-read on the vendor's page. Compared price unchanged.",
 			want: "Re-read on the vendor's page.",
 		},
+		"a later pass of the same audit": {
+			raw:  "Billing basis audit 2026-09-02 pass 2: read from the page's own currency payload. Compared price moved.",
+			want: "Read from the page's own currency payload.",
+		},
 		"the audit restating the basis": {
 			raw:  "Billing basis audit 2026-09-02: monthly only; period=monthly, unit=flat. Compared price unchanged.",
 			want: "",

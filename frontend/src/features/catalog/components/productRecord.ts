@@ -34,11 +34,12 @@ export function evidenceSummary(
  * dated. The revision line in the evidence record prints it: a revision id
  * says which record this is, the date says how old.
  *
- * This is deliberately not a price history. The API returns the observations
+ * This is not the price history. The evidence array holds the observations
  * attached to the published fact revision only, and a price correction opens a
  * new revision without carrying the obsolete price observation forward, so
- * each fact arrives with one date. Earlier prices exist in superseded
- * revisions the API does not expose.
+ * each fact arrives here with exactly one date. Earlier prices come from the
+ * superseded revisions, which the detail endpoint now publishes separately as
+ * `price_record` — see priceHistory.ts.
  */
 export function latestObservation(product: ProductDetail): string | null {
   const times = visibleEvidence(product)

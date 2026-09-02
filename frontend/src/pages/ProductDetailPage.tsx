@@ -16,6 +16,7 @@ import { ProductComparison } from '../features/catalog/components/ProductCompari
 import { ProductEditorial } from '../features/catalog/components/ProductEditorial'
 import { ProductGallery } from '../features/catalog/components/ProductGallery'
 import { ProductOffers } from '../features/catalog/components/ProductOffers'
+import { PriceRecord } from '../features/catalog/components/PriceRecord'
 import { ProductProsCons } from '../features/catalog/components/ProductProsCons'
 import { ProductSectionNav } from '../features/catalog/components/ProductSectionNav'
 import { ProductSpecifications } from '../features/catalog/components/ProductSpecifications'
@@ -32,6 +33,7 @@ import {
   evidenceFactLabel,
   visibleEvidence,
 } from '../features/catalog/evidence'
+import { hasPriceRecord } from '../features/catalog/priceHistory'
 import { specifications } from '../features/catalog/specifications'
 import { suitabilityVariant } from '../features/catalog/model'
 import { useOffers, useProduct } from '../features/catalog/queries'
@@ -102,6 +104,7 @@ export function ProductDetailPage() {
     evidence: evidence.length > 0,
     offers: (offers.data?.length ?? 0) > 0,
     editorial: (editorial.data?.length ?? 0) > 0,
+    priceRecord: hasPriceRecord(item.price_record),
   })
 
   return (
@@ -177,6 +180,15 @@ export function ProductDetailPage() {
               first scroll, once. The strip owns the price; nothing below
               prints it again. */}
           <ProductAtAGlance product={item} />
+
+          {/* Directly under the strip rather than inside the evidence record,
+              because it is evidence for one thing the strip already claims:
+              the price, and the date beside it. A reader deciding whether to
+              trust that figure is looking at it now, not eight hundred pixels
+              lower under a heading about sources — and the record renders on
+              seven products, while the evidence section is gated on its own
+              contents. It draws nothing where a price never moved. */}
+          <PriceRecord record={item.price_record} />
 
           <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-y border-ink/15 py-5">
             <p className="max-w-xs text-sm leading-6 text-ink/70">
@@ -321,9 +333,10 @@ export function ProductDetailPage() {
               </div>
               {/* One line that names the record this page is: which fact and
                   score revisions it was rendered from, and the most recent day
-                  any of it was observed. Not a price history — the API carries
-                  one dated observation per fact, from the published revision
-                  only; see productRecord.ts. */}
+                  any of it was observed. Not the price history: this section
+                  carries one dated observation per fact, from the published
+                  revision only. The history of the price itself is the price
+                  record under the strip above. */}
               <p className="mt-5 text-xs text-ink/65">
                 Record: fact revision {shortRevision(item.fact_revision_id)} ·
                 score revision {shortRevision(item.score_revision_id)}

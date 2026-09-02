@@ -168,7 +168,7 @@ export function NewsletterUnsubscribePage() {
           )}
         </Container>
       </main>
-      <SiteFooter />
+      <SiteFooter newsletter={false} />
     </>
   )
 }

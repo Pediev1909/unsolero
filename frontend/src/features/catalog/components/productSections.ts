@@ -13,6 +13,7 @@ export interface ProductSection {
 
 export const productSectionIDs = {
   glance: 'at-a-glance',
+  priceRecord: 'price-record',
   profile: 'decision-profile',
   evidence: 'evidence',
   offers: 'where-to-get-it',
@@ -31,11 +32,22 @@ export interface PresentSections {
   evidence: boolean
   offers: boolean
   editorial: boolean
+  /**
+   * A price record exists only where a figure actually moved, which is seven
+   * products today. Optional because most callers have no reason to know
+   * about it, and an absent flag means the section is not there.
+   */
+  priceRecord?: boolean
 }
 
 export function productSections(present: PresentSections): ProductSection[] {
   const candidates: (ProductSection & { present: boolean })[] = [
     { id: productSectionIDs.glance, label: 'At a glance', present: true },
+    {
+      id: productSectionIDs.priceRecord,
+      label: 'Price record',
+      present: present.priceRecord === true,
+    },
     { id: productSectionIDs.profile, label: 'Decision profile', present: true },
     {
       id: productSectionIDs.evidence,

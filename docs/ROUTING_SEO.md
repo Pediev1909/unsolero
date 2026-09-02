@@ -41,8 +41,8 @@ Served with `X-Robots-Tag: noindex, nofollow`:
 
 - authentication, onboarding/build, comparison, wishlist, setup, and account
   routes;
-- `/links` (the social-bio landing page — a signpost, not a page) and
-  `/newsletter/confirm` (token landing);
+- `/links` (the social-bio landing page — a signpost, not a page),
+  `/newsletter/confirm` and `/newsletter/unsubscribe` (token landings);
 - every admin route;
 - any otherwise-public route with query parameters;
 - all resolver error responses.

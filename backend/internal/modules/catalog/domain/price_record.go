@@ -122,10 +122,15 @@ func sameOptionalInt64(left, right *int64) bool {
 	return *left == *right
 }
 
-// auditNotePrefix opens every note the billing-basis audit wrote. The audit's
-// own date is already the row's date, so the prefix is stripped rather than
-// printed fifty-three times.
+// auditNotePrefix opens every note the billing-basis audit wrote, followed by
+// a short marker naming the pass ("2026-09-02: ", "2026-09-02 pass 2: "). The
+// audit's own date is already the row's date, so the marker is stripped rather
+// than printed on every product in the catalog.
 const auditNotePrefix = "Billing basis audit "
+
+// maximumAuditMarkerLength bounds what counts as that marker, so a note that
+// merely happens to contain a colon keeps its first clause.
+const maximumAuditMarkerLength = 40
 
 // priceRecordNote reduces a reviewer's note to the one sentence a reader of the
 // record needs, or to nothing.
@@ -139,9 +144,8 @@ const auditNotePrefix = "Billing basis audit "
 func priceRecordNote(raw string) string {
 	note := strings.TrimSpace(raw)
 	if rest, found := strings.CutPrefix(note, auditNotePrefix); found {
-		const dated = len("2026-09-02: ")
-		if len(rest) > dated && rest[len("2026-09-02"):dated] == ": " {
-			note = strings.TrimSpace(rest[dated:])
+		if marker := strings.Index(rest, ": "); marker > 0 && marker <= maximumAuditMarkerLength {
+			note = strings.TrimSpace(rest[marker+2:])
 		}
 	}
 	note = firstSentence(note)
