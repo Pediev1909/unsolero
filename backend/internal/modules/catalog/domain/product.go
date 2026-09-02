@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 var (
@@ -36,6 +37,111 @@ func (money Money) Validate() error {
 	}
 	if len(money.Currency) != 3 || money.Currency != strings.ToUpper(money.Currency) {
 		return errors.New("currency must be a three-letter uppercase code")
+	}
+	return nil
+}
+
+// FieldError is a validation failure that knows which submitted field it
+// belongs to, so a transport can report it beside that field instead of as
+// "check the submitted fields".
+type FieldError struct {
+	Field  string
+	Reason string
+}
+
+func (err FieldError) Error() string { return err.Field + ": " + err.Reason }
+
+// BillingPeriod is the basis the compared price is quoted on.
+type BillingPeriod string
+
+const (
+	// BillingMonthly: the vendor sells monthly and Price is the monthly-billing
+	// list price. AnnualPriceMinor, when present, is the per-month equivalent
+	// of the annual contract, shown beside it and never compared.
+	BillingMonthly BillingPeriod = "monthly"
+	// BillingAnnual: the vendor offers no monthly billing, so Price is the
+	// per-month equivalent of an annual contract.
+	BillingAnnual BillingPeriod = "annual"
+	// BillingFree: the product line's entry tier is free and Price is zero.
+	BillingFree BillingPeriod = "free"
+	// BillingUsage: the price is usage-based (payments, automation tasks).
+	// Price is the entry figure or zero, and the unit note explains.
+	BillingUsage BillingPeriod = "usage"
+)
+
+// PricingUnit is what one unit of the price buys.
+type PricingUnit string
+
+const (
+	PricingUnitFlat           PricingUnit = "flat"
+	PricingUnitPerUser        PricingUnit = "per_user"
+	PricingUnitPerContacts    PricingUnit = "per_contacts"
+	PricingUnitPerTransaction PricingUnit = "per_transaction"
+	PricingUnitUsage          PricingUnit = "usage"
+)
+
+const maximumPricingUnitNoteLength = 120
+
+// Billing says what Price is a price for. Twenty-five of fifty-three published
+// software products once stored an annual-contract per-month figure while the
+// rest stored the monthly-billing one, and the engine compared them as alike;
+// the basis is recorded so that the site rule -- the compared price is the
+// monthly-billing list price wherever the vendor sells monthly -- can be held.
+type Billing struct {
+	Period BillingPeriod
+	Unit   PricingUnit
+	// UnitNote qualifies the unit for the reader: "at 1,000 contacts", "per
+	// seat, minimum 3 seats", "2.9% + 30¢ per transaction".
+	UnitNote *string
+	// AnnualPriceMinor is the per-month equivalent when billed annually. It
+	// exists beside a monthly price, never instead of one.
+	AnnualPriceMinor *int64
+}
+
+// Normalized trims the note and drops an empty one, so "" from a form and an
+// absent field mean the same thing.
+func (billing Billing) Normalized() Billing {
+	if billing.UnitNote != nil {
+		note := strings.TrimSpace(*billing.UnitNote)
+		if note == "" {
+			billing.UnitNote = nil
+		} else {
+			billing.UnitNote = &note
+		}
+	}
+	return billing
+}
+
+// Validate enforces the closed sets, the note length, that the annual figure
+// only accompanies monthly billing, and that a free plan costs nothing.
+// priceMinor is the product's compared price.
+func (billing Billing) Validate(priceMinor int64) error {
+	switch billing.Period {
+	case BillingMonthly, BillingAnnual, BillingFree, BillingUsage:
+	default:
+		return FieldError{Field: "billing.period", Reason: "must be monthly, annual, free or usage"}
+	}
+	switch billing.Unit {
+	case PricingUnitFlat, PricingUnitPerUser, PricingUnitPerContacts, PricingUnitPerTransaction, PricingUnitUsage:
+	default:
+		return FieldError{Field: "billing.unit", Reason: "must be flat, per_user, per_contacts, per_transaction or usage"}
+	}
+	if billing.UnitNote != nil {
+		length := utf8.RuneCountInString(strings.TrimSpace(*billing.UnitNote))
+		if length < 1 || length > maximumPricingUnitNoteLength {
+			return FieldError{Field: "billing.unit_note", Reason: "must be 1 to 120 characters when present"}
+		}
+	}
+	if billing.AnnualPriceMinor != nil {
+		if billing.Period != BillingMonthly {
+			return FieldError{Field: "billing.annual_price_minor", Reason: "is only recorded beside a monthly price; with annual-only billing the price itself is the annual figure"}
+		}
+		if *billing.AnnualPriceMinor < 0 {
+			return FieldError{Field: "billing.annual_price_minor", Reason: "cannot be negative"}
+		}
+	}
+	if billing.Period == BillingFree && priceMinor != 0 {
+		return FieldError{Field: "billing.period", Reason: "a free plan must have a price of 0"}
 	}
 	return nil
 }
@@ -142,6 +248,7 @@ type Product struct {
 	Slug         string
 	Description  string
 	Price        Money
+	Billing      Billing
 	// IsPhysical mirrors the product category. A non-physical product (for
 	// example a software subscription) carries no dimensions, weight or
 	// material, and those fields stay at their zero value.
@@ -280,6 +387,9 @@ func (product Product) Validate() error {
 	}
 	if err := product.Price.Validate(); err != nil {
 		return fmt.Errorf("price: %w", err)
+	}
+	if err := product.Billing.Validate(product.Price.AmountMinor); err != nil {
+		return err
 	}
 	if product.IsPhysical {
 		if err := product.Dimensions.Validate(); err != nil {

@@ -11,6 +11,7 @@ function product(overrides: {
   category: { name: string; slug: string }
   merchant: string
   offer: string
+  period?: 'monthly' | 'annual'
 }) {
   return {
     id: overrides.id,
@@ -21,6 +22,12 @@ function product(overrides: {
     price: { amount_minor: 1300, currency: 'USD' },
     primary_image: null,
     key_specification: { label: 'Billing', value: 'Per month' },
+    billing: {
+      period: overrides.period ?? ('monthly' as const),
+      unit: 'flat' as const,
+      unit_note: null,
+      annual_price_minor: null,
+    },
     suitability: [],
     scores: {
       quality: 0,
@@ -46,6 +53,7 @@ const crm = product({
   category: { name: 'CRM', slug: 'crm' },
   merchant: 'HubSpot',
   offer: 'offer-1',
+  period: 'annual',
 })
 const email = product({
   id: 'p-2',
@@ -128,6 +136,17 @@ describe('OffersPage', () => {
       /^\/api\/affiliate\/click\/offer-2\?source=product_detail/,
     )
     expect(exit).toHaveAttribute('rel', 'nofollow noopener sponsored')
+
+    // The basis travels with every price: a yearly-only vendor's per-month
+    // figure says so, and the phrase comes from the structured object rather
+    // than the older string beside it.
+    expect(
+      within(crmGroup).getByText('Flat rate, billed yearly'),
+    ).toBeInTheDocument()
+    expect(
+      within(emailGroup).getByText('Flat rate, monthly billing'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Per month')).toBeNull()
 
     // A fresh price is "checked"; a stale one says so in words.
     expect(

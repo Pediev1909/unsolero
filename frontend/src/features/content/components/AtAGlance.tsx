@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Container } from '../../../components/ui/Container'
 import { Heading } from '../../../components/ui/Heading'
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
+import { formatBillingBasis } from '../../catalog/billing'
 import { BrandMark } from '../../catalog/components/BrandMark'
 import { MerchantAction } from '../../catalog/components/MerchantAction'
 import type { ProductSummary } from '../../catalog/schemas'
@@ -66,7 +67,10 @@ export function AtAGlance({ products }: { products: ProductSummary[] }) {
                   size="sm"
                 />
                 <span className="text-xs text-ink/65">
-                  {product.key_specification.value}
+                  {formatBillingBasis(
+                    product.billing,
+                    product.key_specification,
+                  )}
                 </span>
               </p>
               {/* Nothing rather than a disabled control when there is no live

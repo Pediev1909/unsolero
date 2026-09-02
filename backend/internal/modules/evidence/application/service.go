@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -65,10 +66,24 @@ func (service *Service) CreateObservation(ctx context.Context, actor identity.Us
 }
 
 func (service *Service) CreateRevision(ctx context.Context, actor identity.UserID, input domain.RevisionInput) (domain.Revision, error) {
-	if actor == "" || input.Validate() != nil {
+	if actor == "" {
 		return domain.Revision{}, ErrInvalidInput
 	}
+	input.Product.Billing = input.Product.Billing.Normalized()
+	if err := input.Validate(); err != nil {
+		return domain.Revision{}, invalidInput(err)
+	}
 	return service.repository.CreateRevision(ctx, actor, input)
+}
+
+// invalidInput keeps the sentinel and, when the catalog domain named the
+// field that failed, keeps that too so the response can point at it.
+func invalidInput(err error) error {
+	var field catalog.FieldError
+	if errors.As(err, &field) {
+		return fmt.Errorf("%w: %w", ErrInvalidInput, field)
+	}
+	return ErrInvalidInput
 }
 
 func (service *Service) Submit(ctx context.Context, actor identity.UserID, revisionID string) (domain.Revision, error) {

@@ -1,3 +1,4 @@
+import { formatBillingBasis } from '../../features/catalog/billing'
 import { BrandMark } from '../../features/catalog/components/BrandMark'
 import { useProducts } from '../../features/catalog/queries'
 
@@ -34,7 +35,7 @@ export function HeroCatalogPanel() {
               currency: product.price.currency,
               maximumFractionDigits: 0,
             }).format(product.price.amount_minor / 100),
-      billing: product.key_specification.value,
+      billing: formatBillingBasis(product.billing, product.key_specification),
     }))
 
   return (

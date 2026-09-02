@@ -1,10 +1,13 @@
+import { isPerUser } from './billing'
 import type { ProductSummary } from './schemas'
 
 /**
  * Whether a listed price is charged once per seat or once for the whole team.
- * Read from the API's key specification, which is the only structured place
- * the catalog states a billing basis; description prose is not consulted,
- * because a calculator that guesses a basis invents a price.
+ * Read from the API's structured billing unit, which is the only place the
+ * catalog states a basis. Neither the key-specification phrase nor the
+ * description prose is consulted — a calculator that guesses a basis invents a
+ * price — and a product with no billing object is treated as flat, so nothing
+ * gets multiplied on a guess.
  */
 export type BillingBasis = 'per_seat' | 'flat'
 
@@ -12,7 +15,7 @@ export const teamSizeRange = { min: 1, max: 50 } as const
 
 export type PricedProduct = Pick<
   ProductSummary,
-  'id' | 'name' | 'slug' | 'price' | 'key_specification'
+  'id' | 'name' | 'slug' | 'price' | 'billing'
 >
 
 export interface SeatCostLine<T extends PricedProduct = PricedProduct> {
@@ -25,18 +28,14 @@ export interface SeatCostLine<T extends PricedProduct = PricedProduct> {
   currency: string
 }
 
-const perSeatPattern = /\bper[\s-](?:user|seat)\b/i
-
 export function billingBasis(
-  product: Pick<ProductSummary, 'key_specification'>,
+  product: Pick<ProductSummary, 'billing'>,
 ): BillingBasis {
-  return perSeatPattern.test(product.key_specification.value)
-    ? 'per_seat'
-    : 'flat'
+  return isPerUser(product.billing) ? 'per_seat' : 'flat'
 }
 
 export function hasPerSeatPricing(
-  products: readonly Pick<ProductSummary, 'key_specification'>[],
+  products: readonly Pick<ProductSummary, 'billing'>[],
 ): boolean {
   return products.some((product) => billingBasis(product) === 'per_seat')
 }

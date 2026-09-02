@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 
+import { isAnnualOnly } from '../../catalog/billing'
 import type { ProductSummary } from '../../catalog/schemas'
 
 // The hero of a comparison used to be an abstract illustration: decoration in
@@ -24,6 +25,12 @@ type Row = {
   width: number
   cheapest: boolean
   free: boolean
+  /**
+   * The vendor sells only yearly contracts, so this per-month figure is on a
+   * different footing from the monthly rates beside it. The scale still draws
+   * it — the reader wants the number — but the row has to say so.
+   */
+  annualOnly: boolean
 }
 
 export function usePriceRows(products: ProductSummary[]) {
@@ -56,6 +63,7 @@ export function usePriceRows(products: ProductSummary[]) {
         width: Math.max((product.price.amount_minor / highest) * 100, 1.5),
         cheapest: product.price.amount_minor === cheapest,
         free: product.price.amount_minor === 0,
+        annualOnly: isAnnualOnly(product.billing),
       }))
     return { rows, currency }
   }, [products])

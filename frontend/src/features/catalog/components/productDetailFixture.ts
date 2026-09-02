@@ -15,7 +15,18 @@ export function productDetailFixture(
     category: { name: 'Email marketing', slug: 'email-marketing' },
     price: { amount_minor: 2000, currency: 'USD' },
     primary_image: null,
-    key_specification: { label: 'Billing', value: 'Per month, billed monthly' },
+    // The string is what the server derives from the object below; a fixture
+    // where the two disagree would test a state the API never produces.
+    key_specification: {
+      label: 'Billing',
+      value: 'Flat rate, monthly billing',
+    },
+    billing: {
+      period: 'monthly',
+      unit: 'flat',
+      unit_note: null,
+      annual_price_minor: null,
+    },
     suitability: [{ key: 'beginner', label: 'Easy to adopt', score: 84 }],
     scores: {
       quality: 80,

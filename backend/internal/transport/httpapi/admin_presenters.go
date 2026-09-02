@@ -66,6 +66,7 @@ type adminProductResponse struct {
 	Description      string                   `json:"description"`
 	PriceMinor       int64                    `json:"price_minor"`
 	Currency         string                   `json:"currency"`
+	Billing          billingResponse          `json:"billing"`
 	LengthMM         int64                    `json:"length_mm"`
 	WidthMM          int64                    `json:"width_mm"`
 	HeightMM         int64                    `json:"height_mm"`
@@ -295,7 +296,7 @@ func adminProductDTO(value catalog.Product) adminProductResponse {
 	for _, item := range value.Attributes {
 		attributes = append(attributes, adminAttributeDTO(item))
 	}
-	return adminProductResponse{ID: string(value.ID), CategoryID: string(value.CategoryID), CategoryName: value.CategoryName, BrandID: string(value.BrandID), BrandName: value.BrandName, Name: value.Name, Slug: value.Slug, Description: value.Description, PriceMinor: value.Price.AmountMinor, Currency: value.Price.Currency, LengthMM: value.Dimensions.LengthMM, WidthMM: value.Dimensions.WidthMM, HeightMM: value.Dimensions.HeightMM, WeightGrams: value.WeightGrams, MaxCapacityGrams: value.MaxCapacityGrams, Material: value.Material, WarrantyMonths: value.WarrantyMonths, Scores: scoreDTO(value.Scores), Status: string(value.Status), Images: images, Attributes: attributes, UpdatedAt: value.UpdatedAt}
+	return adminProductResponse{ID: string(value.ID), CategoryID: string(value.CategoryID), CategoryName: value.CategoryName, BrandID: string(value.BrandID), BrandName: value.BrandName, Name: value.Name, Slug: value.Slug, Description: value.Description, PriceMinor: value.Price.AmountMinor, Currency: value.Price.Currency, Billing: billingDTO(value.Billing), LengthMM: value.Dimensions.LengthMM, WidthMM: value.Dimensions.WidthMM, HeightMM: value.Dimensions.HeightMM, WeightGrams: value.WeightGrams, MaxCapacityGrams: value.MaxCapacityGrams, Material: value.Material, WarrantyMonths: value.WarrantyMonths, Scores: scoreDTO(value.Scores), Status: string(value.Status), Images: images, Attributes: attributes, UpdatedAt: value.UpdatedAt}
 }
 func adminImageDTO(value catalog.ProductImage) adminImageResponse {
 	return adminImageResponse{ID: value.ID, URL: value.URL, AltText: value.AltText, SortOrder: value.SortOrder, IsPrimary: value.IsPrimary}

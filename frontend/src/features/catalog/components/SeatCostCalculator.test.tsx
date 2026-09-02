@@ -3,13 +3,21 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
-import type { ProductSummary } from '../schemas'
+import type { Billing, ProductSummary } from '../schemas'
 import { SeatCostCalculator } from './SeatCostCalculator'
+
+const perUser: Billing = {
+  period: 'monthly',
+  unit: 'per_user',
+  unit_note: null,
+  annual_price_minor: null,
+}
+const flatRate: Billing = { ...perUser, unit: 'flat' }
 
 function product(
   name: string,
   amountMinor: number,
-  specification: string,
+  billing: Billing | undefined,
 ): ProductSummary {
   const slug = name.toLowerCase().replace(/\s+/g, '-')
   return {
@@ -20,7 +28,8 @@ function product(
     category: { name: 'CRM', slug: 'crm' },
     price: { amount_minor: amountMinor, currency: 'USD' },
     primary_image: null,
-    key_specification: { label: 'Billing', value: specification },
+    key_specification: { label: 'Billing', value: 'Per month' },
+    billing,
     suitability: [],
     scores: {
       quality: 70,
@@ -36,9 +45,9 @@ function product(
   }
 }
 
-const seatCRM = product('Seat CRM', 2000, 'Per user per month')
-const liteCRM = product('Lite CRM', 1000, 'Per seat per month')
-const flatSuite = product('Flat Suite', 900, 'Per month')
+const seatCRM = product('Seat CRM', 2000, perUser)
+const liteCRM = product('Lite CRM', 1000, perUser)
+const flatSuite = product('Flat Suite', 900, flatRate)
 
 function renderCalculator(products: ProductSummary[]) {
   return render(
@@ -51,6 +60,16 @@ function renderCalculator(products: ProductSummary[]) {
 describe('SeatCostCalculator', () => {
   it('renders nothing for a category with no per-seat prices', () => {
     const { container } = renderCalculator([flatSuite])
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  // The basis comes from the API's structured unit. Before that existed, the
+  // phrase "Per month" on every product kept the calculator dormant; a
+  // response without the object still does, rather than multiplying a guess.
+  it('renders nothing when the API states no billing basis', () => {
+    const { container } = renderCalculator([
+      product('Unknown CRM', 2000, undefined),
+    ])
     expect(container).toBeEmptyDOMElement()
   })
 
@@ -72,6 +91,21 @@ describe('SeatCostCalculator', () => {
       'href',
       '/products/seat-crm',
     )
+  })
+
+  // The total column is headed "per month". A yearly-only vendor's per-seat
+  // figure is a per-month equivalent on a different contract, and the row has
+  // to say so or the column is comparing two promises as one.
+  it('marks a per-seat price that is only sold on a yearly contract', () => {
+    renderCalculator([
+      seatCRM,
+      product('Annual CRM', 1500, { ...perUser, period: 'annual' }),
+    ])
+    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1)
+    expect(rows[0]).toHaveTextContent('$15.00 per seat, billed yearly')
+    expect(rows[0]).toHaveTextContent('$75.00')
+    expect(rows[1]).toHaveTextContent('$20.00 per seat')
+    expect(rows[1]).not.toHaveTextContent('billed yearly')
   })
 
   it('recomputes when the team grows or shrinks, within one to fifty seats', async () => {

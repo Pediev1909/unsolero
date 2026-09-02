@@ -1,4 +1,5 @@
 import { apiRequest, ApiError } from '../../lib/api/client'
+import type { Billing } from '../catalog/schemas'
 import {
   affiliateLinkSchema,
   analyticsReportSchema,
@@ -72,6 +73,8 @@ export interface ProductInput {
   description: string
   price_minor: number
   currency: string
+  /** How `price_minor` is charged; the same object the product responses carry. */
+  billing: Billing
   length_mm: number
   width_mm: number
   height_mm: number

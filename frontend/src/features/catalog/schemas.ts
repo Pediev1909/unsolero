@@ -28,6 +28,34 @@ const scoresSchema = z.object({
   portability: z.number(),
 })
 
+export const billingPeriods = ['monthly', 'annual', 'free', 'usage'] as const
+export const billingUnits = [
+  'flat',
+  'per_user',
+  'per_contacts',
+  'per_transaction',
+  'usage',
+] as const
+
+/**
+ * How the listed `price` is charged.
+ *
+ * `price` stays the compared figure: the monthly-billing rate wherever the
+ * vendor sells month to month. `period: 'annual'` means the vendor sells only
+ * yearly contracts and `price` is that contract's per-month equivalent —
+ * twenty-five products in the catalog are on that basis, and until this object
+ * existed nothing in the data said so. `free` puts the price at zero; `usage`
+ * makes it the entry usage price, with the note saying what a unit is.
+ * `annual_price_minor` is the per-month figure on annual billing when the
+ * vendor offers both.
+ */
+export const billingSchema = z.object({
+  period: z.enum(billingPeriods),
+  unit: z.enum(billingUnits),
+  unit_note: z.string().nullable(),
+  annual_price_minor: z.number().int().nonnegative().nullable(),
+})
+
 export const productSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -37,6 +65,12 @@ export const productSummarySchema = z.object({
   price: moneySchema,
   primary_image: imageSchema.nullable(),
   key_specification: z.object({ label: z.string(), value: z.string() }),
+  // The structured basis behind `key_specification`, which the server now
+  // derives from it. Anything that only prints the basis may keep reading the
+  // string; anything that needs its shape — the seat calculator, the
+  // comparison's billing row, a "billed yearly" mark — reads this. Optional so
+  // a response cached before the field existed still parses.
+  billing: billingSchema.optional(),
   suitability: z.array(insightSchema),
   scores: scoresSchema,
   is_demo: z.boolean(),
@@ -192,6 +226,7 @@ export const wishlistSchema = productSelectionSchema.extend({
   total_pages: z.number().int().nonnegative(),
 })
 
+export type Billing = z.infer<typeof billingSchema>
 export type ProductSummary = z.infer<typeof productSummarySchema>
 export type ProductPage = z.infer<typeof productPageSchema>
 export type ProductDetail = z.infer<typeof productDetailSchema>

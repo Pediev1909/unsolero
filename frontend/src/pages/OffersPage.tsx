@@ -11,6 +11,7 @@ import { Heading } from '../components/ui/Heading'
 import { LoadingState } from '../components/ui/LoadingState'
 import { PriceDisplay } from '../components/ui/PriceDisplay'
 import { affiliateClickPath } from '../features/analytics/tracking'
+import { formatBillingBasis } from '../features/catalog/billing'
 import { BrandMark } from '../features/catalog/components/BrandMark'
 import { useLiveOffers } from '../features/catalog/queries'
 import type { LiveOffer } from '../features/catalog/schemas'
@@ -200,7 +201,7 @@ function OfferRow({ item }: { item: LiveOffer }) {
               size="sm"
             />
             <span className="text-sm text-ink/65">
-              {product.key_specification.value}
+              {formatBillingBasis(product.billing, product.key_specification)}
             </span>
           </p>
           {/* The date was always the point. What a reader should not have to

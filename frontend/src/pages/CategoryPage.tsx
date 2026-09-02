@@ -41,9 +41,9 @@ export function CategoryPage() {
       eyebrow="Software category"
       noindex={false}
       title={category.data.name}
-      // Shows only where the page has a per-seat price to multiply; today's
-      // catalog states "Per month" for every product, so it stays dormant
-      // until the API carries a billing basis.
+      // Shows only where the page has a per-seat price to multiply, which the
+      // API states in each product's billing unit. A response without that
+      // object leaves the calculator dormant rather than guessing a basis.
       afterGrid={(products) => <SeatCostCalculator products={products} />}
       afterCatalog={<RelatedContentSection categorySlug={category.data.slug} />}
     />

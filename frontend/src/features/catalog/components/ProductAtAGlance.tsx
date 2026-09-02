@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom'
 
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
 import { buttonStyles } from '../../../components/ui/buttonStyles'
+import { formatMinorCurrency } from '../../../lib/money/format'
 import { cn } from '../../../lib/styles/cn'
 import { affiliateClickPath } from '../../analytics/tracking'
+import { annualPriceMinor, annualSaving, formatBillingBasis } from '../billing'
 import { priceCheckedOn, priceSource } from '../comparisonRows'
 import { useOffers } from '../queries'
 import type { ProductDetail } from '../schemas'
@@ -23,16 +25,27 @@ import { productSectionIDs, sectionAnchorClass } from './productSections'
  * parts that back them. Nothing here is printed a second time below: the price
  * card that used to hold the price is gone (see ProductGallery).
  *
- * Two cells are honest by omission. The catalog has no free-plan or trial
- * field, so no cell claims one. And when the vendor has no affiliate programme
- * the last cell says so and offers the brand page, rather than a button
- * dressed up as an offer.
+ * Two cells are honest by omission. The catalog has no trial field, so no cell
+ * claims one; a free tier appears only as the basis the API states. And when
+ * the vendor has no affiliate programme the last cell says so and offers the
+ * brand page, rather than a button dressed up as an offer.
+ *
+ * The price cell says which basis the figure is on, because that is where the
+ * trick in software pricing lives: one vendor quotes a month, the next quotes
+ * a year and shows the smaller number. Where the vendor sells both, the yearly
+ * rate follows as a quieter second line — offered, not pushed.
  */
 export function ProductAtAGlance({ product }: { product: ProductDetail }) {
   const bestFor = product.use_cases[0]
   const evidence = evidenceSummary(product)
   const checked = priceCheckedOn(product)
   const source = priceSource(product)
+  const basis = formatBillingBasis(product.billing, product.key_specification)
+  const annual = annualPriceMinor(product.billing)
+  // Only a yearly rate that is actually lower earns the line. One that is not
+  // is either a data error or a vendor with nothing to offer for the
+  // commitment, and neither is worth a reader's attention.
+  const saving = annualSaving(product.price, product.billing)
 
   return (
     <section
@@ -51,8 +64,14 @@ export function ProductAtAGlance({ product }: { product: ProductDetail }) {
             size="lg"
           />
           <span className="mt-1 block text-sm text-ink/70">
-            {product.key_specification.value || 'Billing basis not recorded'}
+            {basis || 'Billing basis not recorded'}
           </span>
+          {annual !== null && saving !== null && (
+            <span className="mt-0.5 block text-xs text-ink/65">
+              or {formatMinorCurrency(annual, product.price.currency)}/mo billed
+              yearly
+            </span>
+          )}
           <span className="mt-2 block text-xs leading-5 text-ink/65">
             {/* The caveat travelled here with the price. A price is as good
                 as its date, and the date is only useful next to the number. */}

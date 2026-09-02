@@ -234,16 +234,56 @@ func TestRenderProductBodyCarriesHeadingAndCatalogLinks(t *testing.T) {
 		CategoryName: "Project management", CategorySlug: "project-management",
 		Description: "Project and task tracking on the entry paid tier.",
 		Price:       catalog.Money{AmountMinor: 1000, Currency: "USD"},
+		Billing:     catalog.Billing{Period: catalog.BillingMonthly, Unit: catalog.PricingUnitPerUser},
 	})
 	for _, want := range []string{
 		"<h1", "ClickUp Unlimited",
 		`href="/brands/clickup"`,
 		`href="/categories/project-management"`,
-		"USD 10.00",
+		"USD 10.00 <span",
+		">per user, monthly billing</span>",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("product body is missing %q\ngot: %s", want, body)
 		}
+	}
+	if strings.Contains(body, "per month, entry paid tier") {
+		t.Errorf("product body still asserts a basis it does not know\ngot: %s", body)
+	}
+}
+
+// The basis under the price is the record's, not a constant. Half the software
+// catalog stored annual-contract figures under a line that said "per month".
+func TestRenderProductBodyStatesTheRecordedBillingBasis(t *testing.T) {
+	note := "at 1,000 contacts"
+	cases := []struct {
+		name    string
+		product catalog.Product
+		want    string
+	}{
+		{"annual only", catalog.Product{Name: "Kit Creator", Slug: "kit-creator",
+			Price:   catalog.Money{AmountMinor: 2_900, Currency: "USD"},
+			Billing: catalog.Billing{Period: catalog.BillingAnnual, Unit: catalog.PricingUnitFlat}},
+			"USD 29.00 <span class=\"text-ink/70\">flat rate, billed yearly</span>"},
+		{"contact tier", catalog.Product{Name: "Mailchimp Standard", Slug: "mailchimp-standard",
+			Price:   catalog.Money{AmountMinor: 2_000, Currency: "USD"},
+			Billing: catalog.Billing{Period: catalog.BillingMonthly, Unit: catalog.PricingUnitPerContacts, UnitNote: &note}},
+			"USD 20.00 <span class=\"text-ink/70\">at 1,000 contacts, monthly billing</span>"},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if body := renderProductBody(testCase.product); !strings.Contains(body, testCase.want) {
+				t.Errorf("product body is missing %q\ngot: %s", testCase.want, body)
+			}
+		})
+	}
+	// A physical product has no billing cadence, and the default basis a
+	// physical row carries must not be printed as if it were one.
+	physical := renderProductBody(catalog.Product{Name: "Kettlebell", Slug: "kettlebell", IsPhysical: true,
+		Price:   catalog.Money{AmountMinor: 4_900, Currency: "USD"},
+		Billing: catalog.Billing{Period: catalog.BillingMonthly, Unit: catalog.PricingUnitFlat}})
+	if !strings.Contains(physical, "USD 49.00</p>") || strings.Contains(physical, "billing") {
+		t.Errorf("physical product body carries a billing phrase\ngot: %s", physical)
 	}
 }
 

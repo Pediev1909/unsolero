@@ -35,6 +35,7 @@ func validRevisionInput() RevisionInput {
 	product := catalog.Product{ID: "product", CategoryID: "category", BrandID: "brand",
 		Name: "Product", Slug: "product", Description: "Description",
 		Price:       catalog.Money{AmountMinor: 100, Currency: "USD"},
+		Billing:     catalog.Billing{Period: catalog.BillingMonthly, Unit: catalog.PricingUnitFlat},
 		IsPhysical:  true,
 		Dimensions:  catalog.Dimensions{LengthMM: 1, WidthMM: 1, HeightMM: 1},
 		WeightGrams: 1, Material: "Steel", WarrantyMonths: 0,

@@ -17,7 +17,16 @@ function product(overrides: Partial<ProductDetail> = {}): ProductDetail {
     category: { name: 'CRM', slug: 'crm' },
     price: { amount_minor: 2000, currency: 'USD' },
     primary_image: null,
-    key_specification: { label: 'Billing', value: 'Per month' },
+    key_specification: {
+      label: 'Billing',
+      value: 'Flat rate, monthly billing',
+    },
+    billing: {
+      period: 'monthly',
+      unit: 'flat',
+      unit_note: null,
+      annual_price_minor: null,
+    },
     suitability: [],
     scores: {
       quality: 80,
@@ -100,5 +109,35 @@ describe('visibleComparisonRows', () => {
   it('always includes the billing basis', () => {
     const rows = visibleComparisonRows([product()])
     expect(rows.some((r) => r.key === 'billing')).toBe(true)
+  })
+})
+
+describe('billing basis row', () => {
+  const billingRow = comparisonRows.find((r) => r.key === 'billing')!
+
+  // The row reads the structured object, so two products whose prices look
+  // alike but sit on different contracts come out as different — which is
+  // the one thing this row exists to show.
+  it('states the structured basis and tells a yearly contract from a monthly one', () => {
+    const yearly = product({
+      id: 'b',
+      billing: {
+        period: 'annual',
+        unit: 'per_user',
+        unit_note: null,
+        annual_price_minor: null,
+      },
+    })
+    expect(billingRow.value?.(product())).toBe('Flat rate, monthly billing')
+    expect(billingRow.value?.(yearly)).toBe('Per user, billed yearly')
+    expect(rowIsIdentical(billingRow, [product(), yearly])).toBe(false)
+  })
+
+  it('falls back to the server phrase when the response has no billing object', () => {
+    const legacy = product({
+      billing: undefined,
+      key_specification: { label: 'Billing', value: 'Per month' },
+    })
+    expect(billingRow.value?.(legacy)).toBe('Per month')
   })
 })

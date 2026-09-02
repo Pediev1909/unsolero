@@ -91,10 +91,13 @@ func TestGovernedPublicationLifecycle(t *testing.T) {
 		t.Fatalf("CreateObservation(): %v", err)
 	}
 
+	contactsNote := "at 1,000 contacts"
+	annual := int64(8_000)
 	product := catalog.Product{ID: productID, CategoryID: categoryID, BrandID: brandID,
 		Name: "Published evidence product", Slug: slug,
 		Description:    "Published through the evidence workflow.",
 		Price:          catalog.Money{AmountMinor: 10000, Currency: "USD"},
+		Billing:        catalog.Billing{Period: catalog.BillingMonthly, Unit: catalog.PricingUnitPerContacts, UnitNote: &contactsNote, AnnualPriceMinor: &annual},
 		WarrantyMonths: 0,
 		Scores: catalog.Scores{Quality: 81, Value: 82, Durability: 83, Beginner: 84,
 			Advanced: 85, Apartment: 86, Noise: 87, Portability: 88},
@@ -156,6 +159,22 @@ func TestGovernedPublicationLifecycle(t *testing.T) {
 	if status != "published" || factID != revision.FactRevisionID ||
 		scoreID != revision.ScoreRevisionID || name != product.Name {
 		t.Fatalf("published projection = status=%s fact=%s score=%s name=%s", status, factID, scoreID, name)
+	}
+	// The row was inserted with the default basis; publication replaced it
+	// with the revision's, note and annual figure included.
+	published, err := catalogpostgres.New(pool).GetPublishedBySlug(ctx, slug)
+	if err != nil {
+		t.Fatalf("published product lookup: %v", err)
+	}
+	if published.Billing.Period != catalog.BillingMonthly || published.Billing.Unit != catalog.PricingUnitPerContacts ||
+		published.Billing.UnitNote == nil || *published.Billing.UnitNote != contactsNote ||
+		published.Billing.AnnualPriceMinor == nil || *published.Billing.AnnualPriceMinor != annual {
+		t.Fatalf("published billing basis = %#v", published.Billing)
+	}
+	var revisionPeriod string
+	if err = pool.QueryRow(ctx, `SELECT billing_period FROM evidence.product_fact_revisions WHERE id=$1`,
+		revision.FactRevisionID).Scan(&revisionPeriod); err != nil || revisionPeriod != "monthly" {
+		t.Fatalf("fact revision billing_period = %q, %v", revisionPeriod, err)
 	}
 	governance, err := repository.GetProductGovernance(ctx, productID)
 	if err != nil || len(governance.Revisions) != 2 || len(governance.Provenance) != 30 || len(governance.Audit) < 7 {

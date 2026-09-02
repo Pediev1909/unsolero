@@ -21,6 +21,8 @@ const adminProductColumns = `
 	products.id, products.category_id, categories.name, categories.slug,
 	products.brand_id, brands.name, brands.slug, products.name, products.slug,
 	products.description, products.price_minor, products.currency,
+	products.billing_period, products.pricing_unit, products.pricing_unit_note,
+	products.annual_price_minor,
 	categories.is_physical,
 	products.length_mm, products.width_mm, products.height_mm,
 	products.weight_grams, products.max_capacity_grams, products.material,
@@ -91,11 +93,13 @@ func scanAdminProduct(row scanner, total *int64, product *catalog.Product) error
 	// A non-physical category leaves these columns null; they are scanned
 	// through nullable holders and stay at their zero value.
 	var lengthMM, widthMM, heightMM, weightGrams sql.NullInt64
-	var material sql.NullString
+	var material, unitNote sql.NullString
+	var annualPrice sql.NullInt64
 	targets := []interface{}{
 		&product.ID, &product.CategoryID, &product.CategoryName, &product.CategorySlug,
 		&product.BrandID, &product.BrandName, &product.BrandSlug, &product.Name, &product.Slug,
 		&product.Description, &product.Price.AmountMinor, &product.Price.Currency,
+		&product.Billing.Period, &product.Billing.Unit, &unitNote, &annualPrice,
 		&product.IsPhysical,
 		&lengthMM, &widthMM, &heightMM,
 		&weightGrams, &capacity, &material, &product.WarrantyMonths,
@@ -113,6 +117,14 @@ func scanAdminProduct(row scanner, total *int64, product *catalog.Product) error
 	if capacity.Valid {
 		value := capacity.Int64
 		product.MaxCapacityGrams = &value
+	}
+	if unitNote.Valid {
+		value := unitNote.String
+		product.Billing.UnitNote = &value
+	}
+	if annualPrice.Valid {
+		value := annualPrice.Int64
+		product.Billing.AnnualPriceMinor = &value
 	}
 	product.Dimensions = catalog.Dimensions{
 		LengthMM: lengthMM.Int64, WidthMM: widthMM.Int64, HeightMM: heightMM.Int64,
@@ -246,14 +258,17 @@ func (repository *Repository) CreateProduct(ctx context.Context, actor identity.
 			category_id, brand_id, name, slug, description, price_minor, currency,
 			length_mm, width_mm, height_mm, weight_grams, max_capacity_grams,
 			material, warranty_months, quality_score, value_score, durability_score,
-			beginner_score, advanced_score, apartment_score, noise_score, portability_score
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+			beginner_score, advanced_score, apartment_score, noise_score, portability_score,
+			billing_period, pricing_unit, pricing_unit_note, annual_price_minor
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
+			$23,$24,$25,$26)
 		RETURNING id`, input.CategoryID, input.BrandID, input.Name, input.Slug, input.Description,
 		input.Price.AmountMinor, input.Price.Currency, insertLength, insertWidth,
 		insertHeight, insertWeight, input.MaxCapacityGrams, insertMaterial,
 		input.WarrantyMonths, input.Scores.Quality, input.Scores.Value, input.Scores.Durability,
 		input.Scores.Beginner, input.Scores.Advanced, input.Scores.Apartment, input.Scores.Noise,
-		input.Scores.Portability).Scan(&id)
+		input.Scores.Portability, input.Billing.Period, input.Billing.Unit,
+		input.Billing.UnitNote, input.Billing.AnnualPriceMinor).Scan(&id)
 	if err == nil {
 		err = audit(ctx, tx, actor, "product.create", "product", string(id), map[string]string{"slug": input.Slug})
 	}
@@ -280,13 +295,15 @@ func (repository *Repository) UpdateProduct(ctx context.Context, actor identity.
 			height_mm=$11, weight_grams=$12, max_capacity_grams=$13, material=$14,
 			warranty_months=$15, quality_score=$16, value_score=$17, durability_score=$18,
 			beginner_score=$19, advanced_score=$20, apartment_score=$21, noise_score=$22,
-			portability_score=$23, updated_at=now()
+			portability_score=$23, billing_period=$24, pricing_unit=$25,
+			pricing_unit_note=$26, annual_price_minor=$27, updated_at=now()
 		WHERE id=$1 AND status <> 'published'`, id, input.CategoryID, input.BrandID, input.Name, input.Slug, input.Description,
 		input.Price.AmountMinor, input.Price.Currency, updateLength, updateWidth,
 		updateHeight, updateWeight, input.MaxCapacityGrams, updateMaterial,
 		input.WarrantyMonths, input.Scores.Quality, input.Scores.Value, input.Scores.Durability,
 		input.Scores.Beginner, input.Scores.Advanced, input.Scores.Apartment, input.Scores.Noise,
-		input.Scores.Portability)
+		input.Scores.Portability, input.Billing.Period, input.Billing.Unit,
+		input.Billing.UnitNote, input.Billing.AnnualPriceMinor)
 	if err == nil && tag.RowsAffected() == 0 {
 		err = ports.ErrConflict
 	}

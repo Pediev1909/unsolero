@@ -386,9 +386,15 @@ func renderProductBody(product catalog.Product) string {
 	}
 
 	if product.Price.AmountMinor > 0 && product.Price.Currency != "" {
-		body.WriteString(`<p class="mt-4 text-body-lg">` +
-			html.EscapeString(formatMoney(product.Price)) +
-			` <span class="text-ink/70">per month, entry paid tier</span></p>`)
+		body.WriteString(`<p class="mt-4 text-body-lg">` + html.EscapeString(formatMoney(product.Price)))
+		// The basis is stated from the record, not assumed. This used to read
+		// "per month, entry paid tier" under every price, half of which were
+		// annual-contract figures. A physical product has no billing cadence.
+		if !product.IsPhysical {
+			body.WriteString(` <span class="text-ink/70">` +
+				html.EscapeString(lowerFirst(billingPhrase(product.Billing))) + `</span>`)
+		}
+		body.WriteString(`</p>`)
 	}
 	if product.Description != "" {
 		body.WriteString(`<p class="mt-5 text-body">` +

@@ -133,6 +133,44 @@ The collection accepts:
 
 The collection response contains `products`, `page`, `page_size`, `total`, and `total_pages`. Product detail adds dimensions, weight, capacity, material, warranty, typed attributes, strengths, weaknesses, use cases, and same-category alternatives.
 
+#### Price and billing basis
+
+Every product summary and detail carries `price` and, beside it, `billing`:
+
+```json
+"price": {"amount_minor": 2000, "currency": "USD"},
+"billing": {"period": "monthly", "unit": "per_user", "unit_note": null, "annual_price_minor": 1500}
+```
+
+`price` is the compared figure — the one budget filters, sorting, value and
+the cheaper/premium alternatives use — and `billing` says what it is a price
+for. `period` is one of:
+
+- `monthly`: the vendor sells monthly and `price` is the monthly-billing list
+  price. `annual_price_minor`, when not null, is the per-month equivalent of
+  the annual contract; it is shown, never compared, and is present only when
+  the vendor offers both.
+- `annual`: the vendor offers no monthly billing; `price` is the per-month
+  equivalent of an annual contract and `annual_price_minor` is null.
+- `free`: the product line's entry tier is free and `price.amount_minor` is 0.
+- `usage`: the price is usage-based (payments, automation tasks); `price` is
+  the entry figure or 0 and `unit_note` explains.
+
+`unit` is one of `flat`, `per_user`, `per_contacts`, `per_transaction` or
+`usage`; `unit_note` is an optional qualifier of up to 120 characters ("at
+1,000 contacts", "per seat, minimum 3 seats", "2.9% + 30¢ per transaction").
+
+For a non-physical product `key_specification` is derived from `billing` as
+`{"label": "Billing", "value": <unit phrase>, <period phrase>}`. Unit phrases:
+`flat` → "Flat rate"; `per_user` → "Per user"; `per_contacts` → the note if
+present else "Per contact tier"; `per_transaction` → the note if present else
+"Per transaction"; `usage` → the note if present else "Usage-based". Period
+phrases: `monthly` → "monthly billing"; `annual` → "billed yearly"; `free` →
+"free plan"; `usage` → omitted. Examples: "Per user, monthly billing", "Flat
+rate, billed yearly", "At 1,000 contacts, monthly billing", "2.9% + 30¢ per
+transaction". The same phrase follows the price in the server-rendered product
+body.
+
 ### Categories and brands
 
 - `GET /api/catalog/categories`
@@ -275,6 +313,19 @@ All endpoints below require a valid session and their explicit current database-
 - `GET /api/admin/recommendations/{recommendationID}`
 - `GET /api/admin/users`
 - `GET /api/admin/events`
+
+Product bodies (`POST /api/admin/products`, `PATCH
+/api/admin/products/{productID}`, and the `product` object of an evidence
+revision) carry `price_minor`, `currency` and a required `billing` object with
+the shape and semantics documented under the public catalog: `period`, `unit`,
+`unit_note` (nullable) and `annual_price_minor` (nullable, only with
+`period: "monthly"`; a `free` period requires `price_minor: 0`). Admin product
+responses return the same `billing` object. A basis that fails validation is a
+`422 invalid_admin_input` (or `invalid_evidence_input`) whose `fields` map
+names the field, for example `{"billing.annual_price_minor": "..."}`. A
+published fact revision replaces the product's whole billing basis; a revision
+row with no `billing_period` — as a data seed may write — leaves the product's
+current basis in place.
 
 Product image creation accepts either strict JSON for a validated external URL or `multipart/form-data` with `file`, `alt_text`, `sort_order`, and `is_primary`. Uploaded JPEG, PNG, and WebP files are limited to 5 MB and returned from an immutable same-origin `/api/media/products/{file}` path. SVG and executable formats are rejected.
 

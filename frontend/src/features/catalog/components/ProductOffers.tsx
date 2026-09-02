@@ -9,9 +9,20 @@ import { Skeleton } from '../../../components/ui/Skeleton'
 import { buttonStyles } from '../../../components/ui/buttonStyles'
 import { formatMinorCurrency } from '../../../lib/money/format'
 import { cn } from '../../../lib/styles/cn'
+import { formatBillingBasis } from '../billing'
 import { useOffers } from '../queries'
+import type { ProductDetail } from '../schemas'
 import { affiliateClickPath } from '../../analytics/tracking'
 import { productSectionIDs, sectionAnchorClass } from './productSections'
+
+interface ProductOffersProps {
+  /**
+   * The product the offers belong to. The slug loads them; the billing basis
+   * is printed beside each price, because a vendor's per-month figure on a
+   * yearly contract looks identical to a monthly one and is not.
+   */
+  product: Pick<ProductDetail, 'slug' | 'billing' | 'key_specification'>
+}
 
 /**
  * Where to get the product, when there is somewhere to send people.
@@ -27,8 +38,9 @@ import { productSectionIDs, sectionAnchorClass } from './productSections'
  * The component owns its whole section now and renders nothing at all when
  * there is nothing to say.
  */
-export function ProductOffers({ slug }: { slug: string }) {
-  const offers = useOffers(slug)
+export function ProductOffers({ product }: ProductOffersProps) {
+  const offers = useOffers(product.slug)
+  const basis = formatBillingBasis(product.billing, product.key_specification)
 
   if (offers.isPending) {
     return (
@@ -79,6 +91,7 @@ export function ProductOffers({ slug }: { slug: string }) {
                   currency={offer.price.currency}
                   size="md"
                 />
+                {basis && <span className="text-xs text-ink/70">{basis}</span>}
                 {/* Nothing is shipped to anyone. A lorry icon and the words
                     "Shipping included" under a monthly subscription price is
                     the equipment catalog talking. */}

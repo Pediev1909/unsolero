@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
 import { formatMinorCurrency } from '../../../lib/money/format'
+import { isAnnualOnly } from '../billing'
 import type { ProductSummary } from '../schemas'
 import {
   clampTeamSize,
@@ -123,10 +124,12 @@ export function SeatCostCalculator({ products }: SeatCostCalculatorProps) {
                 <td className="py-3 pr-4 text-ink/70">
                   {/* Zero is a real price the PriceDisplay in the next column
                       already words carefully; "$0.00 flat" beside it would
-                      undo that. */}
+                      undo that. A yearly-only vendor's figure is its
+                      per-month equivalent, and the total column is headed
+                      "per month", so the row says which contract it means. */}
                   {line.unitMinor === 0
                     ? 'No monthly fee'
-                    : `${formatMinorCurrency(line.unitMinor, line.currency)} ${line.basis === 'per_seat' ? 'per seat' : 'flat'}`}
+                    : `${formatMinorCurrency(line.unitMinor, line.currency)} ${line.basis === 'per_seat' ? 'per seat' : 'flat'}${isAnnualOnly(line.product.billing) ? ', billed yearly' : ''}`}
                 </td>
                 <td className="py-3 text-right">
                   <PriceDisplay

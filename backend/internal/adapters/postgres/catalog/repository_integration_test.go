@@ -114,6 +114,12 @@ func TestDemoCatalogRepositories(t *testing.T) {
 	if product.IsPhysical || product.Price.AmountMinor != 2_900 {
 		t.Fatalf("unexpected SaaS product projection: %#v", product)
 	}
+	// The fixture predates the billing columns, so it carries the defaults:
+	// the basis the catalog had always assumed of every row.
+	if product.Billing.Period != catalog.BillingMonthly || product.Billing.Unit != catalog.PricingUnitFlat ||
+		product.Billing.UnitNote != nil || product.Billing.AnnualPriceMinor != nil {
+		t.Fatalf("fixture billing basis = %#v, want the monthly flat default", product.Billing)
+	}
 
 	commerceRepository := commercepostgres.New(pool)
 	offers, err := commerceRepository.ListAvailableByProduct(ctx, catalog.ProductID(product.ID), "USD")
@@ -250,5 +256,33 @@ func TestCoreProductConstraints(t *testing.T) {
 		WHERE slug = 'saas-northwind-crm'`)
 	if err == nil {
 		t.Fatal("database accepted multiple typed attribute values")
+	}
+
+	// The billing basis is checked in the database as well as the domain, so a
+	// data seed that gets it wrong fails loudly rather than publishing.
+	for name, billing := range map[string]string{
+		"a free plan with a price":            `1000, 'USD', 'free', 'flat', NULL, NULL`,
+		"an annual figure beside annual-only": `1000, 'USD', 'annual', 'flat', NULL, 800`,
+		"an unknown period":                   `1000, 'USD', 'quarterly', 'flat', NULL, NULL`,
+		"an unknown unit":                     `1000, 'USD', 'monthly', 'per_seat', NULL, NULL`,
+		"a blank unit note":                   `1000, 'USD', 'monthly', 'per_contacts', '   ', NULL`,
+	} {
+		_, err = pool.Exec(ctx, `
+			INSERT INTO catalog.products (
+				category_id, brand_id, name, slug, description, price_minor, currency,
+				billing_period, pricing_unit, pricing_unit_note, annual_price_minor,
+				warranty_months, quality_score, value_score, durability_score, beginner_score,
+				advanced_score, apartment_score, noise_score, portability_score, status
+			)
+			SELECT categories.id, brands.id, 'Invalid billing', 'integration-invalid-billing',
+				'Constraint test record that must never be inserted.', `+billing+`,
+				0, 50, 50, 50, 50, 50, 0, 0, 50, 'draft'
+			FROM catalog.categories AS categories
+			CROSS JOIN catalog.brands AS brands
+			WHERE categories.slug = 'crm' AND brands.slug = 'northwind-software'`)
+		if err == nil {
+			_, _ = pool.Exec(ctx, `DELETE FROM catalog.products WHERE slug = 'integration-invalid-billing'`)
+			t.Fatalf("database accepted %s", name)
+		}
 	}
 }

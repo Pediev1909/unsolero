@@ -337,7 +337,7 @@ export function ProductDetailPage() {
             them. The heading used to live here and the list inside the
             component, so a section title sat above an empty state on 45 of 53
             product pages. */}
-        <ProductOffers slug={item.slug} />
+        <ProductOffers product={item} />
 
         <ProductEditorial slug={item.slug} />
 

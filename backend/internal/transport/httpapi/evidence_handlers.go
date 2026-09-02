@@ -275,7 +275,8 @@ func (h *Handler) adminCreateEvidenceRevision(response http.ResponseWriter, requ
 	input := body.Product.domain()
 	product := catalog.Product{ID: catalog.ProductID(id), CategoryID: input.CategoryID,
 		BrandID: input.BrandID, Name: input.Name, Slug: input.Slug,
-		Description: input.Description, Price: input.Price, Dimensions: input.Dimensions,
+		Description: input.Description, Price: input.Price, Billing: input.Billing,
+		Dimensions:  input.Dimensions,
 		WeightGrams: input.WeightGrams, MaxCapacityGrams: input.MaxCapacityGrams,
 		Material: input.Material, WarrantyMonths: input.WarrantyMonths,
 		Scores: input.Scores, Status: catalog.ProductStatusDraft}
@@ -350,7 +351,7 @@ func (h *Handler) transitionEvidenceRevision(response http.ResponseWriter, reque
 func (h *Handler) writeEvidenceError(response http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, evidenceapp.ErrInvalidInput):
-		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_evidence_input", "Check the evidence fields and provenance coverage.", nil, h.logger)
+		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_evidence_input", "Check the evidence fields and provenance coverage.", fieldErrors(err), h.logger)
 	case errors.Is(err, ports.ErrNotFound):
 		writeAPIError(response, http.StatusNotFound, "evidence_not_found", "The evidence record was not found.", nil, h.logger)
 	case errors.Is(err, ports.ErrSeparationOfDuties):
