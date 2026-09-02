@@ -27,6 +27,35 @@ because the ranking has to be honest about the market, not because they pay.
 That is the design — but it also means most of the catalog cannot earn, and
 adding a programme is the cheapest growth lever available.
 
+## Billing basis audit, 2026-09-02
+
+Every published product now states what basis its compared price is on:
+`catalog.products.billing_period` (`monthly`, `annual`, `free`, `usage`),
+`pricing_unit` (`flat`, `per_user`, `per_contacts`, `per_transaction`,
+`usage`), `pricing_unit_note` and `annual_price_minor` (migration 000029), and
+the public API carries them as `billing`. The rule is the Zoho Books
+correction's: the compared price is the monthly-billing list price wherever the
+vendor sells monthly; a per-month figure that exists only on an annual
+contract is marked `annual`, never passed off as monthly.
+
+Six compared prices moved to their monthly-billing figure, two of them on live
+programmes: **SE Ranking Core $103.20 → $129** and **Teachable Starter $29 →
+$39** (their merchant offers were updated in the same seed). Figma, Zapier,
+BigCommerce and Semrush moved too; none of those earns. Twenty-two products
+kept their price and gained an honest `annual` label because their vendor page
+either sells only annual contracts (Microsoft Teams, ActiveCampaign, Zoho
+Campaigns, Zoho Projects, Canva) or served EUR/INR or JavaScript-only prices
+from Bulgaria, so the monthly USD figure could not be read that day (monday.com,
+Cal.com, n8n, Thinkific, Shopify, Notion, Sketch, Tidio, Framer, Webflow and
+others — each block's note in the seed says which). Those are the ones to
+re-read from a US IP or in a browser before the next price refresh.
+
+Every product received a new published fact revision, a score revision carried
+forward unchanged, and an evidence observation dated 2026-09-02 pointing at the
+vendor page, so "Read from the vendor on" is current for the whole catalog.
+`affiliate_offer_audit_2026_08_26.sql` is a dated assertion and now fails on SE
+Ranking by design; it is not to be re-run.
+
 ## Approved and live
 
 Fourteen offers, all confirmed against the production API on 2026-08-29 —
@@ -48,8 +77,8 @@ audit, and each of their seeds carries its own assertion block instead.
 | MailerLite Comfort | $19/month at 1,000 subscribers | Trackdesk | source `unsolero`, link `lp_170762` |
 | monday.com Basic | $9/seat/month, yearly | PartnerStack | copied from approved dashboard |
 | Pipedrive Lite | $19.90/seat/month | PartnerStack | link code `8c0fqmk2j8mc` |
-| SE Ranking Core | $103.20/month | SE Ranking | link-builder account `5233991` |
-| Teachable Starter | $29/month, yearly | PartnerStack | link code `y6u7cxavunjg` |
+| SE Ranking Core | $129/month, monthly billing ($103.20/month billed yearly) | SE Ranking | link-builder account `5233991` |
+| Teachable Starter | $39/month, monthly billing ($29/month billed yearly) | PartnerStack | link code `y6u7cxavunjg` |
 | Zoho Bookings Basic | $8/user/month | Zoho | `PE2263909`, code `POSi` |
 | Zoho Books Standard | $20/organization/month | Zoho | `PE2263909`, code `K0nf` |
 | Zoho Campaigns Standard | $5.25/month at 1,000 contacts, yearly | Zoho | `PE2263909`, code `UCST` |
@@ -74,7 +103,8 @@ not retract Kit or monday.com.
 | Pipedrive | `backend/seeds/pipedrive_affiliate.sql` | via PartnerStack; destination caveat below |
 | SE Ranking | `backend/seeds/se_ranking_affiliate.sql` | |
 | Teachable | `backend/seeds/teachable_affiliate.sql` | via PartnerStack, 30% for one year |
-| the original twelve | `backend/seeds/affiliate_offer_audit_2026_08_26.sql` | the assertion that keeps them honest |
+| the original twelve | `backend/seeds/affiliate_offer_audit_2026_08_26.sql` | the assertion that keeps them honest — **dated**: it asserts SE Ranking at $103.20 and now fails by design, see the billing basis audit below |
+| billing basis, all 53 products | `backend/seeds/catalog_billing_basis_2026_09_02.sql` | every product's `billing_period` / `pricing_unit` and the move of six compared prices to the monthly-billing figure |
 
 ### Caveats on the two newest live links
 

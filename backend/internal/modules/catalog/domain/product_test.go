@@ -12,6 +12,7 @@ func TestProductValidate(t *testing.T) {
 		Slug:             "demo-product",
 		Description:      "A fictional demo product.",
 		Price:            Money{AmountMinor: 10_000, Currency: "USD"},
+		Billing:          Billing{Period: BillingMonthly, Unit: PricingUnitFlat},
 		IsPhysical:       true,
 		Dimensions:       Dimensions{LengthMM: 100, WidthMM: 100, HeightMM: 100},
 		WeightGrams:      10_000,
@@ -39,6 +40,7 @@ func TestProductValidateRejectsOutOfRangeScore(t *testing.T) {
 		Slug:        "demo-product",
 		Description: "A fictional demo product.",
 		Price:       Money{AmountMinor: 10_000, Currency: "USD"},
+		Billing:     Billing{Period: BillingMonthly, Unit: PricingUnitFlat},
 		Dimensions:  Dimensions{LengthMM: 100, WidthMM: 100, HeightMM: 100},
 		WeightGrams: 10_000,
 		Material:    "Steel",
@@ -89,6 +91,7 @@ func TestNonPhysicalProductValidatesWithoutPhysicalAttributes(t *testing.T) {
 		Name: "Demo Subscription", Slug: "demo-subscription",
 		Description: "A fictional demo subscription.",
 		Price:       Money{AmountMinor: 2_900, Currency: "USD"},
+		Billing:     Billing{Period: BillingMonthly, Unit: PricingUnitPerUser},
 		Scores: Scores{
 			Quality: 80, Value: 80, Durability: 80, Beginner: 80,
 			Advanced: 80, Apartment: 0, Noise: 0, Portability: 80,
@@ -107,6 +110,7 @@ func TestNonPhysicalProductRejectsPhysicalAttributes(t *testing.T) {
 		Name: "Demo Subscription", Slug: "demo-subscription",
 		Description: "A fictional demo subscription.",
 		Price:       Money{AmountMinor: 2_900, Currency: "USD"},
+		Billing:     Billing{Period: BillingMonthly, Unit: PricingUnitPerUser},
 		Dimensions:  Dimensions{LengthMM: 100, WidthMM: 100, HeightMM: 100},
 		Scores: Scores{
 			Quality: 80, Value: 80, Durability: 80, Beginner: 80,

@@ -326,6 +326,10 @@ func (repository *Repository) searchProducts(
 			products.description,
 			products.price_minor,
 			products.currency,
+			products.billing_period,
+			products.pricing_unit,
+			products.pricing_unit_note,
+			products.annual_price_minor,
 			categories.is_physical,
 			products.length_mm,
 			products.width_mm,
@@ -437,6 +441,8 @@ func (repository *Repository) searchProducts(
 		// scanned through nullable holders and left at their zero value.
 		var lengthMM, widthMM, heightMM, weightGrams sql.NullInt64
 		var material sql.NullString
+		var unitNote sql.NullString
+		var annualPrice sql.NullInt64
 		if err := rows.Scan(
 			&total,
 			&product.ID,
@@ -451,6 +457,10 @@ func (repository *Repository) searchProducts(
 			&product.Description,
 			&product.Price.AmountMinor,
 			&product.Price.Currency,
+			&product.Billing.Period,
+			&product.Billing.Unit,
+			&unitNote,
+			&annualPrice,
 			&product.IsPhysical,
 			&lengthMM,
 			&widthMM,
@@ -482,6 +492,12 @@ func (repository *Repository) searchProducts(
 		product.Material = material.String
 		if maxCapacity.Valid {
 			product.MaxCapacityGrams = &maxCapacity.Int64
+		}
+		if unitNote.Valid {
+			product.Billing.UnitNote = &unitNote.String
+		}
+		if annualPrice.Valid {
+			product.Billing.AnnualPriceMinor = &annualPrice.Int64
 		}
 		product.FactRevisionID = factRevisionID.String
 		product.ScoreRevisionID = scoreRevisionID.String

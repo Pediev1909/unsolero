@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	catalog "rigmark/internal/modules/catalog/application"
 	"rigmark/internal/modules/catalog/domain"
@@ -56,6 +58,18 @@ type keySpecificationResponse struct {
 	Value string `json:"value"`
 }
 
+// billingResponse says what `price` is a price for. `period` is one of
+// monthly, annual, free or usage; `unit` one of flat, per_user, per_contacts,
+// per_transaction or usage. `annual_price_minor` is the per-month equivalent
+// when billed yearly and is present only when the vendor sells both ways; the
+// compared figure is always `price`.
+type billingResponse struct {
+	Period           string  `json:"period"`
+	Unit             string  `json:"unit"`
+	UnitNote         *string `json:"unit_note"`
+	AnnualPriceMinor *int64  `json:"annual_price_minor"`
+}
+
 type productSummaryResponse struct {
 	ID               string                   `json:"id"`
 	Name             string                   `json:"name"`
@@ -63,6 +77,7 @@ type productSummaryResponse struct {
 	Brand            namedResourceResponse    `json:"brand"`
 	Category         namedResourceResponse    `json:"category"`
 	Price            moneyResponse            `json:"price"`
+	Billing          billingResponse          `json:"billing"`
 	PrimaryImage     *imageResponse           `json:"primary_image"`
 	KeySpecification keySpecificationResponse `json:"key_specification"`
 	Suitability      []insightResponse        `json:"suitability"`
@@ -378,6 +393,7 @@ func productSummaryDTO(product domain.Product) productSummaryResponse {
 		Brand:        namedResourceResponse{Name: product.BrandName, Slug: product.BrandSlug},
 		Category:     namedResourceResponse{Name: product.CategoryName, Slug: product.CategorySlug},
 		Price:        moneyResponse{AmountMinor: product.Price.AmountMinor, Currency: product.Price.Currency},
+		Billing:      billingDTO(product.Billing),
 		PrimaryImage: primaryImage, KeySpecification: keySpecificationDTO(product),
 		Suitability: insightDTOs(product.Suitability()), Scores: scoreDTO(product.Scores),
 		IsDemo: strings.HasPrefix(product.Slug, "demo-"),
@@ -451,10 +467,99 @@ func keySpecificationDTO(product domain.Product) keySpecificationResponse {
 	if !product.IsPhysical {
 		// A subscription has no headline physical measurement. Falling through
 		// to weight reported "0 kg", which reads as broken data rather than as
-		// an absent one.
-		return keySpecificationResponse{Label: "Billing", Value: "Per month"}
+		// an absent one. This used to say "Per month" for every software
+		// product, which was the basis of about half of them.
+		return keySpecificationResponse{Label: "Billing", Value: billingPhrase(product.Billing)}
 	}
 	return keySpecificationResponse{Label: "Product weight", Value: formatKilograms(product.WeightGrams)}
+}
+
+func billingDTO(billing domain.Billing) billingResponse {
+	return billingResponse{
+		Period: string(billing.Period), Unit: string(billing.Unit),
+		UnitNote: billing.UnitNote, AnnualPriceMinor: billing.AnnualPriceMinor,
+	}
+}
+
+// billingPhrase is the one sentence the catalog uses to say what a software
+// price is a price for: "Per user, monthly billing", "Flat rate, billed
+// yearly", "At 1,000 contacts, monthly billing", "2.9% + 30¢ per transaction".
+// The wording lives only here; the card's key specification and the
+// prerendered product body both read it.
+func billingPhrase(billing domain.Billing) string {
+	unit := billingUnitPhrase(billing)
+	period := billingPeriodPhrase(billing.Period)
+	if period == "" {
+		return unit
+	}
+	return unit + ", " + period
+}
+
+// billingUnitPhrase prefers the vendor's own qualifier where the unit needs
+// one -- "at 1,000 contacts" says more than "per contact tier" -- and falls
+// back to a generic phrase when no note was recorded.
+func billingUnitPhrase(billing domain.Billing) string {
+	note := ""
+	if billing.UnitNote != nil {
+		note = strings.TrimSpace(*billing.UnitNote)
+	}
+	switch billing.Unit {
+	case domain.PricingUnitPerUser:
+		return "Per user"
+	case domain.PricingUnitPerContacts:
+		if note != "" {
+			return upperFirst(note)
+		}
+		return "Per contact tier"
+	case domain.PricingUnitPerTransaction:
+		if note != "" {
+			return upperFirst(note)
+		}
+		return "Per transaction"
+	case domain.PricingUnitUsage:
+		if note != "" {
+			return upperFirst(note)
+		}
+		return "Usage-based"
+	default:
+		return "Flat rate"
+	}
+}
+
+// billingPeriodPhrase is empty for usage pricing, where "monthly billing"
+// would be a claim about a cadence the vendor does not have.
+func billingPeriodPhrase(period domain.BillingPeriod) string {
+	switch period {
+	case domain.BillingAnnual:
+		return "billed yearly"
+	case domain.BillingFree:
+		return "free plan"
+	case domain.BillingUsage:
+		return ""
+	default:
+		return "monthly billing"
+	}
+}
+
+func upperFirst(value string) string {
+	first, size := utf8.DecodeRuneInString(value)
+	if first == utf8.RuneError {
+		return value
+	}
+	return string(unicode.ToUpper(first)) + value[size:]
+}
+
+// lowerFirst lets the phrase follow a price mid-sentence: "USD 20.00 per user,
+// monthly billing". A leading acronym ("API calls") is left as it is.
+func lowerFirst(value string) string {
+	first, size := utf8.DecodeRuneInString(value)
+	if first == utf8.RuneError {
+		return value
+	}
+	if second, _ := utf8.DecodeRuneInString(value[size:]); unicode.IsUpper(second) {
+		return value
+	}
+	return string(unicode.ToLower(first)) + value[size:]
 }
 
 func formatKilograms(grams int64) string {

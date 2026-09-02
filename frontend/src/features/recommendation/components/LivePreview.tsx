@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
+import { isAnnualOnly } from '../../catalog/billing'
 import type { RecommendationResult } from '../schemas'
 
 interface LivePreviewProps {
@@ -69,12 +70,19 @@ export function LivePreview({ result, isPending, isError }: LivePreviewProps) {
                 >
                   {item.product.name}
                 </Link>
-                <PriceDisplay
-                  amountMinor={item.product.price.amount_minor}
-                  className="shrink-0"
-                  currency={item.product.price.currency}
-                  size="sm"
-                />
+                <span className="flex shrink-0 items-baseline gap-1.5">
+                  <PriceDisplay
+                    amountMinor={item.product.price.amount_minor}
+                    currency={item.product.price.currency}
+                    size="sm"
+                  />
+                  {/* The total below is headed "Per month". A yearly-only
+                      vendor's figure is a per-month equivalent, which is a
+                      different promise, so its row says which. */}
+                  {isAnnualOnly(item.product.billing) && (
+                    <span className="text-xs text-ink/60">billed yearly</span>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

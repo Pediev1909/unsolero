@@ -5,6 +5,14 @@ import { Select } from '../../../components/ui/Select'
 import { Textarea } from '../../../components/ui/Textarea'
 import { useToast } from '../../../components/ui/useToast'
 import { ApiError } from '../../../lib/api/client'
+import type { Billing } from '../../catalog/schemas'
+import type { ProductInput } from '../api'
+import {
+  fromBilling,
+  parseBillingForm,
+  type BillingFieldName,
+  type BillingFormValues,
+} from '../billingForm'
 import {
   useAdminProduct,
   useCreateEvidenceRevision,
@@ -18,6 +26,7 @@ import {
   scoreRationaleKeys,
   type FactClassification,
 } from '../schemas'
+import { BillingFields } from './BillingFields'
 
 // A revision is the step that turns observations into a publishable product.
 // The server requires provenance for every recommendation-critical fact and a
@@ -134,16 +143,42 @@ export function NewRevisionForm({ productID }: { productID: string }) {
   const [classification, setClassification] =
     useState<FactClassification>('manufacturer')
   const [rationales, setRationales] = useState<Record<string, string>>({})
+  // The one product fact the form lets an operator change. A published
+  // product's editor is read-only, so this is the only route to correcting a
+  // price recorded on the wrong basis — which is the defect the field exists
+  // to fix.
+  const [billing, setBilling] = useState<BillingFormValues>(() =>
+    fromBilling(undefined),
+  )
+  const [billingErrors, setBillingErrors] = useState<
+    Partial<Record<BillingFieldName, string>>
+  >({})
 
   const available = observations.data ?? []
+
+  const toggle = () => {
+    // Opening starts from what the product says now, not from what the form
+    // held the last time it was open.
+    if (!open) {
+      setBilling(fromBilling(product.data?.billing))
+      setBillingErrors({})
+    }
+    setOpen(!open)
+  }
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
     if (!product.data || !observationID) return
 
+    const parsedBilling = parseBillingForm(billing, product.data.price_minor)
+    if (!parsedBilling.ok) {
+      setBillingErrors(parsedBilling.errors)
+      return
+    }
+
     create.mutate(
       {
-        product: productInput(product.data),
+        product: productInput(product.data, parsedBilling.billing),
         // One observation backs every required fact. Splitting provenance per
         // fact is possible in the API, and belongs in a later iteration; what
         // matters first is that a revision can be created at all.
@@ -185,7 +220,7 @@ export function NewRevisionForm({ productID }: { productID: string }) {
         <h2 className="font-editorial text-2xl" id="revision-form-heading">
           New revision
         </h2>
-        <Button onClick={() => setOpen((value) => !value)} variant="secondary">
+        <Button onClick={toggle} variant="secondary">
           {open ? 'Cancel' : 'Start a revision'}
         </Button>
       </div>
@@ -240,6 +275,25 @@ export function NewRevisionForm({ productID }: { productID: string }) {
           </div>
 
           <div>
+            <h3 className="font-semibold">Billing basis</h3>
+            <p className="mt-1 text-sm text-ink/70">
+              Copied from the product. Correct it here if the recorded price is
+              quoted on another basis — a yearly contract shown as a monthly
+              rate, a per-user price shown as flat.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <BillingFields
+                errors={billingErrors}
+                onChange={(next) => {
+                  setBilling(next)
+                  setBillingErrors({})
+                }}
+                value={billing}
+              />
+            </div>
+          </div>
+
+          <div>
             <h3 className="font-semibold">Score rationales</h3>
             <p className="mt-1 text-sm text-ink/70">
               All eight are required. One sentence each, saying what in the
@@ -280,10 +334,11 @@ export function NewRevisionForm({ productID }: { productID: string }) {
   )
 }
 
-// The revision carries the product's own values. The admin product response is
-// flat — category_id, price_minor — so this only fills in the physical fields a
-// software product does not have.
-function productInput(product: AdminProduct) {
+// The revision carries the product's own values, with the billing basis as the
+// operator stated it above. The admin product response is flat — category_id,
+// price_minor — so this only fills in the physical fields a software product
+// does not have.
+function productInput(product: AdminProduct, billing: Billing): ProductInput {
   return {
     category_id: product.category_id,
     brand_id: product.brand_id,
@@ -292,6 +347,7 @@ function productInput(product: AdminProduct) {
     description: product.description,
     price_minor: product.price_minor,
     currency: product.currency,
+    billing,
     length_mm: product.length_mm,
     width_mm: product.width_mm,
     height_mm: product.height_mm,

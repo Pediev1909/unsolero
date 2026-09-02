@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -61,17 +62,31 @@ func (service *Service) GetProduct(ctx context.Context, id catalog.ProductID) (c
 func (service *Service) CreateProduct(ctx context.Context, actor identity.UserID, input admin.ProductInput) (catalog.Product, error) {
 	input = normalizeProduct(input)
 	if err := validateProductInput(input); err != nil {
-		return catalog.Product{}, ErrInvalidInput
+		return catalog.Product{}, invalidInput(err)
 	}
 	return service.repository.CreateProduct(ctx, actor, input)
 }
 
 func (service *Service) UpdateProduct(ctx context.Context, actor identity.UserID, id catalog.ProductID, input admin.ProductInput) (catalog.Product, error) {
 	input = normalizeProduct(input)
-	if id == "" || validateProductInput(input) != nil {
+	if id == "" {
 		return catalog.Product{}, ErrInvalidInput
 	}
+	if err := validateProductInput(input); err != nil {
+		return catalog.Product{}, invalidInput(err)
+	}
 	return service.repository.UpdateProduct(ctx, actor, id, input)
+}
+
+// invalidInput keeps the sentinel every caller matches on and, when the domain
+// named the field that failed, keeps that too so the response can point at it
+// rather than at the whole form.
+func invalidInput(err error) error {
+	var field catalog.FieldError
+	if errors.As(err, &field) {
+		return fmt.Errorf("%w: %w", ErrInvalidInput, field)
+	}
+	return ErrInvalidInput
 }
 
 func (service *Service) SetProductStatus(ctx context.Context, actor identity.UserID, id catalog.ProductID, status catalog.ProductStatus) error {
@@ -282,12 +297,13 @@ func normalizeProduct(input admin.ProductInput) admin.ProductInput {
 	input.Slug = strings.ToLower(strings.TrimSpace(input.Slug))
 	input.Description = strings.TrimSpace(input.Description)
 	input.Price.Currency = strings.ToUpper(strings.TrimSpace(input.Price.Currency))
+	input.Billing = input.Billing.Normalized()
 	input.Material = strings.TrimSpace(input.Material)
 	return input
 }
 
 func validateProductInput(input admin.ProductInput) error {
-	product := catalog.Product{ID: "validation", CategoryID: input.CategoryID, BrandID: input.BrandID, Name: input.Name, Slug: input.Slug, Description: input.Description, Price: input.Price, Dimensions: input.Dimensions, WeightGrams: input.WeightGrams, MaxCapacityGrams: input.MaxCapacityGrams, Material: input.Material, WarrantyMonths: input.WarrantyMonths, Scores: input.Scores, Status: catalog.ProductStatusDraft}
+	product := catalog.Product{ID: "validation", CategoryID: input.CategoryID, BrandID: input.BrandID, Name: input.Name, Slug: input.Slug, Description: input.Description, Price: input.Price, Billing: input.Billing, Dimensions: input.Dimensions, WeightGrams: input.WeightGrams, MaxCapacityGrams: input.MaxCapacityGrams, Material: input.Material, WarrantyMonths: input.WarrantyMonths, Scores: input.Scores, Status: catalog.ProductStatusDraft}
 	if len(input.Name) > 180 || !slugPattern.MatchString(input.Slug) {
 		return ErrInvalidInput
 	}

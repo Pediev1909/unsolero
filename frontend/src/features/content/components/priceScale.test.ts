@@ -2,9 +2,14 @@ import { renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { usePriceRows } from './priceRows'
-import type { ProductSummary } from '../../catalog/schemas'
+import type { Billing, ProductSummary } from '../../catalog/schemas'
 
-function product(name: string, amountMinor: number, currency = 'USD') {
+function product(
+  name: string,
+  amountMinor: number,
+  currency = 'USD',
+  billing?: Billing,
+) {
   return {
     id: `id-${name}`,
     name,
@@ -14,6 +19,7 @@ function product(name: string, amountMinor: number, currency = 'USD') {
     price: { amount_minor: amountMinor, currency },
     primary_image: null,
     key_specification: { label: '', value: '' },
+    billing,
     suitability: [],
     scores: {},
     is_demo: false,
@@ -66,6 +72,26 @@ describe('usePriceRows', () => {
     expect(scale?.rows[0]?.free).toBe(true)
     expect(scale?.rows[0]?.width).toBeGreaterThan(0)
     expect(scale?.rows[0]?.cheapest).toBe(true)
+  })
+
+  // The scale still draws a yearly-only vendor — the reader wants the number —
+  // but its row is marked, because a per-month figure on a yearly contract is
+  // not on the same footing as the monthly rates beside it.
+  it('marks the rows whose vendor sells only yearly contracts', () => {
+    const yearly: Billing = {
+      period: 'annual',
+      unit: 'flat',
+      unit_note: null,
+      annual_price_minor: null,
+    }
+    const scale = rowsFor([
+      product('Monthly', 2000),
+      product('Yearly', 1500, 'USD', yearly),
+    ])
+    expect(scale?.rows.map((row) => [row.name, row.annualOnly])).toEqual([
+      ['Yearly', true],
+      ['Monthly', false],
+    ])
   })
 
   it('ignores products the catalog has no price for', () => {

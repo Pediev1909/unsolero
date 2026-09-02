@@ -1,6 +1,6 @@
 import { ArrowLeft } from 'lucide-react'
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 
@@ -9,7 +9,16 @@ import { ButtonLink } from '../../components/ui/ButtonLink'
 import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { Textarea } from '../../components/ui/Textarea'
+import {
+  billingFieldNames,
+  billingFormFields,
+  billingIssues,
+  fromBilling,
+  toBilling,
+  type BillingFormValues,
+} from '../../features/admin/billingForm'
 import { AdminPageHeader } from '../../features/admin/components/AdminLayout'
+import { BillingFields } from '../../features/admin/components/BillingFields'
 import { ProductAssetsManager } from '../../features/admin/components/ProductAssetsManager'
 import { AdminQueryState } from '../../features/admin/components/AdminStates'
 import {
@@ -23,40 +32,54 @@ import { usePageMetadata } from '../../lib/seo/usePageMetadata'
 const number = z.coerce.number().nonnegative()
 const positive = z.coerce.number().positive()
 const score = z.coerce.number().int().min(0).max(100)
-const formSchema = z.object({
-  category_id: z.string().uuid('Choose a category.'),
-  brand_id: z.string().uuid('Choose a brand.'),
-  name: z.string().trim().min(1).max(180),
-  slug: z
-    .string()
-    .trim()
-    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
-  description: z.string().trim().min(1),
-  price_minor: number,
-  currency: z.string().trim().length(3),
-  // Kept in the payload, absent from the form. A software product has no
-  // physical form, so these are always zero and asking an editor to type
-  // "0" into seven boxes about length, weight and warranty before they can
-  // save a subscription is asking them to fill in the previous catalog.
-  // The backend still enforces real measurements on physical categories.
-  length_mm: number,
-  width_mm: number,
-  height_mm: number,
-  weight_grams: number,
-  max_capacity_grams: z
-    .union([positive, z.nan()])
-    .transform((value) => (Number.isNaN(value) ? null : value)),
-  material: z.string().trim().max(160),
-  warranty_months: number,
-  quality_score: score,
-  value_score: score,
-  durability_score: score,
-  beginner_score: score,
-  advanced_score: score,
-  apartment_score: score,
-  noise_score: score,
-  portability_score: score,
-})
+const formSchema = z
+  .object({
+    category_id: z.string().uuid('Choose a category.'),
+    brand_id: z.string().uuid('Choose a brand.'),
+    name: z.string().trim().min(1).max(180),
+    slug: z
+      .string()
+      .trim()
+      .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+    description: z.string().trim().min(1),
+    price_minor: number,
+    currency: z.string().trim().length(3),
+    // How the price is charged. Sent to the API as one `billing` object; the
+    // four controls are shared with the evidence revision form.
+    ...billingFormFields,
+    // Kept in the payload, absent from the form. A software product has no
+    // physical form, so these are always zero and asking an editor to type
+    // "0" into seven boxes about length, weight and warranty before they can
+    // save a subscription is asking them to fill in the previous catalog.
+    // The backend still enforces real measurements on physical categories.
+    length_mm: number,
+    width_mm: number,
+    height_mm: number,
+    weight_grams: number,
+    max_capacity_grams: z
+      .union([positive, z.nan()])
+      .transform((value) => (Number.isNaN(value) ? null : value)),
+    material: z.string().trim().max(160),
+    warranty_months: number,
+    quality_score: score,
+    value_score: score,
+    durability_score: score,
+    beginner_score: score,
+    advanced_score: score,
+    apartment_score: score,
+    noise_score: score,
+    portability_score: score,
+  })
+  .superRefine((values, ctx) => {
+    // The rules that need the price as well as the billing fields.
+    for (const issue of billingIssues(values, values.price_minor)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [issue.path],
+        message: issue.message,
+      })
+    }
+  })
 
 type ProductForm = z.input<typeof formSchema>
 
@@ -68,6 +91,7 @@ const defaults: ProductForm = {
   description: '',
   price_minor: 0,
   currency: 'USD',
+  ...fromBilling(undefined),
   length_mm: 0,
   width_mm: 0,
   height_mm: 0,
@@ -98,6 +122,12 @@ export function AdminProductEditorPage() {
   const mutation = useProductMutation(productID)
   const navigate = useNavigate()
   const form = useForm<ProductForm>({ defaultValues: defaults })
+  // The billing controls are one shared component driven by value and
+  // onChange, so they are read through a subscription rather than registered
+  // one by one. `useWatch` rather than `form.watch`: the latter returns a
+  // function the React Compiler cannot memoize safely.
+  const [billing_period, pricing_unit, unit_note, annual_price_minor] =
+    useWatch({ control: form.control, name: billingFieldNames })
 
   useEffect(() => {
     if (!product.data) return
@@ -110,6 +140,7 @@ export function AdminProductEditorPage() {
       description: value.description,
       price_minor: value.price_minor,
       currency: value.currency,
+      ...fromBilling(value.billing),
       length_mm: value.length_mm,
       width_mm: value.width_mm,
       height_mm: value.height_mm,
@@ -140,7 +171,24 @@ export function AdminProductEditorPage() {
       return
     }
     try {
-      const saved = await mutation.mutateAsync(parsed.data)
+      // The form holds the billing basis as four flat fields; the API takes
+      // it as one object, the same one every product response carries.
+      const {
+        billing_period,
+        pricing_unit,
+        unit_note,
+        annual_price_minor,
+        ...product
+      } = parsed.data
+      const saved = await mutation.mutateAsync({
+        ...product,
+        billing: toBilling({
+          billing_period,
+          pricing_unit,
+          unit_note,
+          annual_price_minor,
+        }),
+      })
       if (!editing)
         await navigate(`/admin/products/${saved.id}`, { replace: true })
     } catch (error) {
@@ -156,6 +204,27 @@ export function AdminProductEditorPage() {
   const pending = references.isPending || (editing && product.isPending)
   const failed = references.isError || product.isError
   const governed = product.data?.status === 'published'
+
+  const billingValues: BillingFormValues = {
+    billing_period,
+    pricing_unit,
+    unit_note,
+    annual_price_minor,
+  }
+  const setBillingValues = (next: BillingFormValues) => {
+    form.setValue('billing_period', next.billing_period, { shouldDirty: true })
+    form.setValue('pricing_unit', next.pricing_unit, { shouldDirty: true })
+    form.setValue('unit_note', next.unit_note, { shouldDirty: true })
+    form.setValue('annual_price_minor', next.annual_price_minor, {
+      shouldDirty: true,
+    })
+  }
+  const billingErrors = {
+    billing_period: form.formState.errors.billing_period?.message,
+    pricing_unit: form.formState.errors.pricing_unit?.message,
+    unit_note: form.formState.errors.unit_note?.message,
+    annual_price_minor: form.formState.errors.annual_price_minor?.message,
+  }
 
   return (
     <>
@@ -231,6 +300,18 @@ export function AdminProductEditorPage() {
                 number
               />
               <InputField form={form} label="Currency" name="currency" />
+            </EditorSection>
+
+            {/* Where the catalog's oldest defect lived: twenty-five products
+                recorded at a yearly rate and shown beside monthly ones with
+                nothing to say which was which. Every public price now prints
+                what is stated here. */}
+            <EditorSection title="Billing">
+              <BillingFields
+                errors={billingErrors}
+                onChange={setBillingValues}
+                value={billingValues}
+              />
             </EditorSection>
 
             {/* The score names are the ones the product page prints, so what is

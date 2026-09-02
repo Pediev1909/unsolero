@@ -5,6 +5,7 @@ import { Badge } from '../../../components/ui/Badge'
 import { Button } from '../../../components/ui/Button'
 import { ButtonLink } from '../../../components/ui/ButtonLink'
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
+import { formatBillingBasis } from '../../catalog/billing'
 import { BrandMark } from '../../catalog/components/BrandMark'
 import { MerchantAction } from '../../catalog/components/MerchantAction'
 import type { ProductSummary } from '../../catalog/schemas'
@@ -90,7 +91,10 @@ export function RecommendationProduct({
         <div className="mt-4 grid grid-cols-2 gap-4 border-y border-ink/10 py-3 text-sm">
           <Spec
             label={product.key_specification.label}
-            value={product.key_specification.value}
+            value={formatBillingBasis(
+              product.billing,
+              product.key_specification,
+            )}
           />
           <Spec label="Goal fit" value={`${item.breakdown.goal_match}/100`} />
           {verticalHasSpatialConstraints && (

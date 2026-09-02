@@ -61,3 +61,38 @@ describe('productDetailSchema', () => {
     ).toThrow()
   })
 })
+
+describe('billing', () => {
+  const billing = {
+    period: 'annual',
+    unit: 'per_user',
+    unit_note: null,
+    annual_price_minor: null,
+  }
+
+  it('carries the structured basis when the API sends it', () => {
+    const parsed = productDetailSchema.parse({ ...softwareProduct, billing })
+    expect(parsed.billing).toEqual(billing)
+  })
+
+  // A response cached before the field existed must still render, so the
+  // object is optional; the string beside it is what such a page prints.
+  it('accepts a response from before the field existed', () => {
+    expect(productDetailSchema.parse(softwareProduct).billing).toBeUndefined()
+  })
+
+  it('rejects a basis outside the vocabulary', () => {
+    expect(() =>
+      productDetailSchema.parse({
+        ...softwareProduct,
+        billing: { ...billing, period: 'weekly' },
+      }),
+    ).toThrow()
+    expect(() =>
+      productDetailSchema.parse({
+        ...softwareProduct,
+        billing: { ...billing, annual_price_minor: 12.5 },
+      }),
+    ).toThrow()
+  })
+})

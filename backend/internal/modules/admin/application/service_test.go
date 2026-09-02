@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	admin "rigmark/internal/modules/admin/domain"
@@ -29,6 +30,40 @@ func TestValidateProductInputRejectsOutOfRangeRecommendationScore(t *testing.T) 
 	input.Scores.Apartment = 101
 	if err := validateProductInput(input); err == nil {
 		t.Fatal("expected invalid score to be rejected")
+	}
+}
+
+// The 422 names the billing field that failed so the form can mark it, and
+// still satisfies errors.Is(ErrInvalidInput) for every caller that only asks
+// whether the input was valid.
+func TestCreateProductNamesTheBillingFieldThatFailed(t *testing.T) {
+	annual := int64(1_500)
+	input := validProductInput()
+	input.Billing = catalog.Billing{Period: catalog.BillingAnnual, Unit: catalog.PricingUnitFlat, AnnualPriceMinor: &annual}
+	service := NewService(&ownershipRepository{}, nil)
+
+	_, err := service.CreateProduct(context.Background(), "actor", input)
+
+	var field catalog.FieldError
+	if !errors.Is(err, ErrInvalidInput) || !errors.As(err, &field) || field.Field != "billing.annual_price_minor" {
+		t.Fatalf("CreateProduct() error = %v, want ErrInvalidInput naming billing.annual_price_minor", err)
+	}
+}
+
+// A blank note is the form's way of saying "no note"; it is stored as absent
+// rather than rejected as too short.
+func TestNormalizeProductDropsABlankBillingNote(t *testing.T) {
+	blank := "   "
+	input := validProductInput()
+	// A software product: the physical fixture values would be rejected on
+	// their own account and hide what this test is about.
+	input.Dimensions, input.WeightGrams, input.Material = catalog.Dimensions{}, 0, ""
+	input.Billing.UnitNote = &blank
+	if normalized := normalizeProduct(input); normalized.Billing.UnitNote != nil {
+		t.Fatalf("blank unit note survived normalization: %q", *normalized.Billing.UnitNote)
+	}
+	if err := validateProductInput(normalizeProduct(input)); err != nil {
+		t.Fatalf("normalized input rejected: %v", err)
 	}
 }
 
@@ -109,6 +144,7 @@ func validProductInput() admin.ProductInput {
 		Slug:        "demo-product",
 		Description: "A valid fictional product.",
 		Price:       catalog.Money{AmountMinor: 100, Currency: "USD"},
+		Billing:     catalog.Billing{Period: catalog.BillingMonthly, Unit: catalog.PricingUnitFlat},
 		Dimensions:  catalog.Dimensions{LengthMM: 1, WidthMM: 1, HeightMM: 1},
 		WeightGrams: 1,
 		Material:    "Steel",

@@ -51,15 +51,21 @@ export function PriceScale({ products }: { products: ProductSummary[] }) {
               }`}
             >
               {row.free ? 'Free' : formatPrice(row.amountMinor, row.currency)}
+              {row.annualOnly && (
+                <span className="block text-[0.625rem] leading-4 tracking-normal text-ink/60">
+                  billed yearly
+                </span>
+              )}
             </span>
           </li>
         ))}
       </ul>
 
       <p className="mt-5 border-t border-ink/12 pt-4 text-body-sm leading-6 text-ink/68">
-        Prices are the entry paid tier recorded in the catalog, on the same
-        billing period. What the cheapest option costs you in setup, migration
-        or a missing feature is what the rest of this piece is about.
+        Prices are the entry paid tier recorded in the catalog, per month. Where
+        a vendor sells only yearly contracts the row says so. What the cheapest
+        option costs you in setup, migration or a missing feature is what the
+        rest of this piece is about.
       </p>
     </figure>
   )

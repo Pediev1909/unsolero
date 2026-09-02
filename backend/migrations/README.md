@@ -76,3 +76,14 @@ admit `stack`: a whole set of tools for one kind of business and budget,
 published at `/stacks/{slug}`. It changes no rows and adds no columns; the
 content domain, the public route resolver and the sitemap learn the type in the
 same release.
+
+`000029_product_billing_basis.sql` records what `price_minor` is a price for.
+It adds `billing_period`, `pricing_unit`, `pricing_unit_note` and
+`annual_price_minor` to `catalog.products` (defaults `monthly` and `flat`) and,
+nullable, to `evidence.product_fact_revisions`. The compared price stays
+`price_minor`: the monthly-billing list price wherever the vendor sells
+monthly, the per-month equivalent of an annual contract when it does not, and
+zero for a free entry tier; the annual figure a vendor quotes beside a monthly
+price is carried separately and never compared. A revision restates the basis
+whole or not at all, and publication leaves the product's basis in place when
+the revision carries none. No rows are corrected here; a dated seed does that.

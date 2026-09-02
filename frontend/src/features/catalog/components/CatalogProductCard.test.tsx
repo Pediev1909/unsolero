@@ -61,6 +61,57 @@ describe('CatalogProductCard', () => {
   })
 })
 
+describe('CatalogProductCard billing basis', () => {
+  const software = {
+    ...product,
+    key_specification: { label: 'Billing', value: 'Per month' },
+  }
+
+  // A vendor that sells only yearly contracts quotes a per-month figure that
+  // looks exactly like a monthly rate. The card is where most readers meet
+  // the price, so it is where the difference has to be said.
+  it('says billed yearly for a vendor that sells only annual contracts', () => {
+    render(
+      <MemoryRouter>
+        <CatalogProductCard
+          compared={false}
+          onCompare={vi.fn()}
+          onSave={vi.fn()}
+          product={{
+            ...software,
+            billing: {
+              period: 'annual',
+              unit: 'per_user',
+              unit_note: null,
+              annual_price_minor: null,
+            },
+          }}
+          saved={false}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Per user, billed yearly')).toBeInTheDocument()
+    expect(screen.queryByText('Per month')).toBeNull()
+  })
+
+  // A response cached before the field existed carries only the server's
+  // phrase, and the card prints that rather than nothing.
+  it('prints the server phrase when the response has no billing object', () => {
+    render(
+      <MemoryRouter>
+        <CatalogProductCard
+          compared={false}
+          onCompare={vi.fn()}
+          onSave={vi.fn()}
+          product={software}
+          saved={false}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Per month')).toBeInTheDocument()
+  })
+})
+
 describe('CatalogProductCard save toggle', () => {
   it('asks the caller to save the product and reports the unsaved state', async () => {
     const onSave = vi.fn()

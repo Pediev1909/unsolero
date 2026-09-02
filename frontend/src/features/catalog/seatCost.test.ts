@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Billing } from './schemas'
 import {
   billingBasis,
   clampTeamSize,
@@ -8,10 +9,18 @@ import {
   type PricedProduct,
 } from './seatCost'
 
+const perUser: Billing = {
+  period: 'monthly',
+  unit: 'per_user',
+  unit_note: null,
+  annual_price_minor: null,
+}
+const flatRate: Billing = { ...perUser, unit: 'flat' }
+
 function product(
   name: string,
   amountMinor: number,
-  specification: string,
+  billing: Billing | undefined,
   currency = 'USD',
 ): PricedProduct {
   return {
@@ -19,28 +28,41 @@ function product(
     name,
     slug: name.toLowerCase(),
     price: { amount_minor: amountMinor, currency },
-    key_specification: { label: 'Billing', value: specification },
+    billing,
   }
 }
 
 describe('billingBasis', () => {
-  it('reads per-seat pricing only from the structured specification', () => {
-    expect(billingBasis(product('A', 1, 'Per user per month'))).toBe('per_seat')
-    expect(billingBasis(product('B', 1, '12 USD per seat, monthly'))).toBe(
-      'per_seat',
-    )
-    expect(billingBasis(product('C', 1, 'Per month'))).toBe('flat')
-    // Substrings are not a basis: "supervisor" contains "per" and "user" is
-    // in "users included", and neither says anything about seats.
-    expect(billingBasis(product('D', 1, 'Supervisor dashboard'))).toBe('flat')
-    expect(billingBasis(product('E', 1, '3 users included'))).toBe('flat')
+  it('reads per-seat pricing from the structured unit', () => {
+    expect(billingBasis(product('A', 1, perUser))).toBe('per_seat')
+    expect(billingBasis(product('B', 1, flatRate))).toBe('flat')
+    // A per-seat price on a yearly contract is still charged per seat.
+    expect(
+      billingBasis(product('C', 1, { ...perUser, period: 'annual' })),
+    ).toBe('per_seat')
+  })
+
+  // Words are not a basis. A note that happens to say "per user" on a
+  // contact-tier price does not make it one, and a product the API has not
+  // yet described is not multiplied on a guess.
+  it('never infers a basis from words or from silence', () => {
+    expect(
+      billingBasis(
+        product('D', 1, {
+          ...flatRate,
+          unit: 'per_contacts',
+          unit_note: 'per user allowance',
+        }),
+      ),
+    ).toBe('flat')
+    expect(billingBasis(product('E', 1, undefined))).toBe('flat')
   })
 })
 
 describe('seatCostLines', () => {
-  const perSeat = product('Seat CRM', 1990, 'Per user per month')
-  const flat = product('Flat Suite', 2500, 'Per month')
-  const cheapSeat = product('Lite CRM', 400, 'Per seat per month')
+  const perSeat = product('Seat CRM', 1990, perUser)
+  const flat = product('Flat Suite', 2500, flatRate)
+  const cheapSeat = product('Lite CRM', 400, perUser)
 
   it('multiplies per-seat prices by the team and leaves flat prices alone', () => {
     const lines = seatCostLines([perSeat, flat, cheapSeat], 5)
@@ -63,7 +85,7 @@ describe('seatCostLines', () => {
   })
 
   it('carries each product currency through untouched', () => {
-    const euro = product('Euro Seat', 1000, 'Per user per month', 'EUR')
+    const euro = product('Euro Seat', 1000, perUser, 'EUR')
     const lines = seatCostLines([perSeat, euro], 2)
     expect(lines.find((line) => line.product === euro)?.currency).toBe('EUR')
     expect(lines.find((line) => line.product === perSeat)?.currency).toBe('USD')
@@ -71,7 +93,7 @@ describe('seatCostLines', () => {
 
   it('orders ties by name so the list is stable', () => {
     const lines = seatCostLines(
-      [product('Zed', 1000, 'Per month'), product('Alpha', 1000, 'Per month')],
+      [product('Zed', 1000, flatRate), product('Alpha', 1000, flatRate)],
       3,
     )
     expect(lines.map((line) => line.product.name)).toEqual(['Alpha', 'Zed'])
@@ -88,13 +110,11 @@ describe('team size', () => {
   })
 
   it('reports whether a list has anything worth multiplying', () => {
-    expect(hasPerSeatPricing([product('A', 1, 'Per month')])).toBe(false)
+    expect(hasPerSeatPricing([product('A', 1, flatRate)])).toBe(false)
     expect(
-      hasPerSeatPricing([
-        product('A', 1, 'Per month'),
-        product('B', 1, 'Per user per month'),
-      ]),
+      hasPerSeatPricing([product('A', 1, flatRate), product('B', 1, perUser)]),
     ).toBe(true)
+    expect(hasPerSeatPricing([product('A', 1, undefined)])).toBe(false)
     expect(hasPerSeatPricing([])).toBe(false)
   })
 })

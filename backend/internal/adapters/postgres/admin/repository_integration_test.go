@@ -48,18 +48,38 @@ func TestAdminProductAndOfferLifecycle(t *testing.T) {
 	}
 
 	slug := fmt.Sprintf("admin-test-product-%d", time.Now().UnixNano())
-	product, err := repository.CreateProduct(ctx, actor, admin.ProductInput{
+	seatNote := "per seat, minimum 3 seats"
+	annual := int64(10_000)
+	input := admin.ProductInput{
 		CategoryID:     categoryID,
 		BrandID:        brandID,
 		Name:           "Admin integration product",
 		Slug:           slug,
 		Description:    "A fictional product created only for an administrative integration test.",
 		Price:          catalog.Money{AmountMinor: 12500, Currency: "USD"},
+		Billing:        catalog.Billing{Period: catalog.BillingMonthly, Unit: catalog.PricingUnitPerUser, UnitNote: &seatNote, AnnualPriceMinor: &annual},
 		WarrantyMonths: 0,
 		Scores:         catalog.Scores{Quality: 70, Value: 71, Durability: 72, Beginner: 73, Advanced: 74, Apartment: 75, Noise: 76, Portability: 77},
-	})
+	}
+	product, err := repository.CreateProduct(ctx, actor, input)
 	if err != nil {
 		t.Fatalf("CreateProduct() error = %v", err)
+	}
+	if product.Billing.Period != catalog.BillingMonthly || product.Billing.Unit != catalog.PricingUnitPerUser ||
+		product.Billing.UnitNote == nil || *product.Billing.UnitNote != seatNote ||
+		product.Billing.AnnualPriceMinor == nil || *product.Billing.AnnualPriceMinor != annual {
+		t.Fatalf("created billing basis = %#v", product.Billing)
+	}
+	// An update that withdraws the annual option and the note must clear them,
+	// not leave the old values beside the new basis.
+	input.Billing = catalog.Billing{Period: catalog.BillingAnnual, Unit: catalog.PricingUnitFlat}
+	updated, err := repository.UpdateProduct(ctx, actor, product.ID, input)
+	if err != nil {
+		t.Fatalf("UpdateProduct() error = %v", err)
+	}
+	if updated.Billing.Period != catalog.BillingAnnual || updated.Billing.Unit != catalog.PricingUnitFlat ||
+		updated.Billing.UnitNote != nil || updated.Billing.AnnualPriceMinor != nil {
+		t.Fatalf("updated billing basis = %#v", updated.Billing)
 	}
 	var offerID string
 	t.Cleanup(func() {

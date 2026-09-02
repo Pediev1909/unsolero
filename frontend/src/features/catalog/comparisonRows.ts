@@ -1,3 +1,4 @@
+import { formatBillingBasis } from './billing'
 import type { ProductDetail } from './schemas'
 
 /**
@@ -93,7 +94,8 @@ export const comparisonRows: ComparisonRow[] = [
     // agonise over.
     label: 'Billing basis',
     explains: 'Monthly and annual rates are not comparable. This says which.',
-    value: (product) => product.key_specification.value || '—',
+    value: (product) =>
+      formatBillingBasis(product.billing, product.key_specification) || '—',
   },
   {
     key: 'price_checked',

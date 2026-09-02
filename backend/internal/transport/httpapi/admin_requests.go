@@ -18,28 +18,38 @@ import (
 const maximumAdminBodyBytes = 256 * 1024
 
 type productInputRequest struct {
-	CategoryID       string `json:"category_id"`
-	BrandID          string `json:"brand_id"`
-	Name             string `json:"name"`
-	Slug             string `json:"slug"`
-	Description      string `json:"description"`
-	PriceMinor       int64  `json:"price_minor"`
-	Currency         string `json:"currency"`
-	LengthMM         int64  `json:"length_mm"`
-	WidthMM          int64  `json:"width_mm"`
-	HeightMM         int64  `json:"height_mm"`
-	WeightGrams      int64  `json:"weight_grams"`
-	MaxCapacityGrams *int64 `json:"max_capacity_grams"`
-	Material         string `json:"material"`
-	WarrantyMonths   int16  `json:"warranty_months"`
-	QualityScore     int16  `json:"quality_score"`
-	ValueScore       int16  `json:"value_score"`
-	DurabilityScore  int16  `json:"durability_score"`
-	BeginnerScore    int16  `json:"beginner_score"`
-	AdvancedScore    int16  `json:"advanced_score"`
-	ApartmentScore   int16  `json:"apartment_score"`
-	NoiseScore       int16  `json:"noise_score"`
-	PortabilityScore int16  `json:"portability_score"`
+	CategoryID  string `json:"category_id"`
+	BrandID     string `json:"brand_id"`
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+	PriceMinor  int64  `json:"price_minor"`
+	Currency    string `json:"currency"`
+	// Billing is required: a price with no basis is what caused half the
+	// software catalog to be compared on the wrong figure.
+	Billing          billingInputRequest `json:"billing"`
+	LengthMM         int64               `json:"length_mm"`
+	WidthMM          int64               `json:"width_mm"`
+	HeightMM         int64               `json:"height_mm"`
+	WeightGrams      int64               `json:"weight_grams"`
+	MaxCapacityGrams *int64              `json:"max_capacity_grams"`
+	Material         string              `json:"material"`
+	WarrantyMonths   int16               `json:"warranty_months"`
+	QualityScore     int16               `json:"quality_score"`
+	ValueScore       int16               `json:"value_score"`
+	DurabilityScore  int16               `json:"durability_score"`
+	BeginnerScore    int16               `json:"beginner_score"`
+	AdvancedScore    int16               `json:"advanced_score"`
+	ApartmentScore   int16               `json:"apartment_score"`
+	NoiseScore       int16               `json:"noise_score"`
+	PortabilityScore int16               `json:"portability_score"`
+}
+
+type billingInputRequest struct {
+	Period           string  `json:"period"`
+	Unit             string  `json:"unit"`
+	UnitNote         *string `json:"unit_note"`
+	AnnualPriceMinor *int64  `json:"annual_price_minor"`
 }
 
 type imageInputRequest struct {
@@ -109,7 +119,7 @@ func (h *Handler) decodeAdminJSON(response http.ResponseWriter, request *http.Re
 func (h *Handler) writeAdminError(response http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, admin.ErrInvalidInput):
-		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_admin_input", "Check the submitted fields.", nil, h.logger)
+		writeAPIError(response, http.StatusUnprocessableEntity, "invalid_admin_input", "Check the submitted fields.", fieldErrors(err), h.logger)
 	case errors.Is(err, adminports.ErrNotFound):
 		writeAPIError(response, http.StatusNotFound, "admin_entity_not_found", "The requested record was not found.", nil, h.logger)
 	case errors.Is(err, adminports.ErrConflict):
@@ -118,6 +128,17 @@ func (h *Handler) writeAdminError(response http.ResponseWriter, err error) {
 		h.logger.Error("admin request failed", "error", err)
 		writeAPIError(response, http.StatusInternalServerError, "admin_unavailable", "Administration is temporarily unavailable.", nil, h.logger)
 	}
+}
+
+// fieldErrors turns a validation failure that named its field into the
+// `fields` map of the error envelope, and is nil when the failure was not
+// field-specific, which keeps the envelope exactly as it was for those.
+func fieldErrors(err error) map[string]string {
+	var field catalog.FieldError
+	if !errors.As(err, &field) {
+		return nil
+	}
+	return map[string]string{field.Field: field.Reason}
 }
 
 func (h *Handler) writeAdminJSON(response http.ResponseWriter, status int, value any) {
@@ -152,7 +173,11 @@ func adminUUIDPath(response http.ResponseWriter, value string, handler *Handler)
 }
 
 func (request productInputRequest) domain() admindomain.ProductInput {
-	return admindomain.ProductInput{CategoryID: catalog.CategoryID(request.CategoryID), BrandID: catalog.BrandID(request.BrandID), Name: request.Name, Slug: request.Slug, Description: request.Description, Price: catalog.Money{AmountMinor: request.PriceMinor, Currency: request.Currency}, Dimensions: catalog.Dimensions{LengthMM: request.LengthMM, WidthMM: request.WidthMM, HeightMM: request.HeightMM}, WeightGrams: request.WeightGrams, MaxCapacityGrams: request.MaxCapacityGrams, Material: request.Material, WarrantyMonths: request.WarrantyMonths, Scores: catalog.Scores{Quality: request.QualityScore, Value: request.ValueScore, Durability: request.DurabilityScore, Beginner: request.BeginnerScore, Advanced: request.AdvancedScore, Apartment: request.ApartmentScore, Noise: request.NoiseScore, Portability: request.PortabilityScore}}
+	return admindomain.ProductInput{CategoryID: catalog.CategoryID(request.CategoryID), BrandID: catalog.BrandID(request.BrandID), Name: request.Name, Slug: request.Slug, Description: request.Description, Price: catalog.Money{AmountMinor: request.PriceMinor, Currency: request.Currency}, Billing: request.Billing.domain(), Dimensions: catalog.Dimensions{LengthMM: request.LengthMM, WidthMM: request.WidthMM, HeightMM: request.HeightMM}, WeightGrams: request.WeightGrams, MaxCapacityGrams: request.MaxCapacityGrams, Material: request.Material, WarrantyMonths: request.WarrantyMonths, Scores: catalog.Scores{Quality: request.QualityScore, Value: request.ValueScore, Durability: request.DurabilityScore, Beginner: request.BeginnerScore, Advanced: request.AdvancedScore, Apartment: request.ApartmentScore, Noise: request.NoiseScore, Portability: request.PortabilityScore}}
+}
+
+func (request billingInputRequest) domain() catalog.Billing {
+	return catalog.Billing{Period: catalog.BillingPeriod(request.Period), Unit: catalog.PricingUnit(request.Unit), UnitNote: request.UnitNote, AnnualPriceMinor: request.AnnualPriceMinor}
 }
 
 func (request affiliateInputRequest) domain() admindomain.AffiliateLinkInput {

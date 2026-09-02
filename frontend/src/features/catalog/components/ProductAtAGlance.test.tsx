@@ -54,7 +54,9 @@ describe('ProductAtAGlance', () => {
     renderStrip()
 
     expect(screen.getByText('$20.00')).toBeInTheDocument()
-    expect(screen.getByText('Per month, billed monthly')).toBeInTheDocument()
+    expect(screen.getByText('Flat rate, monthly billing')).toBeInTheDocument()
+    // A monthly-only vendor has no second price to offer.
+    expect(screen.queryByText(/billed yearly/)).toBeNull()
     // The same date source as the comparison table: the price fact's observation.
     expect(
       screen.getByText(
@@ -74,6 +76,68 @@ describe('ProductAtAGlance', () => {
     // There is no free-plan or trial field in the data, so the strip must
     // not claim one.
     expect(screen.queryByText(/free (plan|trial|version)/i)).toBeNull()
+  })
+
+  // Where the vendor sells both, the yearly rate follows the price as a
+  // quieter line: offered, not pushed, and never mistaken for the compared
+  // figure above it.
+  it('offers the yearly rate as a second line when the vendor sells both', () => {
+    renderStrip(
+      productDetailFixture({
+        billing: {
+          period: 'monthly',
+          unit: 'per_user',
+          unit_note: null,
+          annual_price_minor: 1500,
+        },
+      }),
+    )
+    expect(screen.getByText('$20.00')).toBeInTheDocument()
+    expect(screen.getByText('Per user, monthly billing')).toBeInTheDocument()
+    expect(screen.getByText('or $15.00/mo billed yearly')).toBeInTheDocument()
+  })
+
+  // An annual-only vendor's price already is the yearly rate. The basis says
+  // so, and there is no second figure to offer.
+  it('says billed yearly, with no second price, for an annual-only vendor', () => {
+    renderStrip(
+      productDetailFixture({
+        billing: {
+          period: 'annual',
+          unit: 'flat',
+          unit_note: null,
+          annual_price_minor: null,
+        },
+      }),
+    )
+    expect(screen.getByText('Flat rate, billed yearly')).toBeInTheDocument()
+    expect(screen.queryByText(/^or /)).toBeNull()
+  })
+
+  // A yearly rate that is not lower is a data error or a vendor with nothing
+  // to offer for the commitment; either way it earns no line.
+  it('drops the yearly line when the annual rate is not cheaper', () => {
+    renderStrip(
+      productDetailFixture({
+        billing: {
+          period: 'monthly',
+          unit: 'flat',
+          unit_note: null,
+          annual_price_minor: 2000,
+        },
+      }),
+    )
+    expect(screen.queryByText(/billed yearly/)).toBeNull()
+  })
+
+  it('falls back to the server phrase when the response carries no billing object', () => {
+    renderStrip(
+      productDetailFixture({
+        billing: undefined,
+        key_specification: { label: 'Billing', value: 'Per month' },
+      }),
+    )
+    expect(screen.getByText('Per month')).toBeInTheDocument()
   })
 
   it('sends the reader to the vendor with a disclosed affiliate link when there is a live offer', () => {

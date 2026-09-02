@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
 import { Skeleton } from '../../../components/ui/Skeleton'
 import { affiliateClickPath } from '../../analytics/tracking'
+import { formatBillingBasis } from '../../catalog/billing'
 import { useOffers } from '../../catalog/queries'
 import type { ProductSummary } from '../../catalog/schemas'
 import { affiliateDisclosure } from '../model'
@@ -12,10 +13,11 @@ interface OfferBlockProps {
   /** The catalog product slug the block names. */
   slug: string
   /**
-   * The product's summary, from the piece's related products. Only the name
-   * is read from it; when the piece does not list the product, the name is
-   * recovered from the slug rather than fetched, because a second request
-   * for one word is not worth a second loading state.
+   * The product's summary, from the piece's related products. The name and
+   * the billing basis are read from it; when the piece does not list the
+   * product, the name is recovered from the slug rather than fetched, because
+   * a second request for one word is not worth a second loading state, and
+   * the price stands without a basis rather than with a guessed one.
    */
   product?: ProductSummary
   heading?: string
@@ -45,6 +47,9 @@ export function OfferBlock({
 }: OfferBlockProps) {
   const offers = useOffers(slug)
   const name = product?.name ?? nameFromSlug(slug)
+  const basis = product
+    ? formatBillingBasis(product.billing, product.key_specification)
+    : ''
   const offer = offers.data?.[0]
   const purchasePath = offer?.purchase_path
 
@@ -77,6 +82,7 @@ export function OfferBlock({
                   currency={offer.price.currency}
                   size="sm"
                 />
+                {basis && <span>{basis}</span>}
                 <span>
                   {/* The date was always in the data. The word is what tells
                       a reader whether it is recent. */}

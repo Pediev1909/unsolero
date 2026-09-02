@@ -71,6 +71,7 @@ type ProductInput struct {
 	Slug        string
 	Description string
 	Price       catalog.Money
+	Billing     catalog.Billing
 	// IsPhysical mirrors the target category. A non-physical product leaves
 	// the physical attributes below at their zero value and they are stored
 	// as nulls.

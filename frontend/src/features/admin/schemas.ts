@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { billingSchema } from '../catalog/schemas'
+
 const timestamp = z.string().datetime()
 const nullableString = z.string().nullable()
 const pageFields = {
@@ -208,6 +210,10 @@ export const productSchema = z.object({
   max_capacity_grams: z.number().nonnegative().nullable(),
   material: z.string(),
   warranty_months: z.number().int().nonnegative(),
+  // The same object the public API carries. Optional so an admin page served
+  // against an API without it still lists products; the editor then starts
+  // from the monthly flat-rate default and the operator states the basis.
+  billing: billingSchema.optional(),
   scores: scoresSchema,
   status: z.enum(['draft', 'published', 'discontinued']),
   images: z.array(imageSchema),

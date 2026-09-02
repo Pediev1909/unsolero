@@ -222,11 +222,13 @@ func (repository *Repository) CreateRevision(ctx context.Context, actor identity
 	err = tx.QueryRow(ctx, `INSERT INTO evidence.product_fact_revisions (
 		product_id, version, category_id, brand_id, name, slug, description,
 		price_minor, currency, length_mm, width_mm, height_mm, weight_grams,
-		max_capacity_grams, material, warranty_months, created_by_user_id
-	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+		max_capacity_grams, material, warranty_months, created_by_user_id,
+		billing_period, pricing_unit, pricing_unit_note, annual_price_minor
+	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
 	RETURNING id`, p.ID, factVersion, p.CategoryID, p.BrandID, p.Name, p.Slug,
 		p.Description, p.Price.AmountMinor, p.Price.Currency, length,
-		width, height, weight, maxCapacity, material, p.WarrantyMonths, actor).Scan(&factID)
+		width, height, weight, maxCapacity, material, p.WarrantyMonths, actor,
+		p.Billing.Period, p.Billing.Unit, p.Billing.UnitNote, p.Billing.AnnualPriceMinor).Scan(&factID)
 	if err != nil {
 		return domain.Revision{}, mapError("insert fact revision", err)
 	}
@@ -442,6 +444,10 @@ func (repository *Repository) PublishRevision(ctx context.Context, actor identit
 		_, err = tx.Exec(ctx, `UPDATE evidence.score_revisions SET workflow_status='published',
 			published_by_user_id=$2, published_at=now() WHERE id=$1`, revision.ScoreRevisionID, actor)
 	}
+	// The billing basis is one fact: a revision that carries a period replaces
+	// all four billing columns, including a note or annual figure it leaves
+	// NULL, so a withdrawn annual option can be cleared; a revision with no
+	// period does not touch billing and the product keeps its current basis.
 	if err == nil {
 		_, err = tx.Exec(ctx, `UPDATE catalog.products products SET
 			category_id=facts.category_id, brand_id=facts.brand_id, name=facts.name,
@@ -455,6 +461,12 @@ func (repository *Repository) PublishRevision(ctx context.Context, actor identit
 			apartment_score=scores.apartment_score, noise_score=scores.noise_score,
 			portability_score=scores.portability_score, status='published',
 			published_fact_revision_id=facts.id, published_score_revision_id=scores.id,
+			billing_period=COALESCE(facts.billing_period, products.billing_period),
+			pricing_unit=COALESCE(facts.pricing_unit, products.pricing_unit),
+			pricing_unit_note=CASE WHEN facts.billing_period IS NULL
+				THEN products.pricing_unit_note ELSE facts.pricing_unit_note END,
+			annual_price_minor=CASE WHEN facts.billing_period IS NULL
+				THEN products.annual_price_minor ELSE facts.annual_price_minor END,
 			updated_at=now()
 			FROM evidence.product_fact_revisions facts
 			JOIN evidence.score_revisions scores ON scores.fact_revision_id=facts.id

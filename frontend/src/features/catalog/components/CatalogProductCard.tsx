@@ -11,6 +11,7 @@ import { Button } from '../../../components/ui/Button'
 import { ButtonLink } from '../../../components/ui/ButtonLink'
 import { PriceDisplay } from '../../../components/ui/PriceDisplay'
 import { cn } from '../../../lib/styles/cn'
+import { formatBillingBasis } from '../billing'
 import { prominentSuitability } from '../model'
 import { BrandMark } from './BrandMark'
 import type { ProductSummary } from '../schemas'
@@ -113,7 +114,7 @@ export function CatalogProductCard({
               {product.key_specification.label}
             </p>
             <p className="mt-1 text-xs font-semibold">
-              {product.key_specification.value}
+              {formatBillingBasis(product.billing, product.key_specification)}
             </p>
           </div>
         </div>

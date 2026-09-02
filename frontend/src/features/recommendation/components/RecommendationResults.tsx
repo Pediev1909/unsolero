@@ -2,6 +2,7 @@ import { Bookmark, CheckCircle2, Edit3, LockKeyhole } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { formatBillingBasis } from '../../catalog/billing'
 import { ProductComparison } from '../../catalog/components/ProductComparison'
 import { useCatalogActions } from '../../catalog/useCatalogActions'
 import { Badge } from '../../../components/ui/Badge'
@@ -196,6 +197,15 @@ export function RecommendationResults({
                   amountMinor={alternative.product.price.amount_minor}
                   currency={alternative.product.price.currency}
                 />
+                {/* "Cheaper" against a yearly-only rate is not the same
+                    cheaper as against a monthly one; the basis has to travel
+                    with the price here as everywhere else. */}
+                <p className="mt-1 text-xs text-ink/65">
+                  {formatBillingBasis(
+                    alternative.product.billing,
+                    alternative.product.key_specification,
+                  )}
+                </p>
               </article>
             ))}
           </div>
