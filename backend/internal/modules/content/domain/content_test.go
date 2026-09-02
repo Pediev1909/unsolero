@@ -8,11 +8,20 @@ func TestContentTypePath(t *testing.T) {
 		ContentTypeGuide:       "/guides/example",
 		ContentTypeBuyingGuide: "/guides/example",
 		ContentTypeComparison:  "/compare/example",
+		ContentTypeStack:       "/stacks/example",
 	}
 	for contentType, expected := range tests {
+		if !contentType.Valid() {
+			t.Fatalf("%s should be a valid content type", contentType)
+		}
 		if actual := contentType.Path("example"); actual != expected {
 			t.Fatalf("%s path = %q, want %q", contentType, actual, expected)
 		}
+	}
+	// The hub's plural is a URL segment, not a type; accepting it would let a
+	// row publish under a path nothing resolves.
+	if ContentType("stacks").Valid() || ContentType("stacks").Path("example") != "" {
+		t.Fatal("the plural section name must not be a content type")
 	}
 }
 
@@ -89,5 +98,51 @@ func TestCTABlockOnlyNamesAnApprovedPromotion(t *testing.T) {
 	}
 	if err := (Block{Type: BlockParagraph, Text: "Text", Label: "Buy"}).Validate(); err == nil {
 		t.Fatal("paragraph carrying a CTA label should be rejected")
+	}
+}
+
+// The three structured blocks added for the September 2026 redesign each
+// carry fields no other block may carry, and each has a shape an editor could
+// get wrong in a way the renderer would silently swallow.
+func TestStructuredBlocksValidateTheirOwnShape(t *testing.T) {
+	prosCons := Block{Type: BlockProsCons, Heading: "MailerLite", Pros: []string{"Cheapest editor of the five"}, Cons: []string{"Free plan halved to 500 in September 2025"}}
+	if err := prosCons.Validate(); err != nil {
+		t.Fatalf("valid pros/cons rejected: %v", err)
+	}
+	if err := (Block{Type: BlockProsCons, Pros: []string{"Only upside"}}).Validate(); err == nil {
+		t.Fatal("pros without cons should be rejected")
+	}
+	if err := (Block{Type: BlockParagraph, Text: "Text", Pros: []string{"stray"}, Cons: []string{"stray"}}).Validate(); err == nil {
+		t.Fatal("pros/cons fields on a paragraph should be rejected")
+	}
+
+	faq := Block{Type: BlockFAQ, Questions: []QuestionAnswer{{Question: "Is Brevo cheaper than Mailchimp?", Answer: "At 1,000 contacts, yes."}}}
+	if err := faq.Validate(); err != nil {
+		t.Fatalf("valid FAQ rejected: %v", err)
+	}
+	if err := (Block{Type: BlockFAQ, Questions: []QuestionAnswer{{Question: "Why?", Answer: "Too short a question."}}}).Validate(); err == nil {
+		t.Fatal("FAQ with a four-character question should be rejected")
+	}
+	if err := (Block{Type: BlockFAQ}).Validate(); err == nil {
+		t.Fatal("FAQ with no questions should be rejected")
+	}
+	if err := (Block{Type: BlockHeading, Heading: "Heading", Questions: []QuestionAnswer{{Question: "Stray question?", Answer: "Yes."}}}).Validate(); err == nil {
+		t.Fatal("questions on a heading should be rejected")
+	}
+
+	offer := Block{Type: BlockOffer, Product: "mailerlite-comfort", Text: "The cheapest editor here.", Label: "View at MailerLite"}
+	if err := offer.Validate(); err != nil {
+		t.Fatalf("valid offer rejected: %v", err)
+	}
+	for _, product := range []string{"", "../etc", "MailerLite", "mailerlite/comfort", "https://x"} {
+		if err := (Block{Type: BlockOffer, Product: product}).Validate(); err == nil {
+			t.Fatalf("offer with product %q should be rejected", product)
+		}
+	}
+	if err := (Block{Type: BlockOffer, Product: "kit-creator", Promotion: "some-promo"}).Validate(); err == nil {
+		t.Fatal("offer carrying a promotion slug should be rejected")
+	}
+	if err := (Block{Type: BlockParagraph, Text: "Text", Product: "kit-creator"}).Validate(); err == nil {
+		t.Fatal("product slug on a paragraph should be rejected")
 	}
 }

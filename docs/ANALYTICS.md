@@ -84,6 +84,55 @@ renders “No data” or “Insufficient data,” never an invented zero percent
 Historical v1/v2 event rows are non-reportable because current server consent
 cannot be proven. Countable affiliate clicks remain commerce facts.
 
+### Campaign attribution
+
+The report carries three attribution sections built from the UTM values the
+browser captures on first touch (`utm_source` → `traffic_source`,
+`utm_medium` → `traffic_medium`, `utm_campaign` → `campaign`). Each respects
+`is_reportable`, the window, and `limit` like the other rankings:
+
+- `campaigns`: per (`campaign`, `traffic_source`, `traffic_medium`) —
+  `sessions` and `page_views` from reportable `page_view` events, and
+  `affiliate_clicks` from reportable `affiliate_clicked` events whose stored
+  `campaign`, `traffic_source`, and `traffic_medium` columns match. The
+  merchant redirect writes those columns on the event itself (and repeats
+  `campaign` inside `properties`); the columns are the grouping key.
+- `landing_pages`: per (`campaign`, `page_path`) — the first campaign-bearing
+  reportable `page_view` of each session. The browser repeats first-touch
+  attribution on every later event in the tab session, so this is where the
+  link landed; a session that opened the site directly and followed a campaign
+  link later is attributed to that later landing.
+- `sources_by_medium`: sessions per (`traffic_source`, `traffic_medium`), so
+  `youtube/shorts` and `youtube/video` separate.
+
+Consent shapes these numbers. Under the current policy an anonymous
+first-time visitor's `page_view` is not stored at all: the browser sends
+nothing until the visitor accepts analytics in the banner or the footer
+preferences, and the server rejects any event without a persisted `granted`
+decision for the current policy version (`consent_required`). No record means
+`unknown`, and `unknown` fails closed. `affiliate_clicked` is different: it is
+server-authored from the merchant redirect with `consent_state=essential`, is
+reportable whenever the click is countable, and the redirect URL carries the
+browser's stored attribution regardless of consent. So campaign sessions, page
+views, and landing pages measure only the consenting share of social traffic,
+while campaign affiliate clicks measure every human click. A campaign can
+legitimately show clicks with zero sessions, and sessions are a floor on
+visitors, not a count. Changing that is a consent-policy decision, not a
+reporting one.
+
+What the browser does remember before consent, since 2026-09-02, is the
+landing attribution itself: `captureLandingAttribution()` runs once at
+start-up and stores the three bounded UTM tokens and the referring hostname in
+`sessionStorage`, exactly what `parseAttribution` admits and nothing else. No
+identifier is minted — the session id is created only when an event is sent or
+a vendor link is built — and no page view is recorded. It exists so a visitor
+who arrives from a video, accepts nothing, moves around the site and then
+clicks a vendor button is attributed to the campaign that brought them, which
+is the one number this site can report about a campaign for every visitor.
+The decision (owner, 2026-09-02): UTM tokens and a referrer hostname are not
+personal data, and storing them for the tab session does not change what the
+consent banner governs.
+
 ## Access
 
 | Surface | Allowed role |

@@ -25,6 +25,7 @@ import (
 	contentpostgres "rigmark/internal/adapters/postgres/content"
 	evidencepostgres "rigmark/internal/adapters/postgres/evidence"
 	identitypostgres "rigmark/internal/adapters/postgres/identity"
+	newsletterpostgres "rigmark/internal/adapters/postgres/newsletter"
 	planningpostgres "rigmark/internal/adapters/postgres/planning"
 	recommendationpostgres "rigmark/internal/adapters/postgres/recommendation"
 	"rigmark/internal/adapters/storage/imagescan"
@@ -40,6 +41,8 @@ import (
 	health "rigmark/internal/modules/health/application"
 	identity "rigmark/internal/modules/identity/application"
 	identityports "rigmark/internal/modules/identity/ports"
+	newsletter "rigmark/internal/modules/newsletter/application"
+	newsletterports "rigmark/internal/modules/newsletter/ports"
 	planning "rigmark/internal/modules/planning/application"
 	recommendation "rigmark/internal/modules/recommendation/application"
 	"rigmark/internal/platform/abuse"
@@ -127,7 +130,13 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("configure MFA secret storage: %w", err)
 	}
-	var emailDelivery identityports.EmailDelivery
+	// One delivery boundary serves both the account emails and the newsletter
+	// confirmation: every adapter (development sink, disabled, SMTP) implements
+	// both interfaces, and a deployment that can send one can send the other.
+	var emailDelivery interface {
+		identityports.EmailDelivery
+		newsletterports.Delivery
+	}
 	var developmentEmail httpapi.DevelopmentEmailMessages
 	switch cfg.Security.EmailProvider {
 	case "development":
@@ -160,7 +169,15 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("configure account security: %w", err)
 	}
-	catalogRepository := catalogpostgres.NewForVertical(db, cfg.Recommendation.Vertical)
+	newsletterService, err := newsletter.NewService(newsletterpostgres.New(db), tokenManager, emailDelivery,
+		newsletter.Config{ConfirmationTTL: newsletter.DefaultConfirmationTTL})
+	if err != nil {
+		return fmt.Errorf("configure newsletter: %w", err)
+	}
+	// The catalog listing's "only tools with a live vendor offer" filter must
+	// agree with the vendor buttons, so it takes the same offer window the
+	// commerce redirect applies rather than a default of its own.
+	catalogRepository := catalogpostgres.NewForVertical(db, cfg.Recommendation.Vertical, cfg.Commerce.OfferMaximumAge)
 	commerceRepository := commercepostgres.New(db, cfg.Commerce.OfferMaximumAge)
 	commerceProviders := merchantadapter.NewRegistry()
 	commerceImportService := commerce.NewImportService(commerceRepository, commerceProviders)
@@ -267,6 +284,7 @@ func run(logger *slog.Logger) error {
 				HandlerTimeout:     cfg.HTTP.HandlerTimeout,
 				SPAShellURL:        cfg.Site.SPAShellURL,
 				Security:           securityService,
+				Newsletter:         newsletterService,
 				DevelopmentEmail:   developmentEmail,
 				SecurityPolicy: httpapi.SecurityPolicyConfig{EnforcePrivilegedMFA: cfg.Security.EnforcePrivilegedMFA,
 					DevelopmentEmailAccess: cfg.Environment == "development" && cfg.Security.EmailProvider == "development"},

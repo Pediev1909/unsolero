@@ -8,8 +8,10 @@ import { PriceDisplay } from '../../../components/ui/PriceDisplay'
 import { Skeleton } from '../../../components/ui/Skeleton'
 import { buttonStyles } from '../../../components/ui/buttonStyles'
 import { formatMinorCurrency } from '../../../lib/money/format'
+import { cn } from '../../../lib/styles/cn'
 import { useOffers } from '../queries'
 import { affiliateClickPath } from '../../analytics/tracking'
+import { productSectionIDs, sectionAnchorClass } from './productSections'
 
 /**
  * Where to get the product, when there is somewhere to send people.
@@ -158,7 +160,10 @@ export function ProductOffers({ slug }: { slug: string }) {
  */
 function Section({ children }: { children: ReactNode }) {
   return (
-    <section className="py-16 sm:py-24">
+    <section
+      className={cn('py-16 sm:py-24', sectionAnchorClass)}
+      id={productSectionIDs.offers}
+    >
       <Container>
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
           Where to get it

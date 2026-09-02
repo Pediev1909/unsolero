@@ -125,3 +125,44 @@ describe('ComparisonTable vendor row', () => {
     ).toBeInTheDocument()
   })
 })
+
+describe('ComparisonTable read-only mode', () => {
+  it('hides the remove controls and keeps everything else', () => {
+    render(
+      <MemoryRouter>
+        <ComparisonTable products={products} readOnly />
+      </MemoryRouter>,
+    )
+
+    // An article's side-by-side shows a fixed set. A control that removes a
+    // column from a comparison the reader did not build would have nothing
+    // to remove from, so it is not drawn rather than drawn and ignored.
+    expect(
+      screen.queryByRole('button', { name: /Remove .* from comparison/ }),
+    ).toBeNull()
+
+    // The facts, the product links and the vendor exits are untouched.
+    expect(screen.getByRole('link', { name: 'Alpha' })).toHaveAttribute(
+      'href',
+      '/products/alpha',
+    )
+    expect(screen.getByRole('link', { name: 'Beta' })).toHaveAttribute(
+      'href',
+      '/products/beta',
+    )
+    expect(screen.getByTestId('merchant-action-alpha')).toBeInTheDocument()
+    expect(screen.getByTestId('merchant-action-beta')).toBeInTheDocument()
+    expect(screen.getByText(/affiliate links/i)).toBeInTheDocument()
+  })
+
+  it('still offers the remove control when a handler is given and it is not read-only', () => {
+    render(
+      <MemoryRouter>
+        <ComparisonTable onRemove={vi.fn()} products={products} />
+      </MemoryRouter>,
+    )
+    expect(
+      screen.getAllByRole('button', { name: /Remove .* from comparison/ }),
+    ).toHaveLength(2)
+  })
+})

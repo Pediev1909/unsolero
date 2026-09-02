@@ -17,6 +17,11 @@ const (
 	ContentTypeGuide       ContentType = "guide"
 	ContentTypeBuyingGuide ContentType = "buying_guide"
 	ContentTypeComparison  ContentType = "comparison"
+	// ContentTypeStack is a whole set of tools chosen for one kind of business
+	// and one budget: what to run, what was deliberately left out and why, and
+	// the total per month. It is the shape the recommendation builder produces,
+	// published as an indexable page where /build itself is noindex.
+	ContentTypeStack ContentType = "stack"
 )
 
 type BlockType string
@@ -39,6 +44,20 @@ const (
 	// merchant, a freshness window and a disclosure label — so the block
 	// chooses which approved destination to show and nothing else.
 	BlockCTA BlockType = "cta"
+	// BlockProsCons is a two-column list of what a tool does well and what it
+	// costs you. Both sides are required: a list of strengths with no
+	// trade-offs is an advertisement, and this site does not publish those.
+	BlockProsCons BlockType = "pros_cons"
+	// BlockFAQ carries question-and-answer pairs. The questions are meant to
+	// be the ones readers actually ask — search suggestions, Reddit threads —
+	// and the server emits them as schema.org/FAQPage.
+	BlockFAQ BlockType = "faq"
+	// BlockOffer places a vendor exit for a catalog product inside an article,
+	// by product slug. The destination is resolved when the page renders, from
+	// the product's live offer, through the same freshness and liveness checks
+	// the product page applies. So the block can only point at what the
+	// catalog already serves, and an editor still cannot type a URL.
+	BlockOffer BlockType = "offer"
 )
 
 // A promotion slug, matching the column constraint in
@@ -64,6 +83,21 @@ type Block struct {
 	// affiliate promotion; Label is the text on the control.
 	Promotion string `json:"promotion,omitempty"`
 	Label     string `json:"label,omitempty"`
+	// Pros and Cons belong to BlockProsCons.
+	Pros []string `json:"pros,omitempty"`
+	Cons []string `json:"cons,omitempty"`
+	// Questions belongs to BlockFAQ.
+	Questions []QuestionAnswer `json:"questions,omitempty"`
+	// Product belongs to BlockOffer: the slug of a catalog product. Label is
+	// shared with BlockCTA and is optional here; the control defaults to the
+	// merchant's name when it is empty.
+	Product string `json:"product,omitempty"`
+}
+
+// QuestionAnswer is one entry of a BlockFAQ.
+type QuestionAnswer struct {
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
 }
 
 type CategoryReference struct {
@@ -120,7 +154,7 @@ var ErrInvalidContent = errors.New("invalid editorial content")
 
 func (contentType ContentType) Valid() bool {
 	switch contentType {
-	case ContentTypeArticle, ContentTypeGuide, ContentTypeBuyingGuide, ContentTypeComparison:
+	case ContentTypeArticle, ContentTypeGuide, ContentTypeBuyingGuide, ContentTypeComparison, ContentTypeStack:
 		return true
 	default:
 		return false
@@ -135,6 +169,8 @@ func (contentType ContentType) Path(slug string) string {
 		return "/guides/" + slug
 	case ContentTypeComparison:
 		return "/compare/" + slug
+	case ContentTypeStack:
+		return "/stacks/" + slug
 	default:
 		return ""
 	}
@@ -200,10 +236,53 @@ func (block Block) Validate() error {
 			len(block.Heading) > 120 || len(block.Items) > 0 || block.Attribution != "" {
 			return ErrInvalidContent
 		}
+	case BlockProsCons:
+		if len(block.Pros) < 1 || len(block.Pros) > 8 || len(block.Cons) < 1 || len(block.Cons) > 8 ||
+			len(block.Heading) > 120 || textLength > 600 || len(block.Items) > 0 || block.Attribution != "" {
+			return ErrInvalidContent
+		}
+		for _, item := range append(append([]string{}, block.Pros...), block.Cons...) {
+			if len(strings.TrimSpace(item)) < 1 || len(item) > 240 {
+				return ErrInvalidContent
+			}
+		}
+	case BlockFAQ:
+		if len(block.Questions) < 1 || len(block.Questions) > 10 || len(block.Heading) > 120 ||
+			textLength > 600 || len(block.Items) > 0 || block.Attribution != "" {
+			return ErrInvalidContent
+		}
+		for _, pair := range block.Questions {
+			if len(strings.TrimSpace(pair.Question)) < 5 || len(pair.Question) > 200 ||
+				len(strings.TrimSpace(pair.Answer)) < 1 || len(pair.Answer) > 1_200 {
+				return ErrInvalidContent
+			}
+		}
+	case BlockOffer:
+		// The same anchored slug pattern as a promotion: a product slug that
+		// carried a path separator would be a different URL, not a product.
+		if !promotionSlugPattern.MatchString(block.Product) || len(block.Product) > 120 ||
+			len(strings.TrimSpace(block.Label)) > 60 || textLength > 600 || len(block.Heading) > 120 ||
+			len(block.Items) > 0 || block.Attribution != "" {
+			return ErrInvalidContent
+		}
 	default:
 		return ErrInvalidContent
 	}
-	if block.Type != BlockCTA && (block.Promotion != "" || block.Label != "") {
+	// Fields that belong to one block type are rejected on every other, so a
+	// stray field cannot ride along unrendered and surface later.
+	if block.Type != BlockCTA && block.Promotion != "" {
+		return ErrInvalidContent
+	}
+	if block.Type != BlockCTA && block.Type != BlockOffer && block.Label != "" {
+		return ErrInvalidContent
+	}
+	if block.Type != BlockProsCons && (len(block.Pros) > 0 || len(block.Cons) > 0) {
+		return ErrInvalidContent
+	}
+	if block.Type != BlockFAQ && len(block.Questions) > 0 {
+		return ErrInvalidContent
+	}
+	if block.Type != BlockOffer && block.Product != "" {
 		return ErrInvalidContent
 	}
 	return nil

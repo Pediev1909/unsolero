@@ -7,6 +7,7 @@ import {
   getBrands,
   getCategories,
   getCategory,
+  getLiveOffers,
   getOffers,
   getProduct,
   getProducts,
@@ -26,6 +27,7 @@ export const catalogKeys = {
   brands: ['catalog', 'brands'] as const,
   brand: (slug: string) => ['catalog', 'brand', slug] as const,
   offers: (slug: string) => ['catalog', 'offers', slug] as const,
+  liveOffers: ['catalog', 'live-offers'] as const,
   wishlist: ['account', 'wishlist'] as const,
   comparison: ['account', 'comparison'] as const,
 }
@@ -90,6 +92,10 @@ export function useOffers(slug: string) {
     queryFn: () => getOffers(slug),
     enabled: Boolean(slug),
   })
+}
+
+export function useLiveOffers() {
+  return useQuery({ queryKey: catalogKeys.liveOffers, queryFn: getLiveOffers })
 }
 
 export function useWishlist(enabled: boolean) {

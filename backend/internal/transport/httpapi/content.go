@@ -108,12 +108,12 @@ func (h *Handler) listContent(response http.ResponseWriter, request *http.Reques
 		}
 		limit = parsed
 	}
-	entries, err := h.content.List(
-		request.Context(),
-		request.URL.Query().Get("section"),
-		request.URL.Query().Get("category"),
-		limit,
-	)
+	entries, err := h.content.List(request.Context(), content.ListQuery{
+		Section:      request.URL.Query().Get("section"),
+		CategorySlug: request.URL.Query().Get("category"),
+		ProductSlug:  request.URL.Query().Get("product"),
+		Limit:        limit,
+	})
 	if err != nil {
 		h.writeContentError(response, err)
 		return

@@ -34,14 +34,32 @@ func NewService(repository ports.Repository, catalog Catalog, siteURL string) (*
 	return &Service{repository: repository, catalog: catalog, siteURL: parsed}, nil
 }
 
-func (service *Service) List(ctx context.Context, section, categorySlug string, limit int) ([]domain.Summary, error) {
-	types, err := sectionTypes(section)
-	if err != nil || categorySlug != "" && !slugPattern.MatchString(categorySlug) || limit < 1 || limit > 24 {
+// ListQuery is what the public listing accepts. The filters were positional
+// strings until the product filter made a fourth, at which point every call
+// site was a row of unlabelled arguments.
+type ListQuery struct {
+	Section      string
+	CategorySlug string
+	// ProductSlug asks for the entries that reference one product — the
+	// "Compared in" list on its page.
+	ProductSlug string
+	Limit       int
+}
+
+func (service *Service) List(ctx context.Context, query ListQuery) ([]domain.Summary, error) {
+	types, err := sectionTypes(query.Section)
+	if err != nil || !optionalSlug(query.CategorySlug) || !optionalSlug(query.ProductSlug) ||
+		query.Limit < 1 || query.Limit > 24 {
 		return nil, ErrInvalidQuery
 	}
 	return service.repository.ListPublished(ctx, ports.Filter{
-		Types: types, CategorySlug: categorySlug, Limit: limit,
+		Types: types, CategorySlug: query.CategorySlug, ProductSlug: query.ProductSlug, Limit: query.Limit,
 	})
+}
+
+// optionalSlug accepts an absent filter or a well-formed slug, and nothing else.
+func optionalSlug(value string) bool {
+	return value == "" || slugPattern.MatchString(value)
 }
 
 func (service *Service) Get(ctx context.Context, slug string) (domain.Entry, error) {
@@ -107,6 +125,8 @@ func sectionTypes(section string) ([]domain.ContentType, error) {
 		return []domain.ContentType{domain.ContentTypeGuide, domain.ContentTypeBuyingGuide}, nil
 	case "comparisons":
 		return []domain.ContentType{domain.ContentTypeComparison}, nil
+	case "stacks":
+		return []domain.ContentType{domain.ContentTypeStack}, nil
 	default:
 		return nil, ErrInvalidQuery
 	}

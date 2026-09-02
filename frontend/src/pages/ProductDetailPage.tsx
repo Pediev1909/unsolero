@@ -1,12 +1,4 @@
-import {
-  AlertTriangle,
-  Bookmark,
-  Check,
-  CheckCircle2,
-  ExternalLink,
-  Scale,
-  Target,
-} from 'lucide-react'
+import { Bookmark, Check, ExternalLink, Scale } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -19,25 +11,44 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { Heading } from '../components/ui/Heading'
 import { Skeleton } from '../components/ui/Skeleton'
 import { CatalogProductGrid } from '../features/catalog/components/CatalogProductGrid'
+import { ProductAtAGlance } from '../features/catalog/components/ProductAtAGlance'
 import { ProductComparison } from '../features/catalog/components/ProductComparison'
+import { ProductEditorial } from '../features/catalog/components/ProductEditorial'
 import { ProductGallery } from '../features/catalog/components/ProductGallery'
 import { ProductOffers } from '../features/catalog/components/ProductOffers'
+import { ProductProsCons } from '../features/catalog/components/ProductProsCons'
+import { ProductSectionNav } from '../features/catalog/components/ProductSectionNav'
 import { ProductSpecifications } from '../features/catalog/components/ProductSpecifications'
+import {
+  latestObservation,
+  shortRevision,
+} from '../features/catalog/components/productRecord'
+import {
+  productSectionIDs,
+  productSections,
+  sectionAnchorClass,
+} from '../features/catalog/components/productSections'
 import {
   evidenceFactLabel,
   visibleEvidence,
 } from '../features/catalog/evidence'
 import { specifications } from '../features/catalog/specifications'
 import { suitabilityVariant } from '../features/catalog/model'
-import { useProduct } from '../features/catalog/queries'
-import type { ProductInsight } from '../features/catalog/schemas'
+import { useOffers, useProduct } from '../features/catalog/queries'
+import { useProductEditorial } from '../features/catalog/relatedContent'
 import { useCatalogActions } from '../features/catalog/useCatalogActions'
+import { cn } from '../lib/styles/cn'
 import { usePageMetadata } from '../lib/seo/usePageMetadata'
 import { trackEvent } from '../features/analytics/tracking'
 
 export function ProductDetailPage() {
   const { slug = '' } = useParams()
   const product = useProduct(slug)
+  // Read here as well as inside the sections that draw them, so the jump row
+  // can leave out a section that is going to render nothing. TanStack serves
+  // both reads from one request.
+  const offers = useOffers(slug)
+  const editorial = useProductEditorial(slug)
   const actions = useCatalogActions()
   const viewedProductID = useRef<string | null>(null)
 
@@ -84,6 +95,14 @@ export function ProductDetailPage() {
 
   const item = product.data
   const saved = actions.savedIDs.has(item.id)
+  const hasImages = item.images.length > 0 || item.primary_image !== null
+  const evidence = visibleEvidence(item)
+  const observed = latestObservation(item)
+  const sections = productSections({
+    evidence: evidence.length > 0,
+    offers: (offers.data?.length ?? 0) > 0,
+    editorial: (editorial.data?.length ?? 0) > 0,
+  })
 
   return (
     <PageFrame>
@@ -120,14 +139,20 @@ export function ProductDetailPage() {
           </nav>
         </Container>
 
-        <Container className="pb-16 sm:pb-24">
-          {/* items-start, so the left column does not stretch to the height of
-              the right one. Without it the price card's border ran the full
-              height of the description beside it and left a tall panel of
-              empty white under the last row. */}
-          <div className="grid items-start gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)] lg:gap-14">
+        <Container className="pb-10 sm:pb-14">
+          {/* With images the gallery takes the left column and the words the
+              right. Without — which is every software product — that grid
+              left a 1.15fr column holding a small brand tile and a wall of
+              white beside the title, so the tile sits above the words instead.
+              items-start, so a column does not stretch to the other's height. */}
+          <div
+            className={cn(
+              hasImages &&
+                'grid items-start gap-9 lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)] lg:gap-14',
+            )}
+          >
             <ProductGallery product={item} />
-            <div className="lg:pt-5">
+            <div className={hasImages ? 'lg:pt-5' : 'mt-6'}>
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   className="inline-flex min-h-6 items-center text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark hover:text-ink"
@@ -145,105 +170,104 @@ export function ProductDetailPage() {
               <p className="mt-5 max-w-xl text-base leading-7 text-ink/70">
                 {item.description}
               </p>
-              {/* The price used to be printed here as well as in the card
-                  beside it, twice on one screen, and the second copy carried
-                  none of what makes it useful — no billing basis, no date, no
-                  source. The card owns it now; this row is the action. */}
-              <div className="mt-7 flex flex-wrap items-center justify-between gap-4 border-y border-ink/15 py-5">
-                <p className="max-w-xs text-sm leading-6 text-ink/70">
-                  Keep it on a shortlist you can come back to.
-                </p>
-                <Button
-                  aria-pressed={saved}
-                  loading={actions.savePending}
-                  onClick={() => actions.save(item)}
-                  variant="secondary"
-                >
-                  {saved ? (
-                    <Check aria-hidden="true" size={17} />
-                  ) : (
-                    <Bookmark aria-hidden="true" size={17} />
-                  )}
-                  {saved ? 'Saved' : 'Save product'}
-                </Button>
-              </div>
-
-              <div className="mt-6">
-                <h2 className="text-xs font-bold uppercase tracking-[0.14em]">
-                  Suitability at a glance
-                </h2>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {item.suitability.map((insight) => (
-                    <Badge
-                      key={insight.key}
-                      variant={suitabilityVariant(insight.score)}
-                    >
-                      {insight.label} {insight.score}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="mt-4 text-xs leading-5 text-ink/65">
-                  Scores are derived from structured catalog facts. They are not
-                  customer ratings or reviews.
-                </p>
-              </div>
             </div>
+          </div>
+
+          {/* How much, for whom, how well sourced, where: answered before the
+              first scroll, once. The strip owns the price; nothing below
+              prints it again. */}
+          <ProductAtAGlance product={item} />
+
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-y border-ink/15 py-5">
+            <p className="max-w-xs text-sm leading-6 text-ink/70">
+              Keep it on a shortlist you can come back to.
+            </p>
+            <Button
+              aria-pressed={saved}
+              loading={actions.savePending}
+              onClick={() => actions.save(item)}
+              variant="secondary"
+            >
+              {saved ? (
+                <Check aria-hidden="true" size={17} />
+              ) : (
+                <Bookmark aria-hidden="true" size={17} />
+              )}
+              {saved ? 'Saved' : 'Save product'}
+            </Button>
+          </div>
+
+          <div className="mt-6">
+            <h2 className="text-xs font-bold uppercase tracking-[0.14em]">
+              Suitability
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {item.suitability.map((insight) => (
+                <Badge
+                  key={insight.key}
+                  variant={suitabilityVariant(insight.score)}
+                >
+                  {insight.label} {insight.score}
+                </Badge>
+              ))}
+            </div>
+            <p className="mt-4 text-xs leading-5 text-ink/65">
+              Scores are derived from structured catalog facts. They are not
+              customer ratings or reviews.
+            </p>
           </div>
         </Container>
 
-        <section className="border-y border-ink/15 bg-paper py-16 sm:py-24">
+        <ProductSectionNav sections={sections} />
+
+        <section
+          className={cn(
+            'border-b border-ink/15 bg-paper py-16 sm:py-24',
+            sectionAnchorClass,
+          )}
+          id={productSectionIDs.profile}
+        >
           <Container>
-            <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
-              <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
+              Decision profile
+            </p>
+            <Heading className="mt-4" level={2} size="title">
+              Where it is strong, and what it costs you.
+            </Heading>
+            <div className="mt-9">
+              <ProductProsCons
+                strengths={item.strengths}
+                useCases={item.use_cases}
+                weaknesses={item.weaknesses}
+              />
+            </div>
+            {/* A heading that promises facts and then lists nothing is worse
+                than no heading. Software answers none of the physical rows,
+                so on those products the whole block is absent. */}
+            {specifications(item).length > 0 && (
+              <div className="mt-14 border-t border-ink/15 pt-10">
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
-                  Decision profile
+                  Product facts
                 </p>
                 <Heading className="mt-4" level={2} size="title">
-                  Where it excels—and where it does not.
+                  Specifications
                 </Heading>
-                <div className="mt-9 space-y-8">
-                  <InsightList
-                    icon={<CheckCircle2 aria-hidden="true" size={19} />}
-                    insights={item.strengths}
-                    title="Strengths"
-                    empty="No standout strength crossed the current evidence threshold."
-                  />
-                  <InsightList
-                    icon={<AlertTriangle aria-hidden="true" size={19} />}
-                    insights={item.weaknesses}
-                    title="Trade-offs"
-                    empty="No material weakness crossed the current evidence threshold."
-                  />
-                  <InsightList
-                    icon={<Target aria-hidden="true" size={19} />}
-                    insights={item.use_cases}
-                    title="Best use cases"
-                    empty="No use case crossed the current evidence threshold."
-                  />
+                <div className="mt-9">
+                  <ProductSpecifications product={item} />
                 </div>
               </div>
-              {/* A heading that promises facts and then lists nothing is worse
-                  than no heading. Software answers none of the physical rows,
-                  so on those products the whole column is absent. */}
-              {specifications(item).length > 0 && (
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
-                    Product facts
-                  </p>
-                  <Heading className="mt-4" level={2} size="title">
-                    Specifications
-                  </Heading>
-                  <div className="mt-9">
-                    <ProductSpecifications product={item} />
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
           </Container>
         </section>
 
-        {visibleEvidence(item).length > 0 && (
-          <section className="border-b border-ink/15 py-16 sm:py-24">
+        {evidence.length > 0 && (
+          <section
+            className={cn(
+              'border-b border-ink/15 py-16 sm:py-24',
+              sectionAnchorClass,
+            )}
+            id={productSectionIDs.evidence}
+          >
             <Container>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-bronze-dark">
                 Evidence record
@@ -257,34 +281,34 @@ export function ProductDetailPage() {
                 never affect recommendation scores.
               </p>
               <div className="mt-9 grid gap-px border border-ink/15 bg-ink/15 md:grid-cols-2">
-                {visibleEvidence(item).map((evidence, index) => (
+                {evidence.map((entry, index) => (
                   <article
                     className="bg-canvas p-5 sm:p-6"
-                    key={`${evidence.fact_key}-${evidence.source_title}-${index}`}
+                    key={`${entry.fact_key}-${entry.source_title}-${index}`}
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="neutral">
-                        {evidenceLabel(evidence.classification)}
+                        {evidenceLabel(entry.classification)}
                       </Badge>
-                      {evidence.is_fictional && (
+                      {entry.is_fictional && (
                         <Badge variant="warning">Fictional demo evidence</Badge>
                       )}
                     </div>
                     <h3 className="mt-4 text-sm font-semibold">
-                      {evidenceFactLabel(evidence.fact_key)}
+                      {evidenceFactLabel(entry.fact_key)}
                     </h3>
                     <p className="mt-2 text-sm leading-6 text-ink/70">
-                      {evidence.source_title}
+                      {entry.source_title}
                     </p>
                     <p className="mt-3 text-xs text-ink/65">
                       Observed{' '}
-                      {new Date(evidence.observed_at).toLocaleDateString()}
-                      {' · '}Confidence {evidence.confidence}/100
+                      {new Date(entry.observed_at).toLocaleDateString()}
+                      {' · '}Confidence {entry.confidence}/100
                     </p>
-                    {evidence.source_url && (
+                    {entry.source_url && (
                       <a
                         className="mt-4 inline-flex min-h-11 items-center gap-2 text-xs font-semibold text-bronze-dark hover:text-ink"
-                        href={evidence.source_url}
+                        href={entry.source_url}
                         rel="noreferrer"
                         target="_blank"
                       >
@@ -295,9 +319,15 @@ export function ProductDetailPage() {
                   </article>
                 ))}
               </div>
+              {/* One line that names the record this page is: which fact and
+                  score revisions it was rendered from, and the most recent day
+                  any of it was observed. Not a price history — the API carries
+                  one dated observation per fact, from the published revision
+                  only; see productRecord.ts. */}
               <p className="mt-5 text-xs text-ink/65">
-                Fact revision {item.fact_revision_id.slice(0, 8)} · Score
-                revision {item.score_revision_id.slice(0, 8)}
+                Record: fact revision {shortRevision(item.fact_revision_id)} ·
+                score revision {shortRevision(item.score_revision_id)}
+                {observed && <> · observed {observed}</>}
               </p>
             </Container>
           </section>
@@ -309,7 +339,15 @@ export function ProductDetailPage() {
             product pages. */}
         <ProductOffers slug={item.slug} />
 
-        <section className="border-t border-ink/15 py-16 sm:py-24">
+        <ProductEditorial slug={item.slug} />
+
+        <section
+          className={cn(
+            'border-t border-ink/15 py-16 sm:py-24',
+            sectionAnchorClass,
+          )}
+          id={productSectionIDs.alternatives}
+        >
           <Container>
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
@@ -395,54 +433,14 @@ function ProductLoading() {
   return (
     <PageFrame>
       <main id="main-content">
-        <Container className="grid gap-10 py-16 lg:grid-cols-2">
-          <Skeleton className="aspect-[4/3] w-full" />
-          <div>
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="mt-6 h-20 w-4/5" />
-            <Skeleton className="mt-7 h-24 w-full" />
-            <Skeleton className="mt-8 h-24 w-full" />
-          </div>
+        <Container className="py-16">
+          <Skeleton className="size-20 sm:size-24" />
+          <Skeleton className="mt-6 h-4 w-24" />
+          <Skeleton className="mt-6 h-20 w-4/5" />
+          <Skeleton className="mt-7 h-24 w-full max-w-xl" />
+          <Skeleton className="mt-8 h-40 w-full" />
         </Container>
       </main>
     </PageFrame>
-  )
-}
-
-function InsightList({
-  icon,
-  insights,
-  title,
-  empty,
-}: {
-  icon: React.ReactNode
-  insights: ProductInsight[]
-  title: string
-  empty: string
-}) {
-  return (
-    <div>
-      <h3 className="flex items-center gap-2 text-sm font-semibold">
-        {icon}
-        {title}
-      </h3>
-      {insights.length ? (
-        <ul className="mt-3 space-y-2 text-sm text-ink/65">
-          {insights.map((insight) => (
-            <li
-              className="flex justify-between gap-4 border-b border-ink/10 pb-2"
-              key={insight.key}
-            >
-              <span>{insight.label}</span>
-              <span className="font-semibold text-ink">
-                {insight.score}/100
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-sm leading-6 text-ink/68">{empty}</p>
-      )}
-    </div>
   )
 }

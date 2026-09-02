@@ -7,6 +7,9 @@ export const contentTypeSchema = z.enum([
   'guide',
   'buying_guide',
   'comparison',
+  // A whole set of tools for one kind of business and budget, with what was
+  // left out and why. Served at /stacks/{slug}; the hub is /stacks.
+  'stack',
 ])
 
 const heroImageSchema = z.object({
@@ -48,6 +51,9 @@ const contentBlockSchema = z.object({
     'quote',
     'callout',
     'cta',
+    'pros_cons',
+    'faq',
+    'offer',
   ]),
   heading: z.string().optional(),
   text: z.string().optional(),
@@ -57,7 +63,23 @@ const contentBlockSchema = z.object({
   // commerce.affiliate_promotions and the block only chooses which approved
   // one to show. See the BlockCTA comment in the Go domain for why.
   promotion: z.string().optional(),
+  // 'cta' and 'offer'. The text on the control; an offer block without one
+  // falls back to "View at {merchant}".
   label: z.string().optional(),
+  // 'pros_cons' only. The server requires both sides, 1–8 each — a list of
+  // strengths with no trade-offs is an advertisement. Optional here because
+  // the shape is the server's to enforce, and a cached response must not
+  // fail validation and blank the page.
+  pros: z.array(z.string()).optional(),
+  cons: z.array(z.string()).optional(),
+  // 'faq' only.
+  questions: z
+    .array(z.object({ question: z.string(), answer: z.string() }))
+    .optional(),
+  // 'offer' only. A catalog product slug, never a URL: the vendor destination
+  // is the product's live affiliate offer, loaded when the block renders, so
+  // an editor can only point at what the catalog already serves.
+  product: z.string().optional(),
 })
 
 export const contentDetailSchema = contentSummarySchema.extend({

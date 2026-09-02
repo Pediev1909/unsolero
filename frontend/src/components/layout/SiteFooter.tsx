@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Container } from '../ui/Container'
 import { BrandMark } from './BrandMark'
 import { openAnalyticsConsentPreferences } from '../../features/analytics/consent'
+import { NewsletterForm } from '../../features/newsletter/components/NewsletterForm'
 
 // Grouped rather than listed. A single alphabet-soup column of ten links makes
 // the reader scan all of them to find one; under a heading they can skip to the
@@ -19,6 +20,7 @@ const footerGroups: {
       { label: 'Software categories', to: '/categories' },
       { label: 'All software', to: '/products' },
       { label: 'All vendors', to: '/brands' },
+      { label: 'Live offers', to: '/offers' },
       { label: 'Compare', to: '/compare' },
       { label: 'Wishlist', to: '/wishlist' },
     ],
@@ -28,6 +30,7 @@ const footerGroups: {
     links: [
       { label: 'How it works', to: '/how-it-works' },
       { label: 'Comparisons', to: '/comparisons' },
+      { label: 'Stacks', to: '/stacks' },
       { label: 'Guides', to: '/guides' },
       { label: 'Articles', to: '/articles' },
       {
@@ -59,6 +62,14 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-canvas/10 bg-ink py-10 text-canvas">
       <Container>
+        {/* The newsletter panel is light on the dark footer so the shared Input
+            and Button keep the contrast they were designed for: the footer's
+            inverse palette has no error colour that reads on ink. */}
+        <div className="mb-8 border-b border-canvas/15 pb-8">
+          <div className="bg-canvas px-5 py-6 text-ink sm:px-7 sm:py-7">
+            <NewsletterForm compact source="footer" />
+          </div>
+        </div>
         <div className="grid gap-8 border-b border-canvas/15 pb-8 md:grid-cols-[1fr_auto] md:gap-16">
           <div>
             <BrandMark inverse />

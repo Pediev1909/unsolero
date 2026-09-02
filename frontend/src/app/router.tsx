@@ -49,10 +49,22 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: '/offers',
+        lazy: async () => ({
+          Component: (await import('../pages/OffersPage')).OffersPage,
+        }),
+      },
+      {
         path: '/offers/funnel-hacking-secrets',
         lazy: async () => ({
           Component: (await import('../pages/FunnelHackingSecretsPage'))
             .FunnelHackingSecretsPage,
+        }),
+      },
+      {
+        path: '/links',
+        lazy: async () => ({
+          Component: (await import('../pages/LinksPage')).LinksPage,
         }),
       },
       {
@@ -91,6 +103,13 @@ export const router = createBrowserRouter([
         lazy: async () => ({
           Component: (await import('../pages/ResetPasswordPage'))
             .ResetPasswordPage,
+        }),
+      },
+      {
+        path: '/newsletter/confirm',
+        lazy: async () => ({
+          Component: (await import('../pages/NewsletterConfirmPage'))
+            .NewsletterConfirmPage,
         }),
       },
       {
@@ -170,6 +189,19 @@ export const router = createBrowserRouter([
       },
       {
         path: '/articles/:slug',
+        lazy: async () => ({
+          Component: (await import('../pages/ContentDetailPage'))
+            .ContentDetailPage,
+        }),
+      },
+      {
+        path: '/stacks',
+        lazy: async () => ({
+          Component: (await import('../pages/ContentHubPage')).StacksPage,
+        }),
+      },
+      {
+        path: '/stacks/:slug',
         lazy: async () => ({
           Component: (await import('../pages/ContentDetailPage'))
             .ContentDetailPage,

@@ -1,4 +1,3 @@
-import { Scale } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -13,12 +12,14 @@ import { Heading } from '../../../components/ui/Heading'
 import { LoadingState } from '../../../components/ui/LoadingState'
 import { usePageMetadata } from '../../../lib/seo/usePageMetadata'
 import { useBrands, useCategories, useProducts } from '../queries'
+import type { ProductSummary } from '../schemas'
 import { useCatalogActions } from '../useCatalogActions'
 import { useCatalogUrlState } from '../useCatalogUrlState'
 import { CatalogFilters } from './CatalogFilters'
 import { CatalogLoadingGrid } from './CatalogLoadingGrid'
 import { CatalogPagination } from './CatalogPagination'
 import { CatalogProductGrid } from './CatalogProductGrid'
+import { CatalogSelectionTray } from './CatalogSelectionTray'
 import { CatalogToolbar } from './CatalogToolbar'
 import { ProductComparison } from './ProductComparison'
 import { catalogRobots } from './catalogSeo'
@@ -33,6 +34,12 @@ interface CatalogListingProps {
   brandSlug?: string
   noindex?: boolean
   afterCatalog?: ReactNode
+  /**
+   * Renders under the grid with the products on the current page, for a
+   * summary that reads them — a page's team-size cost, say — without a second
+   * request for the same list.
+   */
+  afterGrid?: (products: ProductSummary[]) => ReactNode
 }
 
 export function CatalogListing({
@@ -44,6 +51,7 @@ export function CatalogListing({
   brandSlug,
   noindex = true,
   afterCatalog,
+  afterGrid,
 }: CatalogListingProps) {
   const [filterOpen, setFilterOpen] = useState(false)
   const { search } = useLocation()
@@ -225,6 +233,7 @@ export function CatalogListing({
                       page={products.data.page}
                       totalPages={products.data.total_pages}
                     />
+                    {afterGrid?.(products.data.products)}
                   </>
                 )}
               </div>
@@ -234,32 +243,11 @@ export function CatalogListing({
         {afterCatalog}
       </main>
 
-      {actions.comparedIDs.size > 0 && (
-        <div
-          className="fixed inset-x-0 z-30 mx-auto flex w-[min(calc(100%-2rem),32rem)] items-center justify-between gap-4 border border-ink/15 bg-ink px-4 py-3 text-canvas shadow-overlay"
-          // Sits above the consent banner while that is showing, rather than
-          // underneath it where its Compare button could not be clicked. The
-          // safe-area term keeps it clear of a device's own bottom furniture;
-          // the toolbar carries the same action in normal flow, so this bar
-          // being obscured by anything is an inconvenience rather than a dead
-          // end.
-          style={{
-            bottom:
-              'calc(var(--bottom-bar-offset, 0px) + env(safe-area-inset-bottom, 0px) + 1rem)',
-          }}
-        >
-          <p className="text-sm">
-            <strong>{actions.comparedIDs.size}</strong> of 4 selected
-          </p>
-          <Button
-            onClick={() => actions.setComparisonOpen(true)}
-            size="sm"
-            variant="inverse"
-          >
-            <Scale aria-hidden="true" size={16} /> Compare
-          </Button>
-        </div>
-      )}
+      <CatalogSelectionTray
+        comparedCount={actions.comparedIDs.size}
+        onOpenComparison={() => actions.setComparisonOpen(true)}
+        savedCount={actions.savedIDs.size}
+      />
 
       <Drawer
         description="Narrow products by needs and reference price."

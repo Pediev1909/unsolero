@@ -306,7 +306,26 @@ func catalogQuery(request *http.Request) (catalog.Query, error) {
 	if query.MaxPriceMinor, err = optionalNonNegativeInt64(values.Get("max_price_minor")); err != nil {
 		return catalog.Query{}, catalog.ErrInvalidQuery
 	}
+	if query.HasOffer, err = optionalTrueFlag(values.Get("has_offer")); err != nil {
+		return catalog.Query{}, catalog.ErrInvalidQuery
+	}
 	return query, nil
+}
+
+// optionalTrueFlag reads a filter that narrows a listing. "Off" is expressed
+// by leaving the parameter out, so the only value it accepts is "true"; "false",
+// "1" and "yes" are rejected like any other malformed parameter rather than
+// guessed at, and the client learns its URL is wrong instead of getting an
+// unfiltered page it believes is filtered.
+func optionalTrueFlag(value string) (bool, error) {
+	switch value {
+	case "":
+		return false, nil
+	case "true":
+		return true, nil
+	default:
+		return false, catalog.ErrInvalidQuery
+	}
 }
 
 func optionalPositiveInt(value string, fallback int) (int, error) {

@@ -31,8 +31,12 @@ type Query struct {
 	Sort          string
 	MinPriceMinor *int64
 	MaxPriceMinor *int64
-	Page          int
-	PageSize      int
+	// HasOffer narrows the page to products with a live vendor offer. It is
+	// applied in the listing query so page totals stay honest; a post-filter
+	// over a fetched page would report twelve results and draw four.
+	HasOffer bool
+	Page     int
+	PageSize int
 }
 
 type Page struct {
@@ -78,6 +82,7 @@ func (service *Service) Search(ctx context.Context, query Query) (Page, error) {
 		Sort:          normalized.Sort,
 		MinPriceMinor: normalized.MinPriceMinor,
 		MaxPriceMinor: normalized.MaxPriceMinor,
+		HasOffer:      normalized.HasOffer,
 		Offset:        (normalized.Page - 1) * normalized.PageSize,
 		Limit:         normalized.PageSize,
 	})

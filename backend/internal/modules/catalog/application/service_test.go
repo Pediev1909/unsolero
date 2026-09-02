@@ -1,10 +1,44 @@
 package application
 
 import (
+	"context"
 	"testing"
 
 	"rigmark/internal/modules/catalog/domain"
+	"rigmark/internal/modules/catalog/ports"
 )
+
+// filterCapturingRepository records the filter Search hands the repository.
+// Embedding the interface leaves every other method unimplemented, which is
+// fine: Search calls exactly one.
+type filterCapturingRepository struct {
+	Repository
+	filter ports.ProductFilter
+}
+
+func (repository *filterCapturingRepository) SearchPublished(_ context.Context, filter ports.ProductFilter) (ports.ProductPage, error) {
+	repository.filter = filter
+	return ports.ProductPage{}, nil
+}
+
+// The live-offer filter has to reach the query that computes the total, not a
+// loop over the returned page; otherwise the response says "12 products" and
+// draws four.
+func TestSearchThreadsHasOfferIntoTheListingFilter(t *testing.T) {
+	repository := &filterCapturingRepository{}
+	if _, err := NewService(repository).Search(context.Background(), Query{HasOffer: true, Page: 2, PageSize: 12}); err != nil {
+		t.Fatalf("Search() returned an error: %v", err)
+	}
+	if !repository.filter.HasOffer || repository.filter.Offset != 12 || repository.filter.Limit != 12 {
+		t.Fatalf("repository filter = %#v, want HasOffer with the page's offset and limit", repository.filter)
+	}
+	if _, err := NewService(repository).Search(context.Background(), Query{}); err != nil {
+		t.Fatalf("Search() returned an error: %v", err)
+	}
+	if repository.filter.HasOffer {
+		t.Fatal("HasOffer must be off unless the query asked for it")
+	}
+}
 
 func TestNormalizeQueryAppliesDefaults(t *testing.T) {
 	query, err := normalizeQuery(Query{})

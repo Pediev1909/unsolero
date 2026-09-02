@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"rigmark/internal/modules/identity/ports"
+	newsletterports "rigmark/internal/modules/newsletter/ports"
 )
 
 var ErrDeliveryDisabled = errors.New("email delivery is disabled")
@@ -22,6 +23,9 @@ func (Disabled) SendPasswordReset(context.Context, ports.PasswordResetMessage) (
 }
 func (Disabled) SendSecurityNotification(context.Context, ports.SecurityNotification) (ports.DeliveryReceipt, error) {
 	return ports.DeliveryReceipt{Accepted: false, Reference: "disabled"}, nil
+}
+func (Disabled) SendNewsletterConfirmation(context.Context, newsletterports.ConfirmationMessage) error {
+	return nil
 }
 
 // DevelopmentSink records explicit delivery intents in process memory. It is
@@ -45,6 +49,11 @@ func (sink *DevelopmentSink) SendPasswordReset(_ context.Context, message ports.
 
 func (sink *DevelopmentSink) SendSecurityNotification(_ context.Context, message ports.SecurityNotification) (ports.DeliveryReceipt, error) {
 	return sink.record("security_notification", message.Recipient, "", time.Time{})
+}
+
+func (sink *DevelopmentSink) SendNewsletterConfirmation(_ context.Context, message newsletterports.ConfirmationMessage) error {
+	_, err := sink.record("newsletter_confirmation", message.Recipient, message.Token, message.ExpiresAt)
+	return err
 }
 
 func (sink *DevelopmentSink) Messages(recipient string) []ports.DevelopmentMessage {

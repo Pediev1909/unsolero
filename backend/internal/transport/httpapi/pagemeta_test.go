@@ -325,3 +325,84 @@ func TestEntryBodySkipsIncompleteCTA(t *testing.T) {
 		}
 	}
 }
+
+// The three editorial blocks added for the comparison pages: what a tool does
+// well and what it costs, the questions readers actually ask, and a vendor exit
+// by product slug. Each has to reach the document, and the offer must send a
+// crawler to the product page rather than the affiliate redirect.
+func TestEntryBodyRendersProsConsFAQAndOfferBlocks(t *testing.T) {
+	entry := content.Entry{Content: []content.Block{
+		{Type: content.BlockProsCons, Heading: "Verdict", Pros: []string{"Generous free tier"}, Cons: []string{"Automation starts at the paid tier"}},
+		{Type: content.BlockFAQ, Heading: "Questions", Questions: []content.QuestionAnswer{
+			{Question: "Is there a free plan?", Answer: "Yes, up to 500 contacts."},
+		}},
+		{Type: content.BlockOffer, Product: "kit-creator", Heading: "Try Kit", Text: "Fourteen days, no card.", Label: "See Kit"},
+	}}
+	entry.Title = "Mailchimp against Kit"
+
+	body := renderEntryBody(entry)
+	for _, want := range []string{
+		"<h3", ">Pros</h3>", "<li>Generous free tier</li>",
+		">Cons</h3>", "<li>Automation starts at the paid tier</li>",
+		">Is there a free plan?</h3>", "Yes, up to 500 contacts.",
+		`href="/products/kit-creator"`, "Fourteen days, no card.", ">See Kit</a>",
+		"Affiliate link on the product page. Commission never changes the ranking.",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("entry body is missing %q\ngot: %s", want, body)
+		}
+	}
+	if strings.Contains(body, "/api/affiliate/") {
+		t.Errorf("an offer block put the affiliate redirect into the static body:\n%s", body)
+	}
+}
+
+// Every field of the new blocks is stored text. A "<" in any of them must
+// arrive as an entity, not an element.
+func TestNewBlocksEscapeStoredText(t *testing.T) {
+	entry := content.Entry{Content: []content.Block{
+		{Type: content.BlockProsCons, Pros: []string{"<b>bold</b> pro"}, Cons: []string{"<i>con</i>"}},
+		{Type: content.BlockFAQ, Questions: []content.QuestionAnswer{{Question: "<q>?", Answer: "<script>alert(1)</script>"}}},
+		{Type: content.BlockOffer, Product: "kit-creator", Text: "<img src=x onerror=y>", Label: "<em>go</em>"},
+	}}
+	body := renderEntryBody(entry)
+	for _, live := range []string{"<b>", "<i>", "<q>", "<script>", "<img", "<em>"} {
+		if strings.Contains(body, live) {
+			t.Errorf("stored text produced live markup %q:\n%s", live, body)
+		}
+	}
+	if strings.Count(body, "&lt;") < 6 {
+		t.Errorf("expected every < to be escaped:\n%s", body)
+	}
+}
+
+func TestFAQStructuredDataExistsOnlyForFAQBlocks(t *testing.T) {
+	if data := faqStructuredData([]content.Block{{Type: content.BlockParagraph, Text: "No questions here."}}); data != nil {
+		t.Fatalf("FAQPage emitted without a FAQ block: %v", data)
+	}
+	data := faqStructuredData([]content.Block{
+		{Type: content.BlockFAQ, Questions: []content.QuestionAnswer{{Question: "Q1?", Answer: "A1"}}},
+		{Type: content.BlockFAQ, Questions: []content.QuestionAnswer{{Question: "Q2?", Answer: "A2"}}},
+	})
+	if data["@type"] != "FAQPage" {
+		t.Fatalf("@type = %v, want FAQPage", data["@type"])
+	}
+	questions, _ := data["mainEntity"].([]map[string]any)
+	if len(questions) != 2 || questions[1]["name"] != "Q2?" {
+		t.Fatalf("mainEntity = %v, want both questions in order", data["mainEntity"])
+	}
+}
+
+// A page gets one JSON-LD block. Several nodes share a single @context under
+// @graph, and an absent optional node simply does not appear.
+func TestStructuredDataGraphJoinsNodesUnderOneContext(t *testing.T) {
+	product := map[string]any{"@context": "https://schema.org", "@type": "Product"}
+	graph := structuredDataGraph(product, nil, map[string]any{"@type": "BreadcrumbList"})
+	nodes, _ := graph["@graph"].([]map[string]any)
+	if len(nodes) != 2 || graph["@context"] != "https://schema.org" {
+		t.Fatalf("graph = %v", graph)
+	}
+	if _, nested := nodes[0]["@context"]; nested {
+		t.Fatal("a node kept its own @context inside the graph")
+	}
+}

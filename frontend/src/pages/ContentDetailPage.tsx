@@ -9,18 +9,22 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { Heading } from '../components/ui/Heading'
 import { LoadingState } from '../components/ui/LoadingState'
 import { CatalogProductGrid } from '../features/catalog/components/CatalogProductGrid'
+import { ComparisonData } from '../features/catalog/components/ComparisonData'
 import { ProductComparison } from '../features/catalog/components/ProductComparison'
 import { useCatalogActions } from '../features/catalog/useCatalogActions'
+import { AtAGlance } from '../features/content/components/AtAGlance'
+import { AuthorBox } from '../features/content/components/AuthorBox'
 import { ContentBody } from '../features/content/components/ContentBody'
 import { ContentGrid } from '../features/content/components/ContentGrid'
+import { EditorialHero } from '../features/content/components/PriceScale'
 import {
+  contentHub,
   contentTypeLabel,
-  formatEditorialDate,
-  headingID,
+  tableOfContents,
 } from '../features/content/model'
 import { useContentEntry } from '../features/content/queries'
+import { NewsletterForm } from '../features/newsletter/components/NewsletterForm'
 import { usePageMetadata } from '../lib/seo/usePageMetadata'
-import { EditorialHero } from '../features/content/components/PriceScale'
 
 export function ContentDetailPage() {
   const { slug = '' } = useParams()
@@ -53,9 +57,15 @@ export function ContentDetailPage() {
   }
 
   const item = entry.data
-  const headings = item.content.filter(
-    (block) => block.type === 'heading' && block.heading,
-  )
+  const toc = tableOfContents(item.content)
+  // A versus piece with two to four products gets the catalog's own
+  // comparison table under the strip. Outside that range the table has either
+  // nothing to compare or too many columns for a phone, and the piece keeps
+  // its hero instead.
+  const sideBySide =
+    item.type === 'comparison' &&
+    item.related_products.length >= 2 &&
+    item.related_products.length <= 4
   return (
     <>
       <SiteHeader position="sticky" />
@@ -71,11 +81,8 @@ export function ContentDetailPage() {
                   Home
                 </Link>
                 <span aria-hidden="true">/</span>
-                <Link
-                  className="hover:text-ink"
-                  to={item.type === 'article' ? '/articles' : '/guides'}
-                >
-                  {item.type === 'article' ? 'Articles' : 'Guides'}
+                <Link className="hover:text-ink" to={contentHub(item.type).to}>
+                  {contentHub(item.type).label}
                 </Link>
                 <span aria-hidden="true">/</span>
                 <span aria-current="page" className="text-ink">
@@ -92,37 +99,49 @@ export function ContentDetailPage() {
                     {item.description}
                   </p>
                 </div>
-                <div className="border-t border-ink/15 pt-5 text-xs leading-6 text-ink/70 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
-                  <p className="font-semibold text-ink">
-                    <Link
-                      className="underline decoration-ink/25 underline-offset-4 hover:decoration-ink"
-                      to={`/author/${item.author.slug}`}
-                    >
-                      {item.author.name}
-                    </Link>
-                  </p>
-                  <p>Published {formatEditorialDate(item.published_at)}</p>
-                  {item.updated_at.slice(0, 10) !==
-                    item.published_at.slice(0, 10) && (
-                    <p>Updated {formatEditorialDate(item.updated_at)}</p>
-                  )}
+                <div className="border-t border-ink/15 pt-5 lg:border-l lg:border-t-0 lg:pl-7 lg:pt-0">
+                  <AuthorBox
+                    author={item.author}
+                    publishedAt={item.published_at}
+                    updatedAt={item.updated_at}
+                  />
                 </div>
               </div>
             </Container>
           </header>
 
-          {/* The comparison itself, where an abstract illustration used to
-              be. A reader arriving here wants to know which one to pick, and
-              the first screen should start answering rather than decorate.
-              PriceScale returns null when a piece has fewer than two priced
-              products or when they all cost the same, and the illustration
-              stays as the hero for those. */}
-          <Container className="py-7 sm:py-10">
-            <EditorialHero
-              image={item.hero_image}
-              products={item.related_products}
-            />
-          </Container>
+          {/* The products the piece covers, before the argument about them:
+              names, prices and the vendor exit where one exists. */}
+          <AtAGlance products={item.related_products} />
+
+          {/* A versus piece gets the catalog's comparison table here, read
+              only: the same rows the compare page draws, for the products
+              the piece is about. The table's Money group already puts each
+              price, its billing basis and the date it was read side by side,
+              so PriceScale would draw the same numbers a third time on these
+              pages (after the strip) and is dropped for them.
+
+              Every other piece keeps EditorialHero: the strip lists prices,
+              but the scale draws them against each other, cheapest first,
+              which a row of cards does not do — and when there is no spread
+              to draw, the illustration stays as before. */}
+          {sideBySide ? (
+            <Container className="py-7 sm:py-10">
+              <Heading level={2} size="subtitle">
+                Side by side
+              </Heading>
+              <div className="mt-5">
+                <ComparisonData products={item.related_products} readOnly />
+              </div>
+            </Container>
+          ) : (
+            <Container className="py-7 sm:py-10">
+              <EditorialHero
+                image={item.hero_image}
+                products={item.related_products}
+              />
+            </Container>
+          )}
 
           <Container className="pb-16 pt-6 sm:pb-24 lg:pt-12">
             <div className="grid gap-12 lg:grid-cols-[14rem_minmax(0,45rem)] lg:justify-center lg:gap-16 xl:grid-cols-[16rem_minmax(0,45rem)_10rem]">
@@ -133,13 +152,13 @@ export function ContentDetailPage() {
                   </p>
                   <nav aria-label="Article sections" className="mt-4">
                     <ul className="space-y-3 text-sm leading-5 text-ink/70">
-                      {headings.map((heading) => (
-                        <li key={heading.heading}>
+                      {toc.map((section) => (
+                        <li key={section.id}>
                           <a
                             className="hover:text-bronze-dark"
-                            href={`#${headingID(heading.heading ?? '')}`}
+                            href={`#${section.id}`}
                           >
-                            {heading.heading}
+                            {section.label}
                           </a>
                         </li>
                       ))}
@@ -147,7 +166,19 @@ export function ContentDetailPage() {
                   </nav>
                 </div>
               </aside>
-              <ContentBody blocks={item.content} />
+              <div>
+                <ContentBody
+                  blocks={item.content}
+                  products={item.related_products}
+                />
+                {/* The reader who has just finished a piece about these prices
+                    is the one who wants to hear when they move. It sits inside
+                    the reading column so it reads as the article's last word,
+                    not a site-wide banner. */}
+                <div className="mt-14 border-t border-ink/15 pt-8">
+                  <NewsletterForm source={`article:${item.slug}`} />
+                </div>
+              </div>
               <div aria-hidden="true" className="hidden xl:block" />
             </div>
           </Container>

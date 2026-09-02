@@ -11,12 +11,14 @@ import (
 	"testing"
 	"time"
 
+	content "rigmark/internal/modules/content/application"
 	"rigmark/internal/modules/content/domain"
+	"rigmark/internal/modules/content/ports"
 )
 
 type contentStub struct{}
 
-func (contentStub) List(context.Context, string, string, int) ([]domain.Summary, error) {
+func (contentStub) List(context.Context, content.ListQuery) ([]domain.Summary, error) {
 	return []domain.Summary{}, nil
 }
 func (contentStub) Get(context.Context, string) (domain.Entry, error) {
@@ -81,6 +83,74 @@ func TestContentDetailCarriesCTAPromotionAndLabel(t *testing.T) {
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("content response is missing %s:\n%s", want, body)
+		}
+	}
+}
+
+// contentRepositoryStub sits under the real application service, so a handler
+// test exercises the validation the service does rather than a stub's idea of
+// it. It records the filter it was asked for.
+type contentRepositoryStub struct {
+	filter ports.Filter
+}
+
+func (stub *contentRepositoryStub) ListPublished(_ context.Context, filter ports.Filter) ([]domain.Summary, error) {
+	stub.filter = filter
+	return []domain.Summary{}, nil
+}
+func (*contentRepositoryStub) GetAuthorBySlug(context.Context, string) (domain.Author, error) {
+	return domain.Author{}, ports.ErrNotFound
+}
+func (*contentRepositoryStub) GetPublishedBySlug(context.Context, string) (domain.Entry, error) {
+	return domain.Entry{}, ports.ErrNotFound
+}
+func (*contentRepositoryStub) ListSitemapEntries(context.Context) ([]domain.SitemapEntry, error) {
+	return nil, nil
+}
+
+// The product filter is how a product page finds the comparisons it appears
+// in. The slug arrives from the URL, so a well-formed one reaches the
+// repository as given and anything else is refused with a 400 before SQL.
+func TestListContentFiltersByProductSlugAndRejectsGarbage(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repository := &contentRepositoryStub{}
+	service, err := content.NewService(repository, nil, "https://rigmark.example")
+	if err != nil {
+		t.Fatalf("NewService() error = %v", err)
+	}
+	router := NewRouter(healthStub{}, &authStub{}, testCookieConfig, logger, PublicServices{Content: service})
+
+	request := httptest.NewRequest(http.MethodGet, "/api/content?product=mailchimp-standard&limit=6", nil)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("product filter response = %d %q", response.Code, response.Body.String())
+	}
+	if repository.filter.ProductSlug != "mailchimp-standard" || repository.filter.Limit != 6 {
+		t.Fatalf("repository filter = %#v", repository.filter)
+	}
+	if body := strings.TrimSpace(response.Body.String()); body != "[]" {
+		t.Fatalf("empty listing body = %q, want []", body)
+	}
+
+	for _, raw := range []string{"Mailchimp%20Standard", "mailchimp_standard", "x%27%20OR%201%3D1", "-leading"} {
+		repository.filter = ports.Filter{}
+		request := httptest.NewRequest(http.MethodGet, "/api/content?product="+raw, nil)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("product=%s response = %d %q, want 400", raw, response.Code, response.Body.String())
+		}
+		var body struct {
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil || body.Error.Code != "invalid_content_query" {
+			t.Fatalf("product=%s error body = %q (%v)", raw, response.Body.String(), err)
+		}
+		if repository.filter.ProductSlug != "" {
+			t.Fatalf("product=%s reached the repository as %q", raw, repository.filter.ProductSlug)
 		}
 	}
 }

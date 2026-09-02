@@ -5,6 +5,8 @@ export interface CatalogQuery {
   brand?: string
   minPriceMinor?: number
   maxPriceMinor?: number
+  /** Only products with a live vendor offer; sent as `has_offer=true`. */
+  hasOffer?: boolean
   sort?: CatalogSort
   page?: number
   pageSize?: number

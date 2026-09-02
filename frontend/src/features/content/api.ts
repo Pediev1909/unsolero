@@ -8,7 +8,7 @@ import {
 } from './schemas'
 
 export interface ContentQuery {
-  section?: 'all' | 'articles' | 'guides' | 'comparisons'
+  section?: 'all' | 'articles' | 'guides' | 'comparisons' | 'stacks'
   category?: string
   limit?: number
 }

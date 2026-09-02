@@ -161,6 +161,27 @@ export const offerSchema = z.object({
   disclosure_label: z.string().nullable(),
 })
 
+/**
+ * One row of the catalog-wide offers listing: the product as the grid draws
+ * it, with the vendor button fields set, and the slice of its offer a row
+ * prints. There is no destination URL here on purpose; the only way out is
+ * the product's tracked `purchase_path`.
+ */
+export const liveOfferSchema = z.object({
+  product: productSummarySchema,
+  offer: z.object({
+    price: moneySchema,
+    merchant_name: z.string(),
+    last_checked_at: z.string(),
+    freshness_status: z.enum(['fresh', 'stale']),
+  }),
+})
+
+export const liveOffersSchema = z.object({
+  items: z.array(liveOfferSchema),
+  generated_at: z.string(),
+})
+
 export const productSelectionSchema = z.object({
   product_ids: z.array(z.string()),
 })
@@ -177,4 +198,6 @@ export type ProductDetail = z.infer<typeof productDetailSchema>
 export type Category = z.infer<typeof categorySchema>
 export type Brand = z.infer<typeof brandSchema>
 export type Offer = z.infer<typeof offerSchema>
+export type LiveOffer = z.infer<typeof liveOfferSchema>
+export type LiveOffers = z.infer<typeof liveOffersSchema>
 export type ProductInsight = z.infer<typeof insightSchema>

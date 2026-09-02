@@ -141,6 +141,11 @@ func rateLimitRule(request *http.Request, config RateLimitConfig) (string, int, 
 		return "registration", config.RegistrationPerMinute, true
 	case request.Method == http.MethodPost && strings.HasPrefix(path, "/api/auth/password-reset/"):
 		return "password-reset", config.PasswordResetPerMinute, true
+	// A newsletter subscription sends an email to an address the caller typed,
+	// which is the same abuse shape as a password reset and gets the same
+	// small allowance rather than the general mutation budget.
+	case request.Method == http.MethodPost && strings.HasPrefix(path, "/api/newsletter/"):
+		return "newsletter", config.PasswordResetPerMinute, true
 	case request.Method == http.MethodPost && (path == "/api/auth/login" ||
 		strings.HasPrefix(path, "/api/auth/email-verification/") ||
 		strings.HasPrefix(path, "/api/auth/mfa/")):

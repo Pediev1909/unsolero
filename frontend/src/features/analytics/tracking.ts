@@ -193,6 +193,24 @@ function setQueryAttribution(
     destination.searchParams.set(key, value)
 }
 
+/**
+ * Remembers where this visit came from, before any consent decision.
+ *
+ * Attribution used to be read lazily: only when a consented page_view fired
+ * or a vendor button rendered. A visitor who arrived from a video with UTM
+ * parameters, had not accepted analytics, landed on a page with no vendor
+ * button and then navigated client-side lost the campaign before they ever
+ * clicked anything — so the campaign's affiliate clicks were undercounted
+ * while the click itself was still recorded. This runs once at start-up and
+ * stores only what parseAttribution admits: three bounded UTM tokens and the
+ * referring site's hostname. No identifier is created here; the session id is
+ * minted only when an event is actually sent or a vendor link is built, and
+ * page views still require granted consent.
+ */
+export function captureLandingAttribution() {
+  analyticsAttribution()
+}
+
 function analyticsContext(): AnalyticsContext {
   return { page_path: window.location.pathname, ...analyticsAttribution() }
 }

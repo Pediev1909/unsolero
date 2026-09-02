@@ -33,7 +33,7 @@ func TestListMapsGuideSectionToEditorialTypes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewService() error = %v", err)
 	}
-	if _, err := service.List(context.Background(), "guides", "adjustable-dumbbells", 12); err != nil {
+	if _, err := service.List(context.Background(), ListQuery{Section: "guides", CategorySlug: "adjustable-dumbbells", Limit: 12}); err != nil {
 		t.Fatalf("List() error = %v", err)
 	}
 	if len(repository.filter.Types) != 2 || repository.filter.Types[0] != domain.ContentTypeGuide ||
@@ -42,9 +42,44 @@ func TestListMapsGuideSectionToEditorialTypes(t *testing.T) {
 	}
 }
 
+// The stacks hub lists one type. The section is the URL's plural and the type
+// is the row's singular; the mapping is the only place the two meet.
+func TestListMapsStacksSectionToStackType(t *testing.T) {
+	repository := &repositoryStub{}
+	service, _ := NewService(repository, nil, "https://rigmark.example")
+	if _, err := service.List(context.Background(), ListQuery{Section: "stacks", Limit: 24}); err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if len(repository.filter.Types) != 1 || repository.filter.Types[0] != domain.ContentTypeStack {
+		t.Fatalf("stack filter types = %#v", repository.filter.Types)
+	}
+}
+
 func TestListRejectsUnknownSections(t *testing.T) {
 	service, _ := NewService(&repositoryStub{}, nil, "https://rigmark.example")
-	if _, err := service.List(context.Background(), "generated", "", 12); err == nil {
+	if _, err := service.List(context.Background(), ListQuery{Section: "generated", Limit: 12}); err == nil {
 		t.Fatal("List() expected invalid section error")
+	}
+}
+
+func TestListPassesProductSlugToRepository(t *testing.T) {
+	repository := &repositoryStub{}
+	service, _ := NewService(repository, nil, "https://rigmark.example")
+	if _, err := service.List(context.Background(), ListQuery{ProductSlug: "mailchimp-standard", Limit: 12}); err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if repository.filter.ProductSlug != "mailchimp-standard" || repository.filter.Types != nil {
+		t.Fatalf("product filter = %#v", repository.filter)
+	}
+}
+
+// The product slug is read from the URL, so it gets the same treatment as the
+// category slug: anything that is not a slug is refused before it reaches SQL.
+func TestListRejectsMalformedProductSlug(t *testing.T) {
+	service, _ := NewService(&repositoryStub{}, nil, "https://rigmark.example")
+	for _, slug := range []string{"Mailchimp Standard", "mailchimp_standard", "-mailchimp", "a--b", "x' OR 1=1"} {
+		if _, err := service.List(context.Background(), ListQuery{ProductSlug: slug, Limit: 12}); err == nil {
+			t.Fatalf("List(product=%q) expected invalid query error", slug)
+		}
 	}
 }

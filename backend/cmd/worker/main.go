@@ -15,6 +15,7 @@ import (
 	analyticspostgres "rigmark/internal/adapters/postgres/analytics"
 	commercepostgres "rigmark/internal/adapters/postgres/commerce"
 	identitypostgres "rigmark/internal/adapters/postgres/identity"
+	newsletterpostgres "rigmark/internal/adapters/postgres/newsletter"
 	app "rigmark/internal/app"
 	admin "rigmark/internal/modules/admin/application"
 	analytics "rigmark/internal/modules/analytics/application"
@@ -76,7 +77,7 @@ func run(logger *slog.Logger) error {
 	logger.Info("commerce worker started", "poll_interval", cfg.Commerce.WorkerPollInterval.String())
 	if err := runWorkerLoop(ctx, cfg.Commerce.WorkerPollInterval, cfg.Commerce.WorkerCycleTimeout,
 		cfg.Commerce.WorkerFailureThreshold, notifier, logger, func(cycleCtx context.Context) error {
-			cycleErr := workCycle(cycleCtx, service, conversionService, identityRepository, analyticsService, mediaCleanup,
+			cycleErr := workCycle(cycleCtx, service, conversionService, identityRepository, newsletterpostgres.New(db), analyticsService, mediaCleanup,
 				cfg.Analytics.CleanupBatchSize, cfg.Commerce.WorkerLeaseTimeout,
 				cfg.Commerce.WorkerMaxItemsPerCycle, logger)
 			checkpointCtx, cancel := context.WithTimeout(context.WithoutCancel(cycleCtx), cfg.Database.ConnectTimeout)
@@ -94,6 +95,14 @@ func run(logger *slog.Logger) error {
 
 type securityCleaner interface {
 	CleanupExpiredSecurityArtifacts(context.Context, time.Time) error
+}
+
+// newsletterCleaner removes newsletter sign-ups whose confirmation window
+// closed without a click. An unconfirmed address is data we were never given
+// permission to keep, so it leaves on the same cycle that clears expired
+// security tokens.
+type newsletterCleaner interface {
+	PurgeExpiredPending(context.Context, time.Time) (int64, error)
 }
 
 type analyticsCleaner interface {
@@ -133,7 +142,7 @@ func runWorkerLoop(ctx context.Context, pollInterval, cycleTimeout time.Duration
 	}
 }
 
-func workCycle(ctx context.Context, service *commerce.ImportService, conversions *commerce.ConversionService, security securityCleaner, analyticsCleanup analyticsCleaner, mediaCleanup mediaCleaner, analyticsBatch int, lease time.Duration, maximumItems int, logger *slog.Logger) error {
+func workCycle(ctx context.Context, service *commerce.ImportService, conversions *commerce.ConversionService, security securityCleaner, newsletterCleanup newsletterCleaner, analyticsCleanup analyticsCleaner, mediaCleanup mediaCleaner, analyticsBatch int, lease time.Duration, maximumItems int, logger *slog.Logger) error {
 	recovered, err := service.RecoverStalled(ctx, lease, maximumItems)
 	if err != nil {
 		return err
@@ -178,6 +187,11 @@ func workCycle(ctx context.Context, service *commerce.ImportService, conversions
 	}
 	if err := security.CleanupExpiredSecurityArtifacts(ctx, time.Now().UTC()); err != nil {
 		return err
+	}
+	if purged, err := newsletterCleanup.PurgeExpiredPending(ctx, time.Now().UTC()); err != nil {
+		return err
+	} else if purged > 0 {
+		logger.Info("newsletter pending sign-ups purged", "count", purged)
 	}
 	analyticsResult, err := analyticsCleanup.Cleanup(ctx, analyticsBatch)
 	if err != nil {

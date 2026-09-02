@@ -138,6 +138,78 @@ func TestDemoCatalogRepositories(t *testing.T) {
 	}
 }
 
+// The filter and the vendor button must name the same products. A card kept
+// by "only tools with a live vendor offer" that then has no button is a broken
+// promise, and the reverse hides a product the reader could have bought; so
+// the filter is checked against the commerce lookup that draws the button,
+// under the same freshness window.
+func TestSearchPublishedHasOfferAgreesWithPurchasableOffers(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("create test pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+
+	catalogRepository := New(pool)
+	everything, err := catalogRepository.SearchPublished(ctx, ports.ProductFilter{Limit: 100})
+	if err != nil {
+		t.Fatalf("unfiltered SearchPublished() returned an error: %v", err)
+	}
+	ids := make([]catalog.ProductID, 0, len(everything.Products))
+	for _, product := range everything.Products {
+		ids = append(ids, product.ID)
+	}
+	purchasable, err := commercepostgres.New(pool).ListPurchasableByProducts(ctx, ids)
+	if err != nil {
+		t.Fatalf("ListPurchasableByProducts() returned an error: %v", err)
+	}
+	if len(purchasable) == 0 || len(purchasable) == len(everything.Products) {
+		t.Fatalf("fixture has %d purchasable of %d products; the filter needs both kinds to prove anything",
+			len(purchasable), len(everything.Products))
+	}
+
+	filtered, err := catalogRepository.SearchPublished(ctx, ports.ProductFilter{HasOffer: true, Limit: 100})
+	if err != nil {
+		t.Fatalf("HasOffer SearchPublished() returned an error: %v", err)
+	}
+	if filtered.Total != len(purchasable) || len(filtered.Products) != len(purchasable) {
+		t.Fatalf("HasOffer page = %d of %d, want exactly the %d purchasable products",
+			len(filtered.Products), filtered.Total, len(purchasable))
+	}
+	for _, product := range filtered.Products {
+		if _, found := purchasable[product.ID]; !found {
+			t.Fatalf("HasOffer kept %q, which has no purchasable offer", product.Slug)
+		}
+	}
+
+	// The total is computed by the filtered query, so a small page still
+	// reports how many products the filter keeps in all.
+	firstPage, err := catalogRepository.SearchPublished(ctx, ports.ProductFilter{HasOffer: true, Limit: 1})
+	if err != nil {
+		t.Fatalf("paged HasOffer SearchPublished() returned an error: %v", err)
+	}
+	if firstPage.Total != len(purchasable) || len(firstPage.Products) != 1 {
+		t.Fatalf("paged HasOffer = %d of %d, want 1 of %d", len(firstPage.Products), firstPage.Total, len(purchasable))
+	}
+
+	// Same window as the button: with no freshness allowance nothing is live.
+	stale, err := NewForVertical(pool, DefaultVertical, time.Nanosecond).
+		SearchPublished(ctx, ports.ProductFilter{HasOffer: true, Limit: 100})
+	if err != nil {
+		t.Fatalf("stale HasOffer SearchPublished() returned an error: %v", err)
+	}
+	if stale.Total != 0 || len(stale.Products) != 0 {
+		t.Fatalf("stale HasOffer page = %d of %d, want none", len(stale.Products), stale.Total)
+	}
+}
+
 func TestCoreProductConstraints(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {

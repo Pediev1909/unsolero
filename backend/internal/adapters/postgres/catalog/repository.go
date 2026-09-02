@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	commercepostgres "rigmark/internal/adapters/postgres/commerce"
 	"rigmark/internal/modules/catalog/domain"
 	"rigmark/internal/modules/catalog/ports"
 )
@@ -18,21 +20,32 @@ type Repository struct {
 	// categories in the same database, so without this a SaaS deployment
 	// would list gym equipment categories alongside software ones.
 	vertical string
+	// offerMaximumAge is the freshness window the "has a live offer" filter
+	// applies. It must be the same OFFER_MAXIMUM_AGE the commerce repository
+	// is built with: the filter promises a vendor button on every card it
+	// keeps, and the button is drawn by the commerce lookup.
+	offerMaximumAge time.Duration
 }
 
 // DefaultVertical is used when no vertical is configured.
 const DefaultVertical = "saas"
 
 func New(pool *pgxpool.Pool) *Repository {
-	return &Repository{pool: pool, vertical: DefaultVertical}
+	return NewForVertical(pool, DefaultVertical)
 }
 
 // NewForVertical builds a repository scoped to one vertical's catalog.
-func NewForVertical(pool *pgxpool.Pool, vertical string) *Repository {
+// offerMaximumAge, when given, is the OFFER_MAXIMUM_AGE the deployment runs
+// with; it defaults to the same window the commerce repository defaults to.
+func NewForVertical(pool *pgxpool.Pool, vertical string, offerMaximumAge ...time.Duration) *Repository {
 	if vertical == "" {
 		vertical = DefaultVertical
 	}
-	return &Repository{pool: pool, vertical: vertical}
+	maximumAge := commercepostgres.DefaultOfferMaximumAge
+	if len(offerMaximumAge) > 0 && offerMaximumAge[0] > 0 {
+		maximumAge = offerMaximumAge[0]
+	}
+	return &Repository{pool: pool, vertical: vertical, offerMaximumAge: maximumAge}
 }
 
 func (repository *Repository) ListActiveCategories(ctx context.Context) ([]domain.Category, error) {
@@ -380,6 +393,7 @@ func (repository *Repository) searchProducts(
 			AND ($7 = '' OR products.slug <> $7)
 			AND ($11::uuid[] IS NULL OR products.id = ANY($11::uuid[]))
 			AND categories.vertical_key = $13
+			AND ($14::boolean = false OR `+commercepostgres.PurchasableOfferExists("products.id", "$15")+`)
 		ORDER BY
 			CASE WHEN $11::uuid[] IS NOT NULL THEN array_position($11::uuid[], products.id) END ASC,
 			CASE WHEN $8 = 'price_asc' THEN products.price_minor END ASC,
@@ -404,6 +418,8 @@ func (repository *Repository) searchProducts(
 		productIDs(filter.ProductIDs),
 		publishedOnly,
 		repository.vertical,
+		filter.HasOffer,
+		int64(repository.offerMaximumAge.Seconds()),
 	)
 	if err != nil {
 		return ports.ProductPage{}, fmt.Errorf("list published products: %w", err)

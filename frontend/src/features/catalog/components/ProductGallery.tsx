@@ -1,29 +1,31 @@
-import { CalendarCheck, ExternalLink, Receipt } from 'lucide-react'
 import { useState } from 'react'
 
 import { cn } from '../../../lib/styles/cn'
-import { priceCheckedOn, priceSource } from '../comparisonRows'
 import type { ProductDetail } from '../schemas'
 import { BrandMark } from './BrandMark'
 
 /**
  * What sits where a product photograph would be.
  *
- * Software has no photograph, so this slot held a grey rectangle with the
- * vendor's name typed into it — the single most prominent area of the page,
- * saying nothing. A logo blown up to fill it would have been no better: a
- * 128-pixel favicon stretched across a third of the page looks like a mistake.
+ * Software has no photograph, so this slot has held two things in turn. First
+ * a grey rectangle with the vendor's name typed into it. Then a price card —
+ * entry price, billing basis, the day the vendor's page was read, a link to
+ * that page — which was right about what matters and wrong about where it
+ * sat: once the at-a-glance strip under the title carried the same facts, the
+ * same number was printed twice on one screen. Two prices is one too many, and
+ * the strip is the one a reader meets first, so it owns them now (see
+ * ProductAtAGlance). The date, the source link and the "not a live quote"
+ * caveat moved with the price rather than being dropped.
  *
- * So it holds the thing this site knows and no competitor prints: what the
- * price is, on what basis it is billed, and the day somebody opened the
- * vendor's page and read it — with a link to that page. A reader who wants to
- * check us can do it in one click from the top of the page.
+ * Without images this is a small brand tile: the vendor's own mark at a size
+ * it was drawn for, rather than a favicon stretched across a third of the
+ * page. With images it is the gallery it always was.
  */
 export function ProductGallery({ product }: { product: ProductDetail }) {
   const [selected, setSelected] = useState(0)
   const image = product.images[selected] ?? product.primary_image
 
-  if (!image) return <PriceCard product={product} />
+  if (!image) return <BrandTile product={product} />
 
   return (
     <div>
@@ -74,91 +76,19 @@ export function ProductGallery({ product }: { product: ProductDetail }) {
   )
 }
 
-function PriceCard({ product }: { product: ProductDetail }) {
-  const checked = priceCheckedOn(product)
-  const source = priceSource(product)
-  const free = product.price.amount_minor === 0
-
+// Decorative: the vendor's name is the first line of text beside it.
+function BrandTile({ product }: { product: ProductDetail }) {
   return (
-    <aside className="self-start border border-ink/15 bg-surface">
-      <div className="flex items-center gap-3 border-b border-ink/12 bg-paper px-5 py-3.5">
-        <BrandMark
-          brandName={product.brand.name}
-          brandSlug={product.brand.slug}
-          size="lg"
-        />
-        <div className="min-w-0">
-          <p className="text-[0.625rem] font-bold tracking-[0.13em] text-ink/65 uppercase">
-            {product.brand.name}
-          </p>
-          <p className="mt-0.5 truncate font-display text-lg font-medium tracking-[-0.02em]">
-            {product.name}
-          </p>
-        </div>
-      </div>
-
-      <dl className="divide-y divide-ink/10">
-        <Row
-          icon={<Receipt aria-hidden="true" size={16} />}
-          label="Entry price"
-        >
-          <span className="font-display text-2xl font-medium tracking-[-0.035em]">
-            {free
-              ? 'No monthly fee'
-              : new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: product.price.currency,
-                }).format(product.price.amount_minor / 100)}
-          </span>
-          <span className="mt-1 block text-sm text-ink/70">
-            {product.key_specification.value || 'Billing basis not recorded'}
-          </span>
-        </Row>
-
-        <Row
-          icon={<CalendarCheck aria-hidden="true" size={16} />}
-          label="Read from the vendor on"
-        >
-          <span className="block text-base font-semibold">
-            {checked ?? 'Not recorded'}
-          </span>
-          {source && (
-            <a
-              className="mt-2 inline-flex items-center gap-1 text-sm text-bronze underline-offset-4 hover:underline"
-              href={source}
-              rel="nofollow noopener noreferrer"
-              target="_blank"
-            >
-              Open the page it came from
-              <ExternalLink aria-hidden="true" size={13} />
-            </a>
-          )}
-        </Row>
-      </dl>
-
-      <p className="border-t border-ink/12 bg-paper px-5 py-2.5 text-xs leading-5 text-ink/70">
-        Not a live quote — this price is as good as its date.
-      </p>
-    </aside>
-  )
-}
-
-function Row({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="px-5 py-3.5">
-      <dt className="flex items-center gap-2 text-[0.625rem] font-bold tracking-[0.13em] text-ink/65 uppercase">
-        <span className="text-bronze">{icon}</span>
-        {label}
-      </dt>
-      <dd className="mt-1.5">{children}</dd>
+    <div
+      aria-hidden="true"
+      className="flex size-20 items-center justify-center border border-ink/15 bg-surface sm:size-24"
+    >
+      <BrandMark
+        brandName={product.brand.name}
+        brandSlug={product.brand.slug}
+        loading="eager"
+        size="lg"
+      />
     </div>
   )
 }

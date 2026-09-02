@@ -26,14 +26,23 @@ locations and cannot fall through to the application shell.
 
 Indexable without a query string:
 
-- `/`, `/products`;
+- `/`, `/products`, `/categories`, `/brands`, `/offers`;
 - existing `/products/:slug`, `/categories/:slug`, `/brands/:slug`;
-- `/guides`, `/articles` and published matching editorial detail paths.
+- `/guides`, `/articles`, `/comparisons`, `/stacks` and published matching
+  editorial detail paths (`/guides/:slug`, `/articles/:slug`,
+  `/compare/:slug`, `/stacks/:slug`).
+
+Every indexable route now carries a server-rendered body inside `#root` as
+well as its metadata, so a client that does not run JavaScript still receives
+the page's text and internal links (see `prerender_static.go` for the static
+routes and `pagemeta.go` for the dynamic ones).
 
 Served with `X-Robots-Tag: noindex, nofollow`:
 
 - authentication, onboarding/build, comparison, wishlist, setup, and account
   routes;
+- `/links` (the social-bio landing page — a signpost, not a page) and
+  `/newsletter/confirm` (token landing);
 - every admin route;
 - any otherwise-public route with query parameters;
 - all resolver error responses.
