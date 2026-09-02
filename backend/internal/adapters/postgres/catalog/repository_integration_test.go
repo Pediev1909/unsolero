@@ -216,6 +216,88 @@ func TestSearchPublishedHasOfferAgreesWithPurchasableOffers(t *testing.T) {
 	}
 }
 
+// The price record is read from immutable revisions, so its shape is what has
+// to hold: newest first, no row repeating the row above it, a bounded length,
+// and nothing in it that was never published. The fixture's own history is not
+// asserted — a seeded database and production hold different numbers of price
+// corrections, and a test that pinned one would fail on the other.
+func TestPriceRecordIsADatedHistoryRatherThanARevisionDump(t *testing.T) {
+	databaseURL := os.Getenv("TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("TEST_DATABASE_URL is not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("create test pool: %v", err)
+	}
+	t.Cleanup(pool.Close)
+
+	repository := New(pool)
+	products, err := repository.ListPublished(ctx, ports.ProductFilter{Limit: 100})
+	if err != nil {
+		t.Fatalf("ListPublished() returned an error: %v", err)
+	}
+	if len(products) == 0 {
+		t.Fatal("the fixture has no published products to read a price record from")
+	}
+	for _, product := range products {
+		record, err := repository.ListPriceRecord(ctx, product.ID)
+		if err != nil {
+			t.Fatalf("ListPriceRecord(%q) returned an error: %v", product.Slug, err)
+		}
+		if len(record) > catalog.MaximumPriceRecordEntries {
+			t.Fatalf("%s: record has %d entries, want at most %d",
+				product.Slug, len(record), catalog.MaximumPriceRecordEntries)
+		}
+		if len(record) == 0 {
+			continue
+		}
+		if !record[0].IsCurrent {
+			t.Fatalf("%s: the newest entry is not marked current", product.Slug)
+		}
+		// The current entry must be the price the page shows. A history whose
+		// top row disagrees with the price beside it is worse than none.
+		if record[0].Price != product.Price {
+			t.Fatalf("%s: record opens at %#v but the product costs %#v",
+				product.Slug, record[0].Price, product.Price)
+		}
+		for index := 1; index < len(record); index++ {
+			previous, entry := record[index-1], record[index]
+			if entry.IsCurrent {
+				t.Fatalf("%s: entry %d is also marked current", product.Slug, index)
+			}
+			if !entry.ObservedAt.Before(previous.ObservedAt) {
+				t.Fatalf("%s: entry %d is dated %v, not before %v",
+					product.Slug, index, entry.ObservedAt, previous.ObservedAt)
+			}
+			if entry.Price == previous.Price &&
+				(entry.Billing == nil || billingPhrase(entry.Billing) == billingPhrase(previous.Billing)) {
+				t.Fatalf("%s: entry %d repeats the price above it", product.Slug, index)
+			}
+		}
+	}
+}
+
+// billingPhrase renders a basis as a comparable string, including its absence.
+// The domain compares two of these internally; the test only needs to know
+// whether a row states the same thing as the row above it.
+func billingPhrase(billing *catalog.Billing) string {
+	if billing == nil {
+		return "none stated"
+	}
+	phrase := string(billing.Period) + "/" + string(billing.Unit)
+	if billing.UnitNote != nil {
+		phrase += "/" + *billing.UnitNote
+	}
+	if billing.AnnualPriceMinor != nil {
+		phrase += "/" + strconv.FormatInt(*billing.AnnualPriceMinor, 10)
+	}
+	return phrase
+}
+
 func TestCoreProductConstraints(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {

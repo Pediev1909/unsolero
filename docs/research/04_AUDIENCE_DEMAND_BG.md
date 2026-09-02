@@ -264,10 +264,10 @@
 | 14 | **EU-hosted малък бизнес stack** (`eu_hosted` → страница) | „calendly alternative dsgvo“, „zapier alternative dsgvo“, „european alternative to mailchimp/hubspot“ | всички, EU | Zoho (EU DC), MailerLite, Cal.com | „A stack where every vendor keeps your data in the EU — and what it costs vs the US default.“ |
 | 15 | **Self-host or pay? n8n / Cal.com / Umami / listmonk vs SaaS** | „…self hosted“ | software, solo | Cal.com cloud; предимно доверие | „A €5 VPS runs n8n, Cal.com and Umami. Here's the real hourly cost.“ |
 | 16 | **Zapier vs Make vs n8n — цена при 1k/10k/50k tasks** (разшири compare) | „n8n vs zapier“, „zapier alternatives“ | software, agency | никой — игра за цитирания (182-гласова тема) | „Reddit's most-upvoted comment says the n8n hype is grifters. Let's price it anyway.“ |
-| 17 | **Teachable vs Thinkific vs Kajabi vs Skool vs Podia** | „teachable vs kajabi / skool“ | creator | Teachable | „Kajabi is $149. Skool is $99. Teachable Starter is $39 annual — and its own page shows two prices.“ |
+| 17 | **Teachable vs Thinkific vs Kajabi vs Skool vs Podia** | „teachable vs kajabi / skool“ | creator | Teachable | „Kajabi is $149. Skool is $99. Teachable Starter is $39 monthly, $29 annual — and its own page shows two prices.“ |
 | 18 | **Best tools for solopreneurs (stack под $50/мес.)** | „best tools for solopreneurs“ | solo | Zoho Invoice/Bigin, Cal.com, MailerLite | „The solo founder on Reddit pays $80–90/month without noticing. Here is a $45 stack.“ |
 | 19 | **Best scheduling app for small business (free)** — локални услуги | „best scheduling app for small business free“ | local, solo | Cal.com, Zoho Bookings | „Free booking page, payments, reminders — which still costs $0 at 100 bookings a month.“ |
-| 20 | **SE Ranking vs Semrush vs Ahrefs** (пресечи около печелещия) | „semrush vs se ranking“, „ahrefs cheaper alternative“ | agency | SE Ranking | „Semrush just repackaged to $139–$549. What a 3-client agency needs, at $65.“ |
+| 20 | **SE Ranking vs Semrush vs Ahrefs** (пресечи около печелещия) | „semrush vs se ranking“, „ahrefs cheaper alternative“ | agency | SE Ranking | „Semrush just repackaged to $139–$549. What a 3-client agency needs, at $103.20 billed yearly.“ |
 | 21 | **„Is X worth it“ серия** (HubSpot, Zapier, Notion Business, Canva Pro) | „is hubspot worth it for small business“ | всички | Zoho, Pipedrive, AC като изход | „Worth it for whom? A persona-by-persona verdict, not a star rating.“ |
 | 22 | **AI в стека ти: какво струва и прави AI планът на всеки вендор** | „ai tools for small business 2026“, „notion pricing ai“ | всички | Zoho (Zia), AC, monday | „Every vendor added an AI tier in 2025. What each charges and what it removed from your plan.“ |
 | 23 | **Миграционни ръководства**: Mailchimp→MailerLite/Kit; Zapier→Make/n8n; HubSpot→Zoho/Pipedrive | „how to migrate from mailchimp to mailerlite“ | creator, agency | MailerLite, Kit, Zoho, Pipedrive | „Export, import, re-consent: the 40 minutes it actually takes to leave Mailchimp.“ |
@@ -324,6 +324,15 @@
 
 ## 8. Двадесет теми за говорене — от думите на аудиторията
 
+> **Поправка, 2 септември 2026.** Два числа в тази таблица бяха грешни при
+> писането: „Teachable Starter $39 annual“ (39 е месечната цена, 29 е
+> годишната) и „$65“ за SE Ranking, което не отговаряше на нито една цена на
+> вендора. Одитът на базата на таксуване същия ден провери всяка цена на
+> страницата на вендора: SE Ranking Core е $129 месечно и $103.20 при годишно
+> плащане. Всяка цена, която казваш на камера, се проверява в деня на записа —
+> точно защото такива грешки минават незабелязано.
+
+
 | # | Hook (фразата на аудиторията, за дословна употреба) | Платформа | Води към | Печели |
 |---|---|---|---|---|
 | 1 | „**$308 a month to send daily to 7K subs**“ — какво таксуват пет инструмента за точно този списък | YouTube дълго + Reddit | `/guides/mailchimp-alternatives` (+ калкулатор #7) | Kit, MailerLite, AC |
@@ -345,7 +354,7 @@
 | 17 | „Teachable's own page shows **two different prices**“ — курс платформи при 100 студенти | YouTube, Shorts | #17 | Teachable |
 | 18 | „**Free versions shrinking**“ — всеки free план в каталога в една датирана таблица | LinkedIn, Reddit, месечно | #24 | Zoho, MailerLite, Kit, Cal.com |
 | 19 | „**Why does every subscription billing software suddenly cost $200/month once you start growing**“ — праговете на 10 инструмента | YouTube дълго | #7 + #4 | Zoho Books/Invoice, Kit, MailerLite |
-| 20 | „Semrush just repackaged: **$139, $199, $299, $549**“ — какво трябва на агенция с 3 клиента при $65 | YouTube дълго, r/SEO | #20 | SE Ranking |
+| 20 | „Semrush just repackaged: **$139, $199, $299, $549**“ — какво трябва на агенция с 3 клиента при $129 месечно / $103.20 годишно (SE Ranking Core) | YouTube дълго, r/SEO | #20 | SE Ranking |
 
 ---
 
