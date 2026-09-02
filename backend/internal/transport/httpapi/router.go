@@ -13,6 +13,7 @@ import (
 	catalogdomain "rigmark/internal/modules/catalog/domain"
 	commerce "rigmark/internal/modules/commerce/application"
 	commercedomain "rigmark/internal/modules/commerce/domain"
+	content "rigmark/internal/modules/content/application"
 	contentdomain "rigmark/internal/modules/content/domain"
 	evidencedomain "rigmark/internal/modules/evidence/domain"
 	health "rigmark/internal/modules/health/application"
@@ -128,7 +129,7 @@ type AnalyticsReportingService interface {
 }
 
 type ContentService interface {
-	List(context.Context, string, string, int) ([]contentdomain.Summary, error)
+	List(context.Context, content.ListQuery) ([]contentdomain.Summary, error)
 	Get(context.Context, string) (contentdomain.Entry, error)
 	Author(context.Context, string) (contentdomain.Author, []contentdomain.Summary, error)
 	Sitemap(context.Context) ([]contentdomain.SitemapEntry, error)
@@ -234,6 +235,10 @@ type PublicServices struct {
 	Security         AccountSecurityService
 	DevelopmentEmail DevelopmentEmailMessages
 	SecurityPolicy   SecurityPolicyConfig
+	// Newsletter is the double opt-in subscription service. Nil leaves the
+	// three /api/newsletter routes unregistered, so a deployment without an
+	// email boundary never advertises a form it cannot honour.
+	Newsletter NewsletterService
 }
 
 type Handler struct {
@@ -309,6 +314,12 @@ func NewRouter(
 	// The production web edge uses this bounded resolver before serving the SPA
 	// shell. Direct API requests without X-Original-URI fail closed.
 	mux.HandleFunc("GET /api/v1/public-route", handler.publicRouteStatus)
+	if len(publicServices) > 0 && publicServices[0].Newsletter != nil {
+		newsletter := newNewsletterHandler(publicServices[0].Newsletter, logger, publicMetrics(publicServices))
+		mux.HandleFunc("POST /api/newsletter/subscriptions", newsletter.subscribe)
+		mux.HandleFunc("POST /api/newsletter/confirmations", newsletter.confirm)
+		mux.HandleFunc("POST /api/newsletter/unsubscriptions", newsletter.unsubscribe)
+	}
 	if handler.metrics != nil && handler.metricsToken != "" {
 		mux.HandleFunc("GET /api/v1/metrics", handler.operationalMetrics)
 		mux.HandleFunc("GET /api/v1/metrics/openmetrics", handler.openMetrics)
@@ -358,6 +369,7 @@ func NewRouter(
 		mux.HandleFunc("GET /llms.txt", handler.llmsTxt)
 	}
 	if handler.catalog != nil && handler.commerce != nil {
+		mux.HandleFunc("GET /api/catalog/offers", handler.listLiveOffers)
 		mux.HandleFunc("GET /api/catalog/products/{slug}/offers", handler.listOffers)
 		mux.Handle("GET /api/affiliate/click/{offerID}", handler.attachOptionalAuthenticationFailOpen(http.HandlerFunc(handler.affiliateClickRedirect)))
 		mux.Handle("GET /api/out/{affiliateLinkID}", handler.attachOptionalAuthenticationFailOpen(http.HandlerFunc(handler.outboundRedirect)))

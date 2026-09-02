@@ -6,6 +6,7 @@ import { Container } from '../components/ui/Container'
 import { ErrorState } from '../components/ui/ErrorState'
 import { LoadingState } from '../components/ui/LoadingState'
 import { CatalogListing } from '../features/catalog/components/CatalogListing'
+import { SeatCostCalculator } from '../features/catalog/components/SeatCostCalculator'
 import { useCategory } from '../features/catalog/queries'
 import { RelatedContentSection } from '../features/content/components/RelatedContentSection'
 import { useStructuredData } from '../lib/seo/useStructuredData'
@@ -40,6 +41,10 @@ export function CategoryPage() {
       eyebrow="Software category"
       noindex={false}
       title={category.data.name}
+      // Shows only where the page has a per-seat price to multiply; today's
+      // catalog states "Per month" for every product, so it stays dormant
+      // until the API carries a billing basis.
+      afterGrid={(products) => <SeatCostCalculator products={products} />}
       afterCatalog={<RelatedContentSection categorySlug={category.data.slug} />}
     />
   )

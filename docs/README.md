@@ -1,6 +1,6 @@
 # Documentation index
 
-Fifty-six markdown documents live here and at the repository root. This page
+Sixty-one markdown documents live here and at the repository root. This page
 exists so none of them is findable only by remembering it. Each line says what the
 document decides, so you can tell from here whether you need to open it.
 
@@ -24,7 +24,12 @@ Start with [../README.md](../README.md) for setup and
 
 | Document | What it settles |
 | --- | --- |
-| [GROWTH_PLAYBOOK_BG.md](./GROWTH_PLAYBOOK_BG.md) | Growth, content and video, end to end (Bulgarian). Replaces the three documents that used to split this subject |
+| [research/01_COMPETITORS_BG.md](./research/01_COMPETITORS_BG.md) | **Competitor websites (Bulgarian, 2 Sept 2026):** 34 sites, a 46-row feature matrix, and every possible platform improvement sorted into excellent / good / unnecessary |
+| [research/02_SOCIAL_GROWTH_BG.md](./research/02_SOCIAL_GROWTH_BG.md) | **The social growth model (Bulgarian):** YouTube as hub, evidence from 22 creators and platform data, 8-week content plan, word-for-word scripts. Supersedes GROWTH_PLAYBOOK_BG.md as the content plan |
+| [research/03_PRODUCTION_MANUAL_BG.md](./research/03_PRODUCTION_MANUAL_BG.md) | Click-by-click production manual for this machine: OBS 32.2 Flatpak on Wayland, Kdenlive 26.04, Kokoro TTS, uploading to each platform, where each metric lives |
+| [research/04_AUDIENCE_DEMAND_BG.md](./research/04_AUDIENCE_DEMAND_BG.md) | **What the audience searches for (Bulgarian):** 50 queries, 30 Reddit threads, buyer-behaviour reports, coverage gaps, 25 prioritised additions, 20 content angles |
+| [research/05_FIRST_VIDEO_MICROTASKS_BG.md](./research/05_FIRST_VIDEO_MICROTASKS_BG.md) | The first video ("Mailchimp's free plan is now 250 contacts") as 28 microtasks with done-criteria |
+| [GROWTH_PLAYBOOK_BG.md](./GROWTH_PLAYBOOK_BG.md) | The previous growth plan (Bulgarian, 30 Aug 2026). Kept for its OBS/Kdenlive notes and the robots.txt finding; the content plan is superseded by research/02 |
 | [ROUTING_SEO.md](./ROUTING_SEO.md) · [ROUTING_SEO_AUDIT.md](./ROUTING_SEO_AUDIT.md) | Which routes are indexable, and the evidence they behave |
 | [ANALYTICS.md](./ANALYTICS.md) | What is measured, and what deliberately is not |
 

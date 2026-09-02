@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '../../../components/ui/Button'
+import { Checkbox } from '../../../components/ui/Checkbox'
 import { Input } from '../../../components/ui/Input'
 import { Select } from '../../../components/ui/Select'
 import type { Brand, Category } from '../schemas'
-import type { CatalogFilterValues } from '../useCatalogUrlState'
+import {
+  emptyCatalogFilters,
+  matchPriceBucket,
+  priceBuckets,
+  type CatalogFilterValues,
+  type PriceBucket,
+} from '../useCatalogUrlState'
 
 const filterSchema = z
   .object({
@@ -15,6 +22,7 @@ const filterSchema = z
     brand: z.string(),
     minPrice: z.string().regex(/^\d*(\.\d{0,2})?$/, 'Enter a valid price.'),
     maxPrice: z.string().regex(/^\d*(\.\d{0,2})?$/, 'Enter a valid price.'),
+    hasOffer: z.boolean(),
   })
   .refine(
     ({ minPrice, maxPrice }) =>
@@ -24,6 +32,8 @@ const filterSchema = z
       path: ['maxPrice'],
     },
   )
+
+const customBucketID = 'custom'
 
 interface CatalogFiltersProps {
   values: CatalogFilterValues
@@ -45,12 +55,33 @@ export function CatalogFilters({
   onClear,
 }: CatalogFiltersProps) {
   const [formError, setFormError] = useState<string>()
-  const { register, handleSubmit, reset, formState } =
+  // The chips are presets for the two price fields, not a field of their own.
+  // "Custom" is the one chip with no bounds to write, so the choice is kept
+  // here — pinned to the URL values it was made against, so a new set of
+  // values from the URL drops it without an effect having to.
+  const [customPriceFor, setCustomPriceFor] =
+    useState<CatalogFilterValues | null>(null)
+  const customPrice = customPriceFor === values
+  const { register, handleSubmit, reset, formState, control, setValue } =
     useForm<CatalogFilterValues>({
       defaultValues: values,
     })
 
   useEffect(() => reset(values), [reset, values])
+
+  const [minPrice, maxPrice] = useWatch({
+    control,
+    name: ['minPrice', 'maxPrice'],
+  })
+  const selectedBucket = customPrice
+    ? customBucketID
+    : matchPriceBucket(minPrice, maxPrice)
+
+  function chooseBucket(bucket: PriceBucket) {
+    setCustomPriceFor(null)
+    setValue('minPrice', bucket.minPrice, { shouldDirty: true })
+    setValue('maxPrice', bucket.maxPrice, { shouldDirty: true })
+  }
 
   return (
     <form
@@ -96,22 +127,48 @@ export function CatalogFilters({
         </Select>
       )}
       <fieldset>
-        <legend className="text-sm font-semibold">Reference price, USD</legend>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <Input
-            inputMode="decimal"
-            label="Minimum"
-            placeholder="0"
-            {...register('minPrice')}
-          />
-          <Input
-            inputMode="decimal"
-            label="Maximum"
-            placeholder="1,500"
-            {...register('maxPrice')}
+        <legend className="text-sm font-semibold">
+          Reference price, USD per month
+        </legend>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {priceBuckets.map((bucket) => (
+            <PriceChip
+              checked={selectedBucket === bucket.id}
+              key={bucket.id}
+              label={bucket.label}
+              onChoose={() => chooseBucket(bucket)}
+              value={bucket.id}
+            />
+          ))}
+          <PriceChip
+            checked={selectedBucket === customBucketID}
+            label="Custom"
+            onChoose={() => setCustomPriceFor(values)}
+            value={customBucketID}
           />
         </div>
+        {selectedBucket === customBucketID && (
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Input
+              inputMode="decimal"
+              label="Minimum"
+              placeholder="0"
+              {...register('minPrice')}
+            />
+            <Input
+              inputMode="decimal"
+              label="Maximum"
+              placeholder="1,500"
+              {...register('maxPrice')}
+            />
+          </div>
+        )}
       </fieldset>
+      <Checkbox
+        description="Shows only products whose card carries a vendor button."
+        label="Only tools with a live vendor offer"
+        {...register('hasOffer')}
+      />
       {(formError || formState.errors.root?.message) && (
         <p className="text-sm text-ember" role="alert">
           {formError ?? formState.errors.root?.message}
@@ -121,13 +178,13 @@ export function CatalogFilters({
         <Button type="submit">Apply filters</Button>
         <Button
           onClick={() => {
-            reset({
-              q: '',
-              category: values.category,
-              brand: values.brand,
-              minPrice: '',
-              maxPrice: '',
-            })
+            reset(
+              emptyCatalogFilters({
+                category: values.category,
+                brand: values.brand,
+              }),
+            )
+            setCustomPriceFor(null)
             setFormError(undefined)
             onClear()
           }}
@@ -138,5 +195,34 @@ export function CatalogFilters({
         </Button>
       </div>
     </form>
+  )
+}
+
+// A radio wearing a chip. The input stays in the document for keyboard and
+// screen-reader users, so the group is arrowed through like any other set of
+// radios, and the label draws the state from it.
+function PriceChip({
+  checked,
+  label,
+  value,
+  onChoose,
+}: {
+  checked: boolean
+  label: string
+  value: string
+  onChoose: () => void
+}) {
+  return (
+    <label className="inline-flex min-h-9 cursor-pointer items-center border border-ink/30 px-3 text-xs font-semibold text-ink transition-colors hover:border-ink has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-canvas has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-bronze">
+      <input
+        checked={checked}
+        className="sr-only"
+        name="priceBucket"
+        onChange={onChoose}
+        type="radio"
+        value={value}
+      />
+      {label}
+    </label>
   )
 }

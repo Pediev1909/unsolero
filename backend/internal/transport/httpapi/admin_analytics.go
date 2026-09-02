@@ -28,6 +28,9 @@ type analyticsReportResponse struct {
 	TopMerchants    []rankedEntityResponse  `json:"top_merchants"`
 	TopCategories   []rankedEntityResponse  `json:"top_categories"`
 	TrafficSources  []trafficSourceResponse `json:"traffic_sources"`
+	Campaigns       []campaignResponse      `json:"campaigns"`
+	LandingPages    []landingPageResponse   `json:"landing_pages"`
+	SourcesByMedium []sourceMediumResponse  `json:"sources_by_medium"`
 	Daily           []dailyPointResponse    `json:"daily"`
 	Window          struct {
 		From              time.Time `json:"from"`
@@ -64,6 +67,27 @@ type dailyPointResponse struct {
 type trafficSourceResponse struct {
 	Source string `json:"source"`
 	Count  int64  `json:"count"`
+}
+
+type campaignResponse struct {
+	Campaign        string  `json:"campaign"`
+	TrafficSource   *string `json:"traffic_source"`
+	TrafficMedium   *string `json:"traffic_medium"`
+	Sessions        int64   `json:"sessions"`
+	PageViews       int64   `json:"page_views"`
+	AffiliateClicks int64   `json:"affiliate_clicks"`
+}
+
+type landingPageResponse struct {
+	Campaign string `json:"campaign"`
+	PagePath string `json:"page_path"`
+	Sessions int64  `json:"sessions"`
+}
+
+type sourceMediumResponse struct {
+	TrafficSource string  `json:"traffic_source"`
+	TrafficMedium *string `json:"traffic_medium"`
+	Sessions      int64   `json:"sessions"`
 }
 
 func (h *Handler) adminAnalyticsReport(response http.ResponseWriter, request *http.Request) {
@@ -128,6 +152,19 @@ func analyticsReportDTO(report analytics.Report) analyticsReportResponse {
 	result.TrafficSources = make([]trafficSourceResponse, 0, len(report.TrafficSources))
 	for _, source := range report.TrafficSources {
 		result.TrafficSources = append(result.TrafficSources, trafficSourceResponse{Source: source.Source, Count: source.Count})
+	}
+	result.Campaigns = make([]campaignResponse, 0, len(report.Campaigns))
+	for _, row := range report.Campaigns {
+		result.Campaigns = append(result.Campaigns, campaignResponse{Campaign: row.Campaign, TrafficSource: row.Source, TrafficMedium: row.Medium,
+			Sessions: row.Sessions, PageViews: row.PageViews, AffiliateClicks: row.AffiliateClicks})
+	}
+	result.LandingPages = make([]landingPageResponse, 0, len(report.LandingPages))
+	for _, row := range report.LandingPages {
+		result.LandingPages = append(result.LandingPages, landingPageResponse{Campaign: row.Campaign, PagePath: row.PagePath, Sessions: row.Sessions})
+	}
+	result.SourcesByMedium = make([]sourceMediumResponse, 0, len(report.SourcesByMedium))
+	for _, row := range report.SourcesByMedium {
+		result.SourcesByMedium = append(result.SourcesByMedium, sourceMediumResponse{TrafficSource: row.Source, TrafficMedium: row.Medium, Sessions: row.Sessions})
 	}
 	result.Daily = make([]dailyPointResponse, 0, len(report.Daily))
 	for _, point := range report.Daily {

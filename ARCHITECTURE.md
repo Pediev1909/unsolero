@@ -483,7 +483,7 @@ GET    /api/v1/catalog/categories
 GET    /api/v1/catalog/products
 GET    /api/v1/catalog/products/:productID
 
-GET    /api/content?section=articles|guides|comparisons|all
+GET    /api/content?section=articles|guides|comparisons|stacks|all
 GET    /api/content/:slug
 GET    /sitemap.xml
 GET    /robots.txt

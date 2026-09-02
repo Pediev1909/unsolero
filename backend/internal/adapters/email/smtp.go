@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"rigmark/internal/modules/identity/ports"
+	newsletterports "rigmark/internal/modules/newsletter/ports"
 )
 
 type SMTPConfig struct {
@@ -86,6 +87,22 @@ func (delivery *SMTPDelivery) SendSecurityNotification(ctx context.Context, mess
 	}
 	body := description + "\n\nTime: " + message.OccurredAt.UTC().Format(time.RFC3339) + "\n\nIf this was not you, reset your password and contact support immediately."
 	return delivery.send(ctx, message.Recipient, "UNSOLERO account security notice", body)
+}
+
+// SendNewsletterConfirmation carries the double opt-in link. Like the security
+// links, the token travels in the URL fragment so it never reaches the edge's
+// access log or a Referer header.
+func (delivery *SMTPDelivery) SendNewsletterConfirmation(ctx context.Context, message newsletterports.ConfirmationMessage) error {
+	link, err := delivery.tokenURL("/newsletter/confirm", message.Token)
+	if err != nil || message.ExpiresAt.IsZero() {
+		return errors.New("invalid newsletter confirmation message")
+	}
+	_, err = delivery.send(ctx, message.Recipient, "Confirm your UNSOLERO price alerts",
+		"You asked UNSOLERO for dated software prices: one email when a price you follow changes.\n\n"+
+			"Confirm your address to start receiving them:\n\n"+link+"\n\n"+
+			"The link expires at "+message.ExpiresAt.UTC().Format(time.RFC3339)+
+			". If you did not sign up, ignore this message; nothing is sent to an unconfirmed address.")
+	return err
 }
 
 func (delivery *SMTPDelivery) send(ctx context.Context, recipient, subject, body string) (ports.DeliveryReceipt, error) {

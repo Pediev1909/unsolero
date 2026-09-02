@@ -11,7 +11,7 @@ import { usePageMetadata } from '../lib/seo/usePageMetadata'
 import { useStructuredData } from '../lib/seo/useStructuredData'
 
 interface HubConfig {
-  section: 'articles' | 'guides' | 'comparisons'
+  section: 'articles' | 'guides' | 'comparisons' | 'stacks'
   eyebrow: string
   title: string
   description: string
@@ -52,8 +52,26 @@ const comparisons: HubConfig = {
   emptyTitle: 'No published comparisons yet',
 }
 
+// The builder's output as writing. /build is noindex and its result is a
+// private page, so the site's one structural difference -- a whole stack with
+// the rejections shown -- had no address a search result or a video could
+// point at. Each stack here is that result for one kind of business.
+const stacks: HubConfig = {
+  metaTitle: 'Software stacks, priced for one kind of business | UNSOLERO',
+  section: 'stacks',
+  eyebrow: 'Complete setups',
+  title: 'Software stacks',
+  description:
+    'A stack is a whole set of tools chosen for one kind of business and one budget: what to run, what it costs a month, and the products we left out and why. Every price is read from the vendor and dated.',
+  emptyTitle: 'No published stacks yet',
+}
+
 export function GuidesPage() {
   return <ContentHub config={guides} />
+}
+
+export function StacksPage() {
+  return <ContentHub config={stacks} />
 }
 
 export function ComparisonsPage() {

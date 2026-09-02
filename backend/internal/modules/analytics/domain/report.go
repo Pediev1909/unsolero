@@ -10,6 +10,13 @@ type Report struct {
 	TopMerchants    []RankedEntity
 	TopCategories   []RankedEntity
 	TrafficSources  []TrafficSource
+	// Campaign attribution: what a UTM-tagged link brought. Sessions and page
+	// views come from consented page_view events; affiliate clicks from the
+	// server-authored affiliate_clicked event, which needs no analytics
+	// consent, so a campaign can legitimately show clicks with zero sessions.
+	Campaigns       []CampaignPerformance
+	LandingPages    []CampaignLandingPage
+	SourcesByMedium []TrafficSourceMedium
 	// Daily carries one point per day in the window. A total answers "how
 	// many"; only a series answers "is this growing", which is the question
 	// anyone watching a new site actually has.
@@ -71,4 +78,31 @@ type RankedEntity struct {
 type TrafficSource struct {
 	Source string
 	Count  int64
+}
+
+// CampaignPerformance is one (utm_campaign, utm_source, utm_medium) triple as
+// the visit arrived with it. Source and Medium are nil when the link carried a
+// campaign without that parameter.
+type CampaignPerformance struct {
+	Campaign        string
+	Source          *string
+	Medium          *string
+	Sessions        int64
+	PageViews       int64
+	AffiliateClicks int64
+}
+
+// CampaignLandingPage is the page a campaign session opened first.
+type CampaignLandingPage struct {
+	Campaign string
+	PagePath string
+	Sessions int64
+}
+
+// TrafficSourceMedium splits a source by medium, so youtube/shorts and
+// youtube/video stop sharing one row. Medium is nil when the link had none.
+type TrafficSourceMedium struct {
+	Source   string
+	Medium   *string
+	Sessions int64
 }

@@ -10,9 +10,11 @@ import { ComparisonTable } from './ComparisonTable'
 export function ComparisonData({
   products,
   onRemove,
+  readOnly,
 }: {
   products: ProductSummary[]
-  onRemove: (productID: string) => void
+  onRemove?: (productID: string) => void
+  readOnly?: boolean
 }) {
   const details = useQueries({
     queries: products.map((product) => ({
@@ -34,6 +36,7 @@ export function ComparisonData({
     <ComparisonTable
       onRemove={onRemove}
       products={details.flatMap((query) => (query.data ? [query.data] : []))}
+      readOnly={readOnly}
     />
   )
 }

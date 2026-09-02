@@ -48,9 +48,15 @@ func (repository *Repository) ListPublished(ctx context.Context, filter ports.Fi
 			))
 			AND ($3 = '' OR entries.id::text <> $3)
 			AND ($5 = '' OR authors.slug = $5)
+			AND ($6 = '' OR EXISTS (
+				SELECT 1
+				FROM editorial.entry_products
+				JOIN catalog.products ON products.id = entry_products.product_id
+				WHERE entry_products.entry_id = entries.id AND products.slug = $6
+			))
 		ORDER BY entries.published_at DESC, entries.id
 		LIMIT $4`, typeFilter, filter.CategorySlug, filter.ExcludeID, filter.Limit,
-		filter.AuthorSlug)
+		filter.AuthorSlug, filter.ProductSlug)
 	if err != nil {
 		return nil, fmt.Errorf("list published editorial entries: %w", err)
 	}
@@ -203,9 +209,13 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 		), routes AS (
 			SELECT '/' AS path, site_updated_at AS updated_at FROM public_updates
 			UNION ALL SELECT '/products', catalog_updated_at FROM public_updates
+			-- The live vendor offers, as a page. It changes when the catalog
+			-- does, because an offer only exists against a published product.
+			UNION ALL SELECT '/offers', catalog_updated_at FROM public_updates
 			UNION ALL SELECT '/guides', editorial_updated_at FROM public_updates
 			UNION ALL SELECT '/articles', editorial_updated_at FROM public_updates
 			UNION ALL SELECT '/comparisons', editorial_updated_at FROM public_updates
+			UNION ALL SELECT '/stacks', editorial_updated_at FROM public_updates
 			-- The two index pages. They carry the catalog timestamp because
 			-- that is what changes them: a new category or vendor appears on
 			-- them the moment its first product publishes.
@@ -251,6 +261,7 @@ func (repository *Repository) ListSitemapEntries(ctx context.Context) ([]domain.
 			SELECT CASE content_type
 				WHEN 'article' THEN '/articles/' || slug
 				WHEN 'comparison' THEN '/compare/' || slug
+				WHEN 'stack' THEN '/stacks/' || slug
 				ELSE '/guides/' || slug
 			END, updated_at
 			FROM editorial.entries WHERE status = 'published'

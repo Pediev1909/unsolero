@@ -436,7 +436,8 @@ func (repository *Repository) ListPurchasableByProducts(
 			affiliate_links.disclosure_label,
 			offers.price_minor,
 			offers.currency,
-			offers.price_minor + offers.shipping_minor
+			offers.price_minor + offers.shipping_minor,
+			offers.last_checked_at
 		FROM commerce.merchant_offers AS offers
 		JOIN commerce.merchants AS merchants ON merchants.id = offers.merchant_id
 		JOIN commerce.affiliate_links AS affiliate_links
@@ -464,7 +465,7 @@ func (repository *Repository) ListPurchasableByProducts(
 		var offer domain.PurchasableOffer
 		if err := rows.Scan(&productID, &offer.OfferID, &offer.MerchantName,
 			&offer.DisclosureLabel, &offer.Price.AmountMinor, &offer.Price.Currency,
-			&offer.LandedPriceMinor); err != nil {
+			&offer.LandedPriceMinor, &offer.LastCheckedAt); err != nil {
 			return nil, fmt.Errorf("scan purchasable offer: %w", err)
 		}
 		result[catalog.ProductID(productID)] = offer

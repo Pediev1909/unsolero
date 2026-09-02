@@ -35,6 +35,7 @@ export const browseShortcuts: NavigationItem[] = [
  */
 export const learnNavigation: NavigationItem[] = [
   { label: 'Comparisons', to: '/comparisons' },
+  { label: 'Stacks', to: '/stacks' },
   { label: 'Guides', to: '/guides' },
   { label: 'Articles', to: '/articles' },
   { label: 'About UNSOLERO', to: '/about' },

@@ -73,6 +73,10 @@ type PurchasableOffer struct {
 	DisclosureLabel  string
 	Price            catalog.Money
 	LandedPriceMinor int64
+	// LastCheckedAt is when the price was last read from the vendor's page.
+	// A surface that prints the price owes the reader its date; the live
+	// offers listing prints fifteen of them and asks in one query.
+	LastCheckedAt time.Time
 }
 
 type AffiliateClick struct {

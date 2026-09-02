@@ -1,4 +1,4 @@
-import { Bookmark, Check, ExternalLink, Scale } from 'lucide-react'
+import { Bookmark, BookmarkCheck, ExternalLink, Scale } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import {
@@ -74,12 +74,12 @@ export function CatalogProductCard({
               </h2>
             </div>
           </div>
+          {/* A toggle, so the state is in aria-pressed and the word changes
+              with it. The product name rides in the accessible name because a
+              grid holds twelve of these and "Save, Save, Save" tells a screen
+              reader nothing about which one. */}
           <Button
-            aria-label={
-              saved
-                ? `Remove ${product.name} from saved products`
-                : `Save ${product.name}`
-            }
+            aria-label={`${saved ? 'Saved' : 'Save'} ${product.name}`}
             aria-pressed={saved}
             className={cn('shrink-0', saved && 'text-bronze-dark')}
             disabled={savePending}
@@ -88,10 +88,11 @@ export function CatalogProductCard({
             variant="quiet"
           >
             {saved ? (
-              <Check aria-hidden="true" size={18} />
+              <BookmarkCheck aria-hidden="true" size={18} />
             ) : (
               <Bookmark aria-hidden="true" size={18} />
             )}
+            {saved ? 'Saved' : 'Save'}
           </Button>
         </div>
 

@@ -53,6 +53,10 @@ type pageMetadata struct {
 	Description  string
 	CanonicalURL string
 	ImageURL     string
+	// FallbackImageURL is the social card used when ImageURL is empty or is
+	// an SVG, which the social platforms refuse to render. It is chosen per
+	// page type (see socialImagePath); empty falls through to defaultSocialImage.
+	FallbackImageURL string
 	// StructuredData is emitted as JSON-LD. Empty means the shell's default
 	// WebSite schema is left in place.
 	StructuredData any
@@ -483,7 +487,69 @@ func writeEntryBlock(body *strings.Builder, block content.Block) {
 		body.WriteString(`<p class="mt-4"><a class="underline" rel="nofollow noopener sponsored" target="_blank" href="` +
 			html.EscapeString(href) + `">` + html.EscapeString(block.Label) + `</a></p>`)
 		body.WriteString(`</aside>`)
+	case content.BlockProsCons:
+		if len(block.Pros) == 0 && len(block.Cons) == 0 {
+			return
+		}
+		body.WriteString(`<section class="mt-8">`)
+		if block.Heading != "" {
+			body.WriteString(`<h2 class="font-editorial text-2xl">` + html.EscapeString(block.Heading) + `</h2>`)
+		}
+		if block.Text != "" {
+			body.WriteString(`<p class="mt-3 text-body">` + html.EscapeString(block.Text) + `</p>`)
+		}
+		writeTitledList(body, "Pros", block.Pros)
+		writeTitledList(body, "Cons", block.Cons)
+		body.WriteString(`</section>`)
+	case content.BlockFAQ:
+		if len(block.Questions) == 0 {
+			return
+		}
+		body.WriteString(`<section class="mt-8">`)
+		if block.Heading != "" {
+			body.WriteString(`<h2 class="font-editorial text-2xl">` + html.EscapeString(block.Heading) + `</h2>`)
+		}
+		for _, pair := range block.Questions {
+			body.WriteString(`<h3 class="mt-5 font-semibold">` + html.EscapeString(pair.Question) + `</h3>`)
+			body.WriteString(`<p class="mt-2 text-body">` + html.EscapeString(pair.Answer) + `</p>`)
+		}
+		body.WriteString(`</section>`)
+	case content.BlockOffer:
+		if block.Product == "" {
+			return
+		}
+		// The link goes to the product page, never to the affiliate redirect.
+		// This body is served to crawlers, and the product page is where the
+		// live, disclosed, tracked control is resolved — from an offer that
+		// may not exist by the time this HTML is read.
+		href := "/products/" + url.PathEscape(block.Product)
+		body.WriteString(`<aside class="mt-6 border border-ink/15 p-5">`)
+		if block.Heading != "" {
+			body.WriteString(`<h3 class="font-semibold">` + html.EscapeString(block.Heading) + `</h3>`)
+		}
+		if block.Text != "" {
+			body.WriteString(`<p class="mt-2 text-body">` + html.EscapeString(block.Text) + `</p>`)
+		}
+		body.WriteString(`<p class="mt-4"><a class="underline" href="` + html.EscapeString(href) + `">` +
+			html.EscapeString(defaultText(block.Label, "See the product page")) + `</a></p>`)
+		body.WriteString(`<p class="mt-2 text-body-sm text-ink/70">Affiliate link on the product page. ` +
+			`Commission never changes the ranking.</p>`)
+		body.WriteString(`</aside>`)
 	}
+}
+
+// writeTitledList is an h3 over a list, for the two halves of a pros-and-cons
+// block. An empty side writes nothing, so the heading never stands alone.
+func writeTitledList(body *strings.Builder, title string, items []string) {
+	if len(items) == 0 {
+		return
+	}
+	body.WriteString(`<h3 class="mt-5 font-semibold">` + html.EscapeString(title) + `</h3>`)
+	body.WriteString(`<ul class="mt-2 space-y-2 text-body">`)
+	for _, item := range items {
+		body.WriteString(`<li>` + html.EscapeString(item) + `</li>`)
+	}
+	body.WriteString(`</ul>`)
 }
 
 // renderAuthorBody ships the author's name, biography and published work inside
@@ -507,4 +573,94 @@ func renderAuthorBody(author content.Author, entries []content.Summary) string {
 	}
 	body.WriteString(`</main>`)
 	return body.String()
+}
+
+// Structured data that describes where a page sits and what it lists. Each
+// builder returns one schema.org node without an @context; structuredDataGraph
+// joins them, because a page gets one JSON-LD block and a product page has both
+// a Product and a BreadcrumbList to declare.
+
+// breadcrumb is one step of a trail: a name and the site-relative path it
+// leads to. The last step is the page itself.
+type breadcrumb struct {
+	Name, Path string
+}
+
+// listedItem is one entry of an ItemList.
+type listedItem struct {
+	Name, Path string
+}
+
+// structuredDataGraph joins nodes under one @context. Nil nodes are skipped so
+// a caller can pass an optional node — the FAQPage that exists only when the
+// entry has a FAQ block — without a branch.
+func structuredDataGraph(nodes ...map[string]any) map[string]any {
+	graph := make([]map[string]any, 0, len(nodes))
+	for _, node := range nodes {
+		if node == nil {
+			continue
+		}
+		delete(node, "@context")
+		graph = append(graph, node)
+	}
+	return map[string]any{"@context": "https://schema.org", "@graph": graph}
+}
+
+// breadcrumbStructuredData emits schema.org/BreadcrumbList for the trail from
+// the home page to this one. Home is always the first step; callers pass the
+// rest, ending with the current page.
+func (h *Handler) breadcrumbStructuredData(trail ...breadcrumb) map[string]any {
+	steps := append([]breadcrumb{{Name: "Home", Path: "/"}}, trail...)
+	items := make([]map[string]any, 0, len(steps))
+	for index, step := range steps {
+		items = append(items, map[string]any{
+			"@type": "ListItem", "position": index + 1,
+			"name": step.Name, "item": h.publicRouteURL(step.Path),
+		})
+	}
+	return map[string]any{"@type": "BreadcrumbList", "itemListElement": items}
+}
+
+// itemListStructuredData emits schema.org/ItemList for a listing page: the
+// products under a category or vendor, the entries of an editorial hub.
+func (h *Handler) itemListStructuredData(items []listedItem) map[string]any {
+	elements := make([]map[string]any, 0, len(items))
+	for index, item := range items {
+		elements = append(elements, map[string]any{
+			"@type": "ListItem", "position": index + 1,
+			"name": item.Name, "url": h.publicRouteURL(item.Path),
+		})
+	}
+	return map[string]any{
+		"@type": "ItemList", "numberOfItems": len(elements), "itemListElement": elements,
+	}
+}
+
+// faqStructuredData emits schema.org/FAQPage from an entry's FAQ blocks, or nil
+// when the entry has none. The questions are the ones the editor wrote, so the
+// markup never claims a FAQ the page does not show.
+func faqStructuredData(blocks []content.Block) map[string]any {
+	var questions []map[string]any
+	for _, block := range blocks {
+		if block.Type != content.BlockFAQ {
+			continue
+		}
+		for _, pair := range block.Questions {
+			questions = append(questions, map[string]any{
+				"@type": "Question", "name": pair.Question,
+				"acceptedAnswer": map[string]any{"@type": "Answer", "text": pair.Answer},
+			})
+		}
+	}
+	if len(questions) == 0 {
+		return nil
+	}
+	return map[string]any{"@type": "FAQPage", "mainEntity": questions}
+}
+
+// publicRouteURL is the absolute URL for a site-relative path, falling back to
+// the path itself when no site URL is configured, so structured data is never
+// left with an empty value.
+func (h *Handler) publicRouteURL(path string) string {
+	return defaultText(h.absolutePublicRoute(path), path)
 }

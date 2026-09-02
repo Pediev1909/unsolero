@@ -2,11 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   affiliateClickPath,
+  captureLandingAttribution,
   completeOnboarding,
   sendAnalyticsEvent,
   startOnboarding,
 } from './tracking'
-import { setAnalyticsConsent } from './consent'
+import { getAnalyticsConsent, setAnalyticsConsent } from './consent'
 
 beforeEach(async () => {
   vi.stubGlobal(
@@ -184,5 +185,63 @@ describe('affiliate and analytics tracking', () => {
     )
 
     expect(url.searchParams.get('traffic_source')).toBe('tiktok')
+  })
+})
+
+describe('landing attribution captured before consent', () => {
+  it('keeps the campaign across a client-side navigation without minting a session', () => {
+    // No consent decision at all — the state a first-time visitor is in.
+    window.localStorage.clear()
+    expect(getAnalyticsConsent()).toBe('unknown')
+    window.history.replaceState(
+      {},
+      '',
+      '/guides/mailchimp-alternatives?utm_source=tiktok&utm_medium=bio&utm_campaign=2026-09-mailchimp-250',
+    )
+    captureLandingAttribution()
+
+    expect(
+      window.sessionStorage.getItem('rigmark:analytics-session:v1'),
+    ).toBeNull()
+    const stored = JSON.parse(
+      window.sessionStorage.getItem('rigmark:analytics-attribution:v1') ?? '{}',
+    ) as Record<string, string>
+    expect(stored.traffic_source).toBe('tiktok')
+    expect(stored.traffic_medium).toBe('bio')
+    expect(stored.campaign).toBe('2026-09-mailchimp-250')
+
+    // The visitor moves on inside the application; the URL no longer says
+    // where they came from, and the vendor link must still know.
+    window.history.replaceState({}, '', '/products/mailerlite-comfort')
+    const path = affiliateClickPath(
+      '/api/affiliate/click/97bfb760-6d09-4b96-8a39-d2bb16445537',
+      'product_detail',
+    )
+    const url = new URL(path, window.location.origin)
+    expect(url.searchParams.get('campaign')).toBe('2026-09-mailchimp-250')
+    expect(url.searchParams.get('traffic_source')).toBe('tiktok')
+    expect(url.searchParams.get('traffic_medium')).toBe('bio')
+  })
+
+  it('stores nothing when the landing URL carries no attribution', () => {
+    window.history.replaceState({}, '', '/products')
+    captureLandingAttribution()
+    expect(
+      window.sessionStorage.getItem('rigmark:analytics-attribution:v1'),
+    ).toBeNull()
+  })
+
+  it('discards tokens that do not fit the bounded pattern', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/?utm_source=<script>&utm_campaign=ok-campaign',
+    )
+    captureLandingAttribution()
+    const stored = JSON.parse(
+      window.sessionStorage.getItem('rigmark:analytics-attribution:v1') ?? '{}',
+    ) as Record<string, string>
+    expect(stored.traffic_source).toBeUndefined()
+    expect(stored.campaign).toBe('ok-campaign')
   })
 })

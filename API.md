@@ -125,6 +125,7 @@ The collection accepts:
 - `q`: product or brand search, up to 100 characters
 - `category`, `brand`: lowercase slugs
 - `min_price_minor`, `max_price_minor`: non-negative integer minor units
+- `has_offer`: `true` keeps only products with a live vendor offer, under the same active, available, fresh and unexpired offer-plus-link conditions that set `purchase_path` and that the redirect re-checks; `total` and `total_pages` count the filtered set. Leave it out to switch the filter off — any value other than `true` is rejected as `invalid_catalog_query`
 - `sort`: `featured`, `name_asc`, `price_asc`, `price_desc`, `quality_desc`, or `value_desc`
 - `page`: positive integer
 - `page_size`: positive integer, maximum 48
@@ -148,9 +149,14 @@ Only active categories and brands are public.
 - `GET /sitemap.xml`
 - `GET /robots.txt`
 
-The content collection accepts `section=articles|guides|comparisons|all`, an
-optional related category `slug`, and `limit` from 1 through 24. Only published
-entries are returned. Guides include both guide and buying-guide content types.
+The content collection accepts `section=articles|guides|comparisons|stacks|all`,
+an optional related `category` slug, an optional `product` slug, and `limit`
+from 1 through 24. Only published entries are returned. Guides include both
+guide and buying-guide content types; `stacks` lists the `stack` type, a whole
+set of tools for one kind of business and budget, served at `/stacks/{slug}`. `product={slug}` returns the entries whose
+product references include that product — the "Compared in" list on a product
+page — in the same summary shape; a value that is not a slug is rejected with
+`400 invalid_content_query`.
 
 Content detail returns validated structured blocks, author information,
 publication and update dates, related published products, related active
@@ -166,14 +172,39 @@ surfaces. Both use the server-controlled `PUBLIC_SITE_URL` origin.
 
 ### Merchant offers and tracked redirects
 
+- `GET /api/catalog/offers`
 - `GET /api/catalog/products/{slug}/offers`
 - `GET /api/affiliate/click/{offerID}`
 
 Offers include merchant identity and trust score, item price, shipping, landed price, availability, condition, observation/check time, optional expiry, freshness status, disclosure label, and a same-origin `purchase_path`. Responses never include merchant product URLs, affiliate destinations, credentials, or provider references.
 
+`GET /api/catalog/offers` is the catalog-wide listing behind the `/offers` page: every published product that has a servable affiliate offer right now, under the same active/available/fresh/unexpired conditions the redirect re-checks. It returns `{ items: [{ product, offer }], generated_at }`, where `product` is the catalog summary used by the product listing (with `purchase_path`, `merchant_name` and `disclosure_label` set) and `offer` is `{ price: { amount_minor, currency }, merchant_name, last_checked_at, freshness_status }`. Items are sorted by category name, then in catalog order. The list is assembled from the published catalog and one batched commerce lookup; a commerce failure returns `500 offers_unavailable` rather than an empty list, and a catalog with no live offers returns `items: []`. Cached with `Cache-Control: public, max-age=30`, the same as the per-product endpoint.
+
 The redirect resolves an active, available, fresh/unexpired offer, validates recommendation ownership when supplied, and validates the HTTPS destination before click persistence. A click/analytics write or optional-session lookup failure does not block an already resolved `302`. Obvious bots/prefetches remain raw but do not emit filtered `affiliate_clicked` events. `X-Request-ID` is the bounded idempotency key. Source/session/campaign/traffic/recommendation values are normalized and validated; account identity comes only from the session cookie.
 
 `Referer` is reduced to scheme and host before storage; paths, queries, fragments, and user information are discarded. Responses use `Cache-Control: no-store` and do not expose provider, destination, program, or commission records. Affiliate commission and click data are not inputs to offer ordering, catalog scores, or recommendation scores. `GET /api/out/{affiliateLinkID}` remains as a compatibility route for previously issued paths but is not returned by current APIs.
+
+## Newsletter
+
+A double opt-in list for dated software prices. Every route is public, JSON
+only, limited to 16 KiB bodies, and covered by the generic mutation rate
+limit; nothing here accepts or returns an account identifier.
+
+- `POST /api/newsletter/subscriptions` — `{ "email": "...", "source": "footer" }`; always `202 { "recorded": true }` for well-formed input, whether the address is new, pending, or already confirmed. A confirmed address is not mailed again. `400 validation_failed` names the field (`email` or `source`); `400 invalid_json` and `415` follow the authentication body rules; `500 newsletter_unavailable` means nothing was recorded. `source` names the surface that asked (`^[a-z][a-z0-9_.:-]{0,99}$`, e.g. `footer`, `article:<slug>`).
+- `POST /api/newsletter/confirmations` — `{ "token": "..." }`; consumes the one-time token from the email and returns `204`. Unknown, expired, malformed, and already-used tokens all return `400 invalid_token`.
+- `POST /api/newsletter/unsubscriptions` — `{ "token": "..." }`; marks the address unsubscribed and returns `204`; repeating it returns `204` again. An unknown token returns `400 invalid_token`.
+
+The confirmation email carries the token in the URL fragment
+(`/newsletter/confirm#<token>`), as the account security links do, so it never
+appears in an edge access log or a `Referer` header; the confirm page also
+accepts `?token=` for clients that drop fragments. Tokens are 32 random bytes;
+PostgreSQL stores only their SHA-256 hashes, and the confirmation hash is
+cleared once used. The list stores the lower-cased address, status, source,
+consent text version, and timestamps only: no IP address, user agent, or
+account link. In development the confirmation intent is visible through
+`GET /api/dev/email-deliveries` as kind `newsletter_confirmation`. Unsubscribe
+tokens are issued with each newsletter; no newsletter is sent yet, so the
+unsubscribe route has no caller until sending exists.
 
 ## Product analytics
 
@@ -249,7 +280,7 @@ Product image creation accepts either strict JSON for a validated external URL o
 
 Recommendation inspection exposes persisted engine/policy versions, objective and dimension scores, selected/alternative/rejected products, and deterministic reasons. It never exposes password hashes, session tokens, or affiliate commission as scoring data. Aggregate analytics requires `analytics.read`; event-level `/api/admin/events` requires administrator-only `analytics.raw.read`.
 
-The analytics report returns observed users, recommendation sessions, paired onboarding, product views, countable/raw click counts, rankings, traffic sources, and payload-free ingestion outcomes. Only `is_reportable` events and `is_countable` clicks enter metrics. It labels `no_data`, `insufficient_data`, or `available`, plus partial/complete coverage. Rates remain `null` below 20 eligible denominator observations. Windows are at most 366 days and limits 1–50. Revenue/conversion data remains in verified commerce reporting and is never inferred here.
+The analytics report returns observed users, recommendation sessions, paired onboarding, product views, countable/raw click counts, rankings, traffic sources, campaign attribution, and payload-free ingestion outcomes. Campaign attribution is three arrays, each limited by `limit` and the window like the rankings: `campaigns` rows of `{campaign, traffic_source, traffic_medium, sessions, page_views, affiliate_clicks}` grouped by the UTM triple the visit arrived with; `landing_pages` rows of `{campaign, page_path, sessions}` counting the first campaign-bearing `page_view` of each session; and `sources_by_medium` rows of `{traffic_source, traffic_medium, sessions}`. `traffic_source` and `traffic_medium` are `null` when the link carried no such parameter. Campaign `sessions` and `page_views` come from consented `page_view` events; campaign `affiliate_clicks` count countable `affiliate_clicked` events by their stored `campaign`, `traffic_source`, and `traffic_medium`, which need no analytics consent, so a campaign may report clicks without sessions. Only `is_reportable` events and `is_countable` clicks enter metrics. It labels `no_data`, `insufficient_data`, or `available`, plus partial/complete coverage. Rates remain `null` below 20 eligible denominator observations. Windows are at most 366 days and limits 1–50. Revenue/conversion data remains in verified commerce reporting and is never inferred here.
 
 `POST /api/webhooks/commerce/{providerConfigurationID}` is the provider-neutral
 conversion webhook terminus. It accepts JSON up to 256 KiB and delegates

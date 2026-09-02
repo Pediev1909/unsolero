@@ -73,6 +73,39 @@ export const analyticsReportSchema = z.object({
       count: z.number().int().nonnegative(),
     }),
   ),
+  // Campaign attribution arrived after the first release of this report. The
+  // defaults let a response from an API without it still parse, so a deploy
+  // where the frontend lands first does not blank the whole dashboard.
+  campaigns: z
+    .array(
+      z.object({
+        campaign: z.string(),
+        traffic_source: nullableString,
+        traffic_medium: nullableString,
+        sessions: z.number().int().nonnegative(),
+        page_views: z.number().int().nonnegative(),
+        affiliate_clicks: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
+  landing_pages: z
+    .array(
+      z.object({
+        campaign: z.string(),
+        page_path: z.string(),
+        sessions: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
+  sources_by_medium: z
+    .array(
+      z.object({
+        traffic_source: z.string(),
+        traffic_medium: nullableString,
+        sessions: z.number().int().nonnegative(),
+      }),
+    )
+    .default([]),
   daily: z.array(
     z.object({
       day: z.string(),

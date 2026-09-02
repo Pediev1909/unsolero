@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"rigmark/internal/modules/analytics/domain"
 )
 
@@ -16,7 +18,10 @@ func (repository *Repository) Report(ctx context.Context, query domain.ReportQue
 		MostClicked: []domain.RankedEntity{}, TopMerchants: []domain.RankedEntity{},
 		Daily:         []domain.DailyPoint{},
 		TopCategories: []domain.RankedEntity{}, TrafficSources: []domain.TrafficSource{},
-		Window: domain.ReportingWindow{From: query.From, To: query.To, Layer: "validated_filtered", MinimumSampleSize: minimumRateSampleSize},
+		Campaigns:       []domain.CampaignPerformance{},
+		LandingPages:    []domain.CampaignLandingPage{},
+		SourcesByMedium: []domain.TrafficSourceMedium{},
+		Window:          domain.ReportingWindow{From: query.From, To: query.To, Layer: "validated_filtered", MinimumSampleSize: minimumRateSampleSize},
 	}
 	if err := repository.loadSummary(ctx, &report.Summary, query); err != nil {
 		return domain.Report{}, err
@@ -70,6 +75,15 @@ func (repository *Repository) Report(ctx context.Context, query domain.ReportQue
 		}
 	}
 	if err := repository.loadTrafficSources(ctx, &report.TrafficSources, query); err != nil {
+		return domain.Report{}, err
+	}
+	if err := repository.loadCampaigns(ctx, &report.Campaigns, query); err != nil {
+		return domain.Report{}, err
+	}
+	if err := repository.loadLandingPages(ctx, &report.LandingPages, query); err != nil {
+		return domain.Report{}, err
+	}
+	if err := repository.loadSourcesByMedium(ctx, &report.SourcesByMedium, query); err != nil {
 		return domain.Report{}, err
 	}
 	activity := report.Summary.OnboardingStarted + report.Summary.ProductViews + report.Summary.AffiliateClicks + report.Summary.RecommendationSessions
@@ -172,6 +186,100 @@ func (repository *Repository) loadTrafficSources(ctx context.Context, target *[]
 		*target = append(*target, item)
 	}
 	return rows.Err()
+}
+
+// loadCampaigns groups reportable events by the UTM triple the visit arrived
+// with. Sessions and page views are page_view events. Affiliate clicks are the
+// server-authored affiliate_clicked rows: the commerce redirect writes the
+// click's campaign, source and medium into the same analytics.events columns
+// (and repeats campaign inside properties), so the dedicated columns are the
+// grouping key here, not the JSON. A click is reportable when it is countable,
+// not when the visitor consented to analytics, so a campaign can show clicks
+// with zero sessions; the UI says so rather than hiding the row.
+func (repository *Repository) loadCampaigns(ctx context.Context, target *[]domain.CampaignPerformance, query domain.ReportQuery) error {
+	items, err := collect(ctx, repository, "campaigns", `SELECT campaign,traffic_source,traffic_medium,
+			count(DISTINCT session_id) FILTER (WHERE event_name='page_view') AS sessions,
+			count(*) FILTER (WHERE event_name='page_view') AS page_views,
+			count(*) FILTER (WHERE event_name='affiliate_clicked') AS affiliate_clicks
+		FROM analytics.events
+		WHERE is_reportable AND event_name IN ('page_view','affiliate_clicked') AND campaign IS NOT NULL
+			AND occurred_at >= $1 AND occurred_at < $2
+		GROUP BY campaign,traffic_source,traffic_medium
+		ORDER BY sessions DESC,affiliate_clicks DESC,campaign,traffic_source,traffic_medium LIMIT $3`, query,
+		func(rows pgx.Rows, item *domain.CampaignPerformance) error {
+			return rows.Scan(&item.Campaign, &item.Source, &item.Medium, &item.Sessions, &item.PageViews, &item.AffiliateClicks)
+		})
+	if err != nil {
+		return err
+	}
+	*target = items
+	return nil
+}
+
+// loadLandingPages counts, per campaign, the page each session opened first.
+// The browser stores attribution on first touch and repeats it on every later
+// event in the tab session, so the earliest campaign-bearing page_view is where
+// the link landed. A session that arrived directly and followed a campaign
+// link later is attributed to that landing, not to its unattributed first page.
+func (repository *Repository) loadLandingPages(ctx context.Context, target *[]domain.CampaignLandingPage, query domain.ReportQuery) error {
+	items, err := collect(ctx, repository, "landing pages", `WITH campaign_views AS (
+			SELECT campaign,page_path,row_number() OVER (PARTITION BY session_id ORDER BY occurred_at,id) AS view_rank
+			FROM analytics.events
+			WHERE is_reportable AND event_name='page_view' AND campaign IS NOT NULL
+				AND session_id IS NOT NULL AND page_path IS NOT NULL
+				AND occurred_at >= $1 AND occurred_at < $2
+		)
+		SELECT campaign,page_path,count(*) AS sessions FROM campaign_views WHERE view_rank=1
+		GROUP BY campaign,page_path ORDER BY sessions DESC,campaign,page_path LIMIT $3`, query,
+		func(rows pgx.Rows, item *domain.CampaignLandingPage) error {
+			return rows.Scan(&item.Campaign, &item.PagePath, &item.Sessions)
+		})
+	if err != nil {
+		return err
+	}
+	*target = items
+	return nil
+}
+
+// loadSourcesByMedium is TrafficSources split one level further, so a platform
+// posting in two formats (youtube/shorts, youtube/video) reads as two rows.
+func (repository *Repository) loadSourcesByMedium(ctx context.Context, target *[]domain.TrafficSourceMedium, query domain.ReportQuery) error {
+	items, err := collect(ctx, repository, "sources by medium", `SELECT traffic_source,traffic_medium,count(DISTINCT session_id) AS sessions
+		FROM analytics.events
+		WHERE is_reportable AND event_name='page_view' AND traffic_source IS NOT NULL AND session_id IS NOT NULL
+			AND occurred_at >= $1 AND occurred_at < $2
+		GROUP BY traffic_source,traffic_medium ORDER BY sessions DESC,traffic_source,traffic_medium LIMIT $3`, query,
+		func(rows pgx.Rows, item *domain.TrafficSourceMedium) error {
+			return rows.Scan(&item.Source, &item.Medium, &item.Sessions)
+		})
+	if err != nil {
+		return err
+	}
+	*target = items
+	return nil
+}
+
+// collect runs a windowed, limited grouping query ($1 from, $2 to, $3 limit)
+// and scans every row into a fresh T. It always returns a non-nil slice so the
+// section encodes as an empty array, never null.
+func collect[T any](ctx context.Context, repository *Repository, name, sql string, query domain.ReportQuery, scan func(pgx.Rows, *T) error) ([]T, error) {
+	rows, err := repository.pool.Query(ctx, sql, query.From, query.To, query.Limit)
+	if err != nil {
+		return nil, fmt.Errorf("load %s: %w", name, err)
+	}
+	defer rows.Close()
+	items := make([]T, 0)
+	for rows.Next() {
+		var item T
+		if err := scan(rows, &item); err != nil {
+			return nil, fmt.Errorf("scan %s: %w", name, err)
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate %s: %w", name, err)
+	}
+	return items, nil
 }
 
 // loadDaily returns one row per day in the window, including days with no

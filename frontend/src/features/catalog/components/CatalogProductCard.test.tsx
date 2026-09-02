@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -57,6 +58,47 @@ describe('CatalogProductCard', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Compare' })).toBeInTheDocument()
     expect(screen.queryByText(/rating|reviews?/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('CatalogProductCard save toggle', () => {
+  it('asks the caller to save the product and reports the unsaved state', async () => {
+    const onSave = vi.fn()
+    render(
+      <MemoryRouter>
+        <CatalogProductCard
+          compared={false}
+          onCompare={vi.fn()}
+          onSave={onSave}
+          product={product}
+          saved={false}
+        />
+      </MemoryRouter>,
+    )
+    const toggle = screen.getByRole('button', { name: `Save ${product.name}` })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(toggle).toHaveTextContent('Save')
+    await userEvent.click(toggle)
+    expect(onSave).toHaveBeenCalledWith(product)
+  })
+
+  it('reads as pressed and says Saved once the product is on the list', () => {
+    render(
+      <MemoryRouter>
+        <CatalogProductCard
+          compared={false}
+          onCompare={vi.fn()}
+          onSave={vi.fn()}
+          product={product}
+          saved
+        />
+      </MemoryRouter>,
+    )
+    const toggle = screen.getByRole('button', {
+      name: `Saved ${product.name}`,
+    })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    expect(toggle).toHaveTextContent('Saved')
   })
 })
 

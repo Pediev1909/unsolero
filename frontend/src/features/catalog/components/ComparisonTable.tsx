@@ -17,7 +17,14 @@ import type { ProductDetail } from '../schemas'
 
 interface ComparisonTableProps {
   products: ProductDetail[]
-  onRemove: (productID: string) => void
+  onRemove?: (productID: string) => void
+  /**
+   * Hides the per-column remove control. For a surface that shows a fixed
+   * set — an article's side-by-side of the products it covers — where
+   * "remove" would take a column out of a comparison the reader did not
+   * build and cannot rebuild. Everything else about the table is unchanged.
+   */
+  readOnly?: boolean
 }
 
 /**
@@ -35,7 +42,11 @@ interface ComparisonTableProps {
  * happens to be the whole position of this site: the reader's priorities
  * decide, and our job is to make the differences impossible to miss.
  */
-export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
+export function ComparisonTable({
+  products,
+  onRemove,
+  readOnly = false,
+}: ComparisonTableProps) {
   const [differencesOnly, setDifferencesOnly] = useState(false)
   const allRows = visibleComparisonRows(products)
   const rows = differencesOnly
@@ -103,14 +114,16 @@ export function ComparisonTable({ products, onRemove }: ComparisonTableProps) {
                             }).format(product.price.amount_minor / 100)}
                       </p>
                     </div>
-                    <Button
-                      aria-label={`Remove ${product.name} from comparison`}
-                      onClick={() => onRemove(product.id)}
-                      size="sm"
-                      variant="quiet"
-                    >
-                      <X aria-hidden="true" size={15} />
-                    </Button>
+                    {!readOnly && onRemove && (
+                      <Button
+                        aria-label={`Remove ${product.name} from comparison`}
+                        onClick={() => onRemove(product.id)}
+                        size="sm"
+                        variant="quiet"
+                      >
+                        <X aria-hidden="true" size={15} />
+                      </Button>
+                    )}
                   </div>
                 </th>
               ))}

@@ -166,6 +166,25 @@ func TestCatalogQueryRejectsInvalidPagination(t *testing.T) {
 	}
 }
 
+// The live-offer filter is either on or absent. A client that sends
+// has_offer=false or has_offer=1 has a URL that means something other than
+// what it thinks, and gets told so rather than an unfiltered page.
+func TestCatalogQueryAcceptsHasOfferOnlyAsTrue(t *testing.T) {
+	for raw, want := range map[string]bool{"": false, "true": true} {
+		request := httptest.NewRequest(http.MethodGet, "/api/catalog/products?has_offer="+raw, nil)
+		query, err := catalogQuery(request)
+		if err != nil || query.HasOffer != want {
+			t.Fatalf("catalogQuery(has_offer=%q) = HasOffer %v, error %v; want %v, nil", raw, query.HasOffer, err, want)
+		}
+	}
+	for _, raw := range []string{"false", "1", "yes", "TRUE"} {
+		request := httptest.NewRequest(http.MethodGet, "/api/catalog/products?has_offer="+raw, nil)
+		if _, err := catalogQuery(request); err != catalog.ErrInvalidQuery {
+			t.Fatalf("catalogQuery(has_offer=%q) error = %v, want %v", raw, err, catalog.ErrInvalidQuery)
+		}
+	}
+}
+
 // A grid of cards must cost one commerce query, not one per card. The catalog
 // listing draws twenty-four, and the per-card alternative is what kept the
 // vendor button off these surfaces in the first place.

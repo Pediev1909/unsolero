@@ -18,8 +18,11 @@ type ProductFilter struct {
 	ExcludeSlug   string
 	MinPriceMinor *int64
 	MaxPriceMinor *int64
-	Offset        int
-	Limit         int
+	// HasOffer keeps only products with a servable affiliate offer, under the
+	// same conditions the vendor button and the redirect apply.
+	HasOffer bool
+	Offset   int
+	Limit    int
 }
 
 type ProductPage struct {

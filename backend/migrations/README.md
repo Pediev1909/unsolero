@@ -61,3 +61,18 @@ remain mandatory whenever physical measurements are present.
 click records for editorial offers such as free training. Promotions have no
 catalog product or recommendation relationship, so a webinar, book, or bundle
 cannot enter software scoring merely because it has an affiliate destination.
+
+`000027_newsletter_subscriptions.sql` creates the `audience` schema and the
+double opt-in `newsletter_subscriptions` table. A row stays `pending` until the
+hashed one-time confirmation token from the email is consumed, and
+state-consistency checks keep status, tokens, and timestamps in step. Only the
+lower-cased address, its consent state, the consent text version, the
+requesting surface, and SHA-256 token hashes are stored: no IP address, user
+agent, or account link. Expired pending rows are eligible for deletion;
+unsubscribed rows remain as suppression records.
+
+`000028_editorial_stack_type.sql` widens the editorial content-type check to
+admit `stack`: a whole set of tools for one kind of business and budget,
+published at `/stacks/{slug}`. It changes no rows and adds no columns; the
+content domain, the public route resolver and the sitemap learn the type in the
+same release.

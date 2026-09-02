@@ -2,6 +2,7 @@ import { apiRequest } from '../../lib/api/client'
 import {
   brandSchema,
   categorySchema,
+  liveOffersSchema,
   offerSchema,
   productDetailSchema,
   productPageSchema,
@@ -20,6 +21,8 @@ function queryString(query: CatalogQuery): string {
     values.set('min_price_minor', String(query.minPriceMinor))
   if (query.maxPriceMinor !== undefined)
     values.set('max_price_minor', String(query.maxPriceMinor))
+  // The API accepts only "true"; "off" is the parameter's absence.
+  if (query.hasOffer) values.set('has_offer', 'true')
   if (query.sort) values.set('sort', query.sort)
   if (query.page) values.set('page', String(query.page))
   if (query.pageSize) values.set('page_size', String(query.pageSize))
@@ -97,6 +100,13 @@ export function getOffers(slug: string) {
     `/catalog/products/${slug}/offers`,
     { method: 'GET' },
     (value) => z.array(offerSchema).parse(value),
+  )
+}
+
+/** Every product with a servable vendor offer right now, in one request. */
+export function getLiveOffers() {
+  return apiRequest('/catalog/offers', { method: 'GET' }, (value) =>
+    liveOffersSchema.parse(value),
   )
 }
 

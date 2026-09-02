@@ -17,6 +17,8 @@ forever and not a claim of legal necessity.
 | Security events | Hold, append-only | No automatic deletion until security/legal review | Security owner |
 | Consent history | Hold | Account deletion immediately unlinks identity; duration unresolved | Privacy owner |
 | Administrative audit | Hold | No automatic deletion until security/legal review | Module owner |
+| Newsletter subscription, pending | 48 h (confirmation link lifetime) | Delete the row once the link expires | Audience module, `PurgeExpiredPending` |
+| Newsletter subscription, confirmed or unsubscribed | Hold | Kept while subscribed; unsubscribed rows kept as suppression records | Privacy owner |
 
 Allowed configuration bounds are 1–730 days for anonymous events, 1–1,095 days
 for authenticated events, and 1–180 days for receipts. The checked-in values are
@@ -53,6 +55,31 @@ The deleted account cannot authenticate, has no consent state, and therefore
 cannot submit new account-linked optional events. The same browser may continue
 as an anonymous consenting subject, but a revoked subject cannot be claimed by
 another account.
+
+## Newsletter subscriptions
+
+`audience.newsletter_subscriptions` holds one row per address: the lower-cased
+address, status (`pending`, `confirmed`, `unsubscribed`), the surface that
+asked (`footer`, `article:<slug>`), the consent text version shown at the time,
+and request/confirmation/unsubscribe timestamps. Token material is stored only
+as SHA-256 hashes, and the confirmation hash is cleared the moment it is used.
+No IP address or user agent is recorded: consent is proven by the confirmation
+click itself, and an address that never confirms is not evidence of anything
+worth keeping.
+
+- A pending address that never confirms has given no consent. Its row is
+  eligible for deletion as soon as the 48-hour link expires;
+  `PurgeExpiredPending` on the newsletter service does this. Calling it from
+  the worker cycle next to `CleanupExpiredSecurityArtifacts` is a follow-up
+  (the worker's composition root is not yet wired); until then expired pending
+  rows persist.
+- Unsubscribing does not delete the row. It keeps the address with status
+  `unsubscribed` and the timestamp as a suppression record, so a later import
+  or re-subscription cannot silently re-add someone who opted out. Whether and
+  when suppression rows are hashed or deleted is a Hold pending privacy review.
+- A subscriber who wants the address removed entirely, rather than suppressed,
+  is handled by deleting the row manually; there is no self-service erasure
+  route yet.
 
 ## Operating requirements
 

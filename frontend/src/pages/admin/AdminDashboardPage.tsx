@@ -9,6 +9,7 @@ import {
 } from '../../features/admin/queries'
 import type { AnalyticsReportData } from '../../features/admin/schemas'
 import { usePageMetadata } from '../../lib/seo/usePageMetadata'
+import { CampaignAttribution } from '../../features/admin/components/CampaignAttribution'
 import { DailyTrend } from '../../features/admin/components/DailyTrend'
 import { MonetizationReadiness } from '../../features/admin/components/MonetizationReadiness'
 
@@ -45,6 +46,7 @@ export function AdminDashboardPage() {
             <AnalyticsSummary data={analytics.data} />
             <DailyTrend daily={analytics.data.daily} />
             <RankingGrid data={analytics.data} />
+            <CampaignAttribution data={analytics.data} />
             <MetricSection
               items={[
                 ['Products', dashboard.data.counts.products],

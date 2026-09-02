@@ -11,6 +11,7 @@ import (
 	catalogapp "rigmark/internal/modules/catalog/application"
 	catalogdomain "rigmark/internal/modules/catalog/domain"
 	catalogports "rigmark/internal/modules/catalog/ports"
+	contentdomain "rigmark/internal/modules/content/domain"
 	contentports "rigmark/internal/modules/content/ports"
 )
 
@@ -24,6 +25,36 @@ const spaIndexRedirect = "/__unsolero_spa/index.html"
 // render. Both fell through to no og:image and produced a bare grey card on
 // exactly the platforms this site gets shared on.
 const defaultSocialImage = "/images/og-default.png"
+
+// socialImagePath chooses the social card for a page that has no raster image
+// of its own, by what kind of page it is. One card for the whole site made
+// every shared link look the same; a comparison, a guide and a product now
+// each carry a card that says what the link is before it is opened. The files
+// live in frontend/public/images and are 1200×630 like og-default.png.
+//
+// contentType is set only for editorial entries and wins over the path. The
+// default is defaultSocialImage, so a route this does not know still gets a
+// card.
+func socialImagePath(path string, contentType contentdomain.ContentType) string {
+	switch contentType {
+	case contentdomain.ContentTypeComparison:
+		return "/images/og-comparison.png"
+	case contentdomain.ContentTypeGuide, contentdomain.ContentTypeBuyingGuide:
+		return "/images/og-guide.png"
+	case contentdomain.ContentTypeArticle:
+		return "/images/og-article.png"
+	case contentdomain.ContentTypeStack:
+		return "/images/og-stack.png"
+	}
+	if path == "/offers" {
+		return "/images/og-offers.png"
+	}
+	switch section, _, _ := strings.Cut(strings.TrimPrefix(path, "/"), "/"); section {
+	case "products", "categories", "brands":
+		return "/images/og-product.png"
+	}
+	return defaultSocialImage
+}
 
 var (
 	publicRouteSlugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -39,15 +70,24 @@ var staticPublicRoutes = map[string]bool{
 	// The head-to-heads had no index either. /compare is the comparison tool
 	// a visitor drives themselves; /comparisons is the writing.
 	"/comparisons": true,
+	// Whole stacks for one kind of business: the builder's output as writing.
+	// Indexable where /build is not, so a video has a page to point at.
+	"/stacks": true,
 	// Indexable on purpose. Affiliate programme reviewers and search engines
 	// both look for these two before approving or ranking a commercial site,
 	// so a 404 here is expensive.
 	"/about": true, "/privacy": true, "/affiliate-disclosure": true,
 	"/terms": true, "/offers/funnel-hacking-secrets": true,
+	// /offers lists every live vendor offer; it is the page a video or a
+	// social bio can point at when the answer is "the deal". /links is the
+	// bio landing page itself: a list of the pages behind the current videos.
+	// It is deliberately not indexable, because it is a signpost, not a page.
+	"/offers": true, "/links": false,
 	"/login": false, "/register": false, "/check-email": false,
 	"/verify-email": false, "/forgot-password": false, "/reset-password": false,
 	"/login/mfa": false, "/build": false, "/compare": false,
-	"/wishlist": false, "/setups": false, "/account": false,
+	"/newsletter/confirm": false,
+	"/wishlist":           false, "/setups": false, "/account": false,
 	"/design-system": false,
 	"/admin":         false, "/admin/products": false, "/admin/products/new": false,
 	"/admin/evidence": false, "/admin/categories": false, "/admin/brands": false,
@@ -116,7 +156,7 @@ func (h *Handler) publicRouteStatus(response http.ResponseWriter, request *http.
 	// no way to make a site-relative path absolute. Social scrapers do not
 	// resolve relative image paths.
 	if meta.ImageURL == "" || strings.HasSuffix(strings.ToLower(meta.ImageURL), ".svg") {
-		meta.ImageURL = h.absoluteImageURL(defaultSocialImage)
+		meta.ImageURL = h.absoluteImageURL(defaultText(meta.FallbackImageURL, defaultSocialImage))
 	}
 
 	if h.shell != nil {
@@ -159,11 +199,20 @@ func containsInvalidPathRune(path string) bool {
 // The catalog and content lookups it performs to answer the first question are
 // the same ones that answer the second, so metadata costs no extra queries.
 func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMetadata, bool, error) {
-	meta := pageMetadata{Indexable: false, CanonicalURL: h.absolutePublicRoute(path)}
+	meta := pageMetadata{
+		Indexable: false, CanonicalURL: h.absolutePublicRoute(path),
+		FallbackImageURL: socialImagePath(path, ""),
+	}
 
 	if indexable, ok := staticPublicRoutes[path]; ok {
 		meta.Indexable = indexable
 		meta.Title, meta.Description = staticRouteMetadata(path)
+		if indexable {
+			// Only the routes offered to a search engine get a body. The
+			// account and admin routes are noindex and need nothing but the
+			// title in the tab.
+			meta.PrerenderedBody, meta.StructuredData = h.staticRoutePrerender(request.Context(), path)
+		}
 		return meta, true, nil
 	}
 	segments := strings.Split(strings.TrimPrefix(path, "/"), "/")
@@ -197,7 +246,14 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		if len(detail.Product.Images) > 0 {
 			meta.ImageURL = h.absoluteImageURL(detail.Product.Images[0].URL)
 		}
-		meta.StructuredData = productStructuredData(detail.Product, meta.CanonicalURL)
+		var trail []breadcrumb
+		if detail.Product.CategoryName != "" && detail.Product.CategorySlug != "" {
+			trail = append(trail, breadcrumb{detail.Product.CategoryName, "/categories/" + detail.Product.CategorySlug})
+		}
+		trail = append(trail, breadcrumb{detail.Product.Name, path})
+		meta.StructuredData = structuredDataGraph(
+			productStructuredData(detail.Product, meta.CanonicalURL),
+			h.breadcrumbStructuredData(trail...))
 		meta.PrerenderedBody = renderProductBody(detail.Product)
 		return meta, true, nil
 	case "categories":
@@ -215,8 +271,11 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		meta.Title = category.Name + " — compared on structured facts | UNSOLERO"
 		meta.Description = truncateDescription(defaultText(category.Description,
 			"Compare "+category.Name+" on structured facts, with no commission-driven ranking."), 155)
-		meta.PrerenderedBody = renderCatalogListingBody(category.Name, category.Description,
-			h.listingProducts(request.Context(), catalogapp.Query{CategorySlug: value}))
+		products := h.listingProducts(request.Context(), catalogapp.Query{CategorySlug: value})
+		meta.StructuredData = structuredDataGraph(
+			h.breadcrumbStructuredData(breadcrumb{"Categories", "/categories"}, breadcrumb{category.Name, path}),
+			h.itemListStructuredData(productListItems(products)))
+		meta.PrerenderedBody = renderCatalogListingBody(category.Name, category.Description, products)
 		return meta, true, nil
 	case "brands":
 		if h.catalog == nil {
@@ -230,10 +289,13 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		meta.Title = brand.Name + " — plans, pricing and fit | UNSOLERO"
 		meta.Description = truncateDescription(defaultText(brand.Description,
 			"Products from "+brand.Name+", assessed on structured facts."), 155)
-		meta.PrerenderedBody = renderCatalogListingBody(brand.Name, brand.Description,
-			h.listingProducts(request.Context(), catalogapp.Query{BrandSlug: value}))
+		products := h.listingProducts(request.Context(), catalogapp.Query{BrandSlug: value})
+		meta.StructuredData = structuredDataGraph(
+			h.breadcrumbStructuredData(breadcrumb{"Vendors", "/brands"}, breadcrumb{brand.Name, path}),
+			h.itemListStructuredData(productListItems(products)))
+		meta.PrerenderedBody = renderCatalogListingBody(brand.Name, brand.Description, products)
 		return meta, true, nil
-	case "guides", "articles", "compare":
+	case "guides", "articles", "compare", "stacks":
 		if h.content == nil {
 			return pageMetadata{}, false, nil
 		}
@@ -249,7 +311,11 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		meta.Title = defaultText(entry.SEOTitle, entry.Title+" | UNSOLERO")
 		meta.Description = truncateDescription(defaultText(entry.SEODescription, entry.Description), 155)
 		meta.ImageURL = h.absoluteImageURL(entry.HeroImageURL)
-		meta.StructuredData = h.articleStructuredData(entry, meta.CanonicalURL)
+		meta.FallbackImageURL = socialImagePath(path, entry.Type)
+		meta.StructuredData = structuredDataGraph(
+			h.articleStructuredData(entry, meta.CanonicalURL),
+			h.breadcrumbStructuredData(editorialHub(section), breadcrumb{entry.Title, entry.Path}),
+			faqStructuredData(entry.Content))
 		meta.PrerenderedBody = renderEntryBody(entry)
 		return meta, true, nil
 	case "author":
@@ -277,6 +343,23 @@ func (h *Handler) resolvePublicRoute(request *http.Request, path string) (pageMe
 		return pageMetadata{}, false, nil
 	default:
 		return pageMetadata{}, false, nil
+	}
+}
+
+// editorialHub is the index page an entry belongs under, for a breadcrumb
+// trail. It accepts the entry's path segment and the hub's own: entries live at
+// /compare/{slug} but their index is /comparisons, because the former is the
+// tool a visitor drives and the latter is the writing.
+func editorialHub(section string) breadcrumb {
+	switch section {
+	case "guides":
+		return breadcrumb{"Guides", "/guides"}
+	case "compare", "comparisons":
+		return breadcrumb{"Comparisons", "/comparisons"}
+	case "stacks":
+		return breadcrumb{"Stacks", "/stacks"}
+	default:
+		return breadcrumb{"Articles", "/articles"}
 	}
 }
 
@@ -313,6 +396,9 @@ func staticRouteMetadata(path string) (string, string) {
 	case "/comparisons":
 		return "Software comparisons, head to head | UNSOLERO",
 			"Direct comparisons of the business software people weigh against each other, with every price read from the vendor and the billing basis stated."
+	case "/stacks":
+		return "Software stacks, priced for one kind of business | UNSOLERO",
+			"Whole software stacks for one kind of business and one budget: the monthly total, the tools deliberately left out and why, and every price read from the vendor and dated."
 	case "/categories":
 		return "Every software category we cover | UNSOLERO",
 			"Fifteen categories of business software, from CRM and invoicing to analytics and help desk, each with the tools compared inside it."
@@ -334,6 +420,12 @@ func staticRouteMetadata(path string) (string, string) {
 	case "/affiliate-disclosure":
 		return "Affiliate disclosure | UNSOLERO",
 			"How UNSOLERO earns, and why commission is excluded from the ranking."
+	case "/offers":
+		return "Live vendor offers and trials | UNSOLERO",
+			"Every live vendor offer in the UNSOLERO catalog, with the price and the date it was last read. Affiliate links, and the ranking does not know they exist."
+	case "/links":
+		return "UNSOLERO — the pages behind our videos",
+			"Comparisons, guides and the stack builder referenced in UNSOLERO videos and posts."
 	case "/offers/funnel-hacking-secrets":
 		return "Funnel Hacking Secrets free training | UNSOLERO",
 			"What the free Funnel Hacking Secrets training covers, what happens after it, and the affiliate relationship behind the links."

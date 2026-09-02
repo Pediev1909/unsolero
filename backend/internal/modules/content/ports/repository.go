@@ -12,9 +12,13 @@ var ErrNotFound = errors.New("editorial content not found")
 type Filter struct {
 	Types        []domain.ContentType
 	CategorySlug string
-	AuthorSlug   string
-	ExcludeID    string
-	Limit        int
+	// ProductSlug narrows the list to entries whose product references include
+	// this product. It is how a product page finds the comparisons and guides
+	// it appears in.
+	ProductSlug string
+	AuthorSlug  string
+	ExcludeID   string
+	Limit       int
 }
 
 type Repository interface {
