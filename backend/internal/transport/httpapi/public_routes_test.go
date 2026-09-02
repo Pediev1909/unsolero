@@ -114,6 +114,10 @@ func TestPublicRouteStatusManifestAndCanonicalBehavior(t *testing.T) {
 		{"known editorial", "/guides/known-guide", http.StatusOK, true, false},
 		{"unknown public", "/products/not-present", http.StatusNotFound, false, true},
 		{"unknown path", "/definitely-not-a-route", http.StatusNotFound, false, true},
+		// The link in a newsletter email has to open a page. Both token
+		// landings resolve, and neither is offered to a search engine.
+		{"newsletter confirm", "/newsletter/confirm", http.StatusOK, true, true},
+		{"newsletter unsubscribe", "/newsletter/unsubscribe", http.StatusOK, true, true},
 		{"admin protected", "/admin/products", http.StatusOK, true, true},
 		{"admin detail protected", "/admin/products/12345678-1234-4234-8234-123456789abc", http.StatusOK, true, true},
 		{"account protected", "/account", http.StatusOK, true, true},
@@ -630,6 +634,10 @@ func TestSocialImageFollowsThePageType(t *testing.T) {
 		{"/categories/crm", "", "/images/og-product.png"},
 		{"/brands/zoho", "", "/images/og-product.png"},
 		{"/offers", "", "/images/og-offers.png"},
+		// The builder's output is a stack, so a shared builder link previews
+		// as one. og-stack.png existed for the editorial stacks and was
+		// reachable from nowhere else.
+		{"/build", "", "/images/og-stack.png"},
 		{"/offers/funnel-hacking-secrets", "", defaultSocialImage},
 		{"/", "", defaultSocialImage},
 		{"/about", "", defaultSocialImage},

@@ -57,15 +57,7 @@ export function ComparisonSection() {
                 currency="USD"
                 size="md"
               />
-              <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-ink/10 pt-4">
-                <div>
-                  <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
-                    Entry plan
-                  </dt>
-                  <dd className="mt-1 text-xs leading-5">
-                    {product.planLabel}
-                  </dd>
-                </div>
+              <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-ink/10 pt-4">
                 <div>
                   <dt className="text-[0.5625rem] font-bold uppercase tracking-[0.12em] text-ink/65">
                     Ease of use
@@ -91,7 +83,10 @@ export function ComparisonSection() {
         </div>
 
         <div className="mt-14 hidden overflow-x-auto border border-ink/15 bg-surface md:block lg:mt-20">
-          <table className="w-full min-w-[760px] border-collapse text-left">
+          {/* Five columns rather than six: the width that used to overflow a
+              768px viewport now fits inside one, and the scroller stays for
+              anything narrower that still reaches this branch. */}
+          <table className="w-full min-w-[640px] border-collapse text-left">
             <caption className="sr-only">
               Comparison of three business tools
             </caption>
@@ -102,9 +97,6 @@ export function ComparisonSection() {
                 </th>
                 <th className="p-5 font-bold sm:p-6" scope="col">
                   Reference price
-                </th>
-                <th className="p-5 font-bold sm:p-6" scope="col">
-                  Entry plan
                 </th>
                 <th className="p-5 font-bold sm:p-6" scope="col">
                   Ease of use
@@ -148,7 +140,6 @@ export function ComparisonSection() {
                       size="sm"
                     />
                   </td>
-                  <td className="p-5 text-sm sm:p-6">{product.planLabel}</td>
                   <td className="p-5 text-sm sm:p-6">
                     {product.easeScore}/100
                   </td>
@@ -169,10 +160,14 @@ export function ComparisonSection() {
             </tbody>
           </table>
         </div>
+        {/* The basis belongs here rather than in each row: it is the same for
+            all three, and the catalog is what it has to agree with. Checked
+            against the catalog on 2026-09-02 — every price below is per user,
+            per month, on monthly billing. */}
         <p className="mt-4 text-xs leading-5 text-ink/68">
-          Prices are the entry paid tier at monthly billing, read from each
-          vendor&apos;s own pricing page and recorded with the date. Suitability
-          scores are our editorial assessment, not vendor claims.
+          Prices are the entry paid tier for one user at monthly billing, read
+          from each vendor&apos;s own pricing page and recorded with the date.
+          Suitability scores are our editorial assessment, not vendor claims.
         </p>
       </Container>
     </Section>

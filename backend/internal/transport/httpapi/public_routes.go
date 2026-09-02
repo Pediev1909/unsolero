@@ -49,6 +49,11 @@ func socialImagePath(path string, contentType contentdomain.ContentType) string 
 	if path == "/offers" {
 		return "/images/og-offers.png"
 	}
+	// A shared builder link previews a stack, which is what the builder
+	// produces, so it takes the stack card rather than the site default.
+	if path == "/build" {
+		return "/images/og-stack.png"
+	}
 	switch section, _, _ := strings.Cut(strings.TrimPrefix(path, "/"), "/"); section {
 	case "products", "categories", "brands":
 		return "/images/og-product.png"
@@ -86,7 +91,10 @@ var staticPublicRoutes = map[string]bool{
 	"/login": false, "/register": false, "/check-email": false,
 	"/verify-email": false, "/forgot-password": false, "/reset-password": false,
 	"/login/mfa": false, "/build": false, "/compare": false,
-	"/newsletter/confirm": false,
+	// Both newsletter token landings. They resolve so the one-time link in an
+	// email opens a page rather than a 404, and stay noindex because a link
+	// that works once has nothing to rank.
+	"/newsletter/confirm": false, "/newsletter/unsubscribe": false,
 	"/wishlist":           false, "/setups": false, "/account": false,
 	"/design-system": false,
 	"/admin":         false, "/admin/products": false, "/admin/products/new": false,
