@@ -53,12 +53,17 @@ type ProductDetail struct {
 	Strengths      []domain.SuitabilityInsight
 	Considerations []domain.SuitabilityInsight
 	UseCases       []domain.SuitabilityInsight
+	// PriceRecord is what this product has cost, newest first, from its own
+	// fact revisions. It belongs to the detail rather than to the product
+	// because no listing carries it: see ports.PriceRecordRepository.
+	PriceRecord []domain.PriceObservation
 }
 
 type Repository interface {
 	ports.ProductRepository
 	ports.CategoryRepository
 	ports.BrandRepository
+	ports.PriceRecordRepository
 }
 
 type Service struct {
@@ -113,10 +118,14 @@ func (service *Service) GetProduct(ctx context.Context, slug string) (ProductDet
 	if err != nil {
 		return ProductDetail{}, err
 	}
+	priceRecord, err := service.repository.ListPriceRecord(ctx, product.ID)
+	if err != nil {
+		return ProductDetail{}, err
+	}
 	return ProductDetail{
 		Product: product, Alternatives: alternatives.Products,
 		Strengths: product.Strengths(), Considerations: product.Considerations(),
-		UseCases: product.UseCases(),
+		UseCases: product.UseCases(), PriceRecord: priceRecord,
 	}, nil
 }
 

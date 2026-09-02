@@ -154,8 +154,29 @@ type productDetailResponse struct {
 	UseCases         []insightResponse         `json:"use_cases"`
 	Alternatives     []productSummaryResponse  `json:"alternatives"`
 	Evidence         []productEvidenceResponse `json:"evidence"`
+	PriceRecord      []priceRecordResponse     `json:"price_record"`
 	FactRevisionID   string                    `json:"fact_revision_id"`
 	ScoreRevisionID  string                    `json:"score_revision_id"`
+}
+
+// priceRecordResponse is one dated figure in what this product has cost.
+//
+// `observed_at` is the earliest date the figure was read from the vendor's own
+// page: consecutive revisions repeating the same claim are collapsed, so a row
+// says what the price has been and since when. `billing` is null on a revision
+// that stated no basis — every revision published before 2026-09-02 — rather
+// than being filled in with the basis that looks likely, and `note` is absent
+// unless a reviewer wrote a sentence worth printing.
+//
+// The list is empty or one entry long for most products, which is the truth:
+// a single figure is not a history. No competitor publishes this at all.
+type priceRecordResponse struct {
+	ObservedAt time.Time        `json:"observed_at"`
+	PriceMinor int64            `json:"price_minor"`
+	Currency   string           `json:"currency"`
+	Billing    *billingResponse `json:"billing"`
+	Note       string           `json:"note,omitempty"`
+	IsCurrent  bool             `json:"is_current"`
 }
 
 type productEvidenceResponse struct {
@@ -427,6 +448,10 @@ func productDetailDTO(detail catalog.ProductDetail) productDetailResponse {
 			IsFictional: item.IsFictional,
 		})
 	}
+	priceRecord := make([]priceRecordResponse, 0, len(detail.PriceRecord))
+	for _, entry := range detail.PriceRecord {
+		priceRecord = append(priceRecord, priceRecordDTO(entry))
+	}
 	return productDetailResponse{
 		productSummaryResponse: productSummaryDTO(product), Description: product.Description,
 		Images: images, Dimensions: dimensionsResponse{
@@ -436,8 +461,25 @@ func productDetailDTO(detail catalog.ProductDetail) productDetailResponse {
 		Material: product.Material, WarrantyMonths: product.WarrantyMonths, Attributes: attributes,
 		Strengths: insightDTOs(detail.Strengths), Weaknesses: insightDTOs(detail.Considerations),
 		UseCases: insightDTOs(detail.UseCases), Alternatives: alternatives,
-		Evidence: evidence, FactRevisionID: product.FactRevisionID,
+		Evidence: evidence, PriceRecord: priceRecord,
+		FactRevisionID:  product.FactRevisionID,
 		ScoreRevisionID: product.ScoreRevisionID,
+	}
+}
+
+func priceRecordDTO(entry domain.PriceObservation) priceRecordResponse {
+	var billing *billingResponse
+	if entry.Billing != nil {
+		value := billingDTO(*entry.Billing)
+		billing = &value
+	}
+	return priceRecordResponse{
+		ObservedAt: entry.ObservedAt.UTC(),
+		PriceMinor: entry.Price.AmountMinor,
+		Currency:   entry.Price.Currency,
+		Billing:    billing,
+		Note:       entry.Note,
+		IsCurrent:  entry.IsCurrent,
 	}
 }
 

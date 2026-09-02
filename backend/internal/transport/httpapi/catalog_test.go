@@ -279,6 +279,112 @@ func TestOfferFreshnessReportsTheAgeOfThePriceRatherThanAConstant(t *testing.T) 
 	}
 }
 
+// detailCatalogStub serves one product detail and nothing else. It implements
+// CatalogService itself rather than reusing another file's stub, so a change
+// to an unrelated route's fixture cannot change what this test asserts.
+type detailCatalogStub struct {
+	detail catalog.ProductDetail
+}
+
+func (stub detailCatalogStub) Search(context.Context, catalog.Query) (catalog.Page, error) {
+	return catalog.Page{}, nil
+}
+
+func (stub detailCatalogStub) GetProduct(context.Context, string) (catalog.ProductDetail, error) {
+	return stub.detail, nil
+}
+
+func (stub detailCatalogStub) ListCategories(context.Context) ([]catalogdomain.Category, error) {
+	return nil, nil
+}
+
+func (stub detailCatalogStub) GetCategory(context.Context, string) (catalogdomain.Category, error) {
+	return catalogdomain.Category{}, nil
+}
+
+func (stub detailCatalogStub) ListBrands(context.Context) ([]catalogdomain.Brand, error) {
+	return nil, nil
+}
+
+func (stub detailCatalogStub) ListBrandsInCategory(context.Context, string) ([]catalogdomain.Brand, error) {
+	return nil, nil
+}
+
+func (stub detailCatalogStub) GetBrand(context.Context, string) (catalogdomain.Brand, error) {
+	return catalogdomain.Brand{}, nil
+}
+
+func productDetailBody(t *testing.T, detail catalog.ProductDetail) string {
+	t.Helper()
+	handler := &Handler{
+		catalog: detailCatalogStub{detail: detail},
+		logger:  slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+	request := httptest.NewRequest(http.MethodGet, "/api/catalog/products/teachable-starter", nil)
+	request.SetPathValue("slug", "teachable-starter")
+	response := httptest.NewRecorder()
+
+	handler.getProduct(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	return response.Body.String()
+}
+
+// The price record is the differentiator: dated prices are what this site is
+// for, and no competitor publishes a history of them. The response must carry
+// the figure, its basis, and the date it was read — and must say "null" for a
+// basis a revision never stated rather than repeating the current one.
+func TestProductDetailPublishesTheDatedPriceRecord(t *testing.T) {
+	annual := int64(2900)
+	body := productDetailBody(t, catalog.ProductDetail{
+		Product: catalogdomain.Product{
+			ID: "product-1", Name: "Teachable Starter", Slug: "teachable-starter",
+			Price:   catalogdomain.Money{AmountMinor: 3900, Currency: "USD"},
+			Billing: catalogdomain.Billing{Period: "monthly", Unit: "flat"},
+		},
+		PriceRecord: []catalogdomain.PriceObservation{
+			{
+				ObservedAt: time.Date(2026, 9, 2, 9, 28, 0, 0, time.UTC),
+				Price:      catalogdomain.Money{AmountMinor: 3900, Currency: "USD"},
+				Billing: &catalogdomain.Billing{
+					Period: "monthly", Unit: "flat", AnnualPriceMinor: &annual,
+				},
+				IsCurrent: true,
+			},
+			{
+				ObservedAt: time.Date(2026, 8, 21, 11, 5, 0, 0, time.UTC),
+				Price:      catalogdomain.Money{AmountMinor: 2900, Currency: "USD"},
+				Note:       "Price read from the vendor pricing page on 2026-08-21.",
+			},
+		},
+	})
+
+	const want = `"price_record":[` +
+		`{"observed_at":"2026-09-02T09:28:00Z","price_minor":3900,"currency":"USD",` +
+		`"billing":{"period":"monthly","unit":"flat","unit_note":null,"annual_price_minor":2900},` +
+		`"is_current":true},` +
+		`{"observed_at":"2026-08-21T11:05:00Z","price_minor":2900,"currency":"USD",` +
+		`"billing":null,"note":"Price read from the vendor pricing page on 2026-08-21.",` +
+		`"is_current":false}]`
+	if !strings.Contains(body, want) {
+		t.Fatalf("price record missing or reshaped.\n got: %s\nwant: %s", body, want)
+	}
+}
+
+// One figure is not a history, and neither is none. The field is still an
+// array, because a client that has to tell "no history" from "field absent"
+// will get it wrong.
+func TestProductDetailWithoutAPriceRecordSendsAnEmptyList(t *testing.T) {
+	body := productDetailBody(t, catalog.ProductDetail{
+		Product: catalogdomain.Product{ID: "product-1", Slug: "teachable-starter"},
+	})
+	if !strings.Contains(body, `"price_record":[]`) {
+		t.Fatalf("empty price record was not an empty list: %s", body)
+	}
+}
+
 // The date a price was read is the site's whole claim to being trustworthy
 // about prices. It must survive into the response whatever the status says.
 func TestOfferResponseAlwaysCarriesTheDateThePriceWasRead(t *testing.T) {

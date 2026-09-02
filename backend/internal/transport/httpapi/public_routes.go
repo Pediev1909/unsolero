@@ -95,7 +95,7 @@ var staticPublicRoutes = map[string]bool{
 	// email opens a page rather than a 404, and stay noindex because a link
 	// that works once has nothing to rank.
 	"/newsletter/confirm": false, "/newsletter/unsubscribe": false,
-	"/wishlist":           false, "/setups": false, "/account": false,
+	"/wishlist": false, "/setups": false, "/account": false,
 	"/design-system": false,
 	"/admin":         false, "/admin/products": false, "/admin/products/new": false,
 	"/admin/evidence": false, "/admin/categories": false, "/admin/brands": false,

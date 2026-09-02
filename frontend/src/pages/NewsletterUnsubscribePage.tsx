@@ -18,11 +18,7 @@ import { usePageMetadata } from '../lib/seo/usePageMetadata'
 // answer is where to find the link. A token the server does not know means the
 // link itself is spent or mangled, and the only remedy left is a person.
 type UnsubscribeState =
-  | 'pending'
-  | 'unsubscribed'
-  | 'invalid'
-  | 'missing'
-  | 'unavailable'
+  'pending' | 'unsubscribed' | 'invalid' | 'missing' | 'unavailable'
 
 const contactAddress = 'hello@unsolero.com'
 
@@ -137,10 +133,10 @@ export function NewsletterUnsubscribePage() {
                 This page needs the link from the email.
               </Heading>
               <p className="mt-5 max-w-2xl text-base leading-7 text-ink/70">
-                The unsubscribe link at the foot of any UNSOLERO email carries
-                the one-time token this page spends, so open it from there.
-                Nothing about your subscription has changed. If you cannot find
-                an email, write to{' '}
+                An unsubscribe link carries a one-time token and this page was
+                opened without one, so nothing about your subscription has
+                changed. Open the link from the email itself rather than typing
+                the address. If you cannot find it, write to{' '}
                 <a
                   className="underline underline-offset-4"
                   href={`mailto:${contactAddress}`}

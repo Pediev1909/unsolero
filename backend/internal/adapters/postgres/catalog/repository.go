@@ -535,6 +535,84 @@ func (repository *Repository) searchProducts(
 	return ports.ProductPage{Products: products, Total: total}, nil
 }
 
+// maximumPriceRevisions bounds the history one product page will read. Ten
+// distinct figures are published (domain.MaximumPriceRecordEntries) and
+// consecutive repeats of the same figure are collapsed on the way there, so
+// this is the ceiling on rows scanned to find them rather than on rows shown.
+const maximumPriceRevisions = 100
+
+// ListPriceRecord reads what one product has cost, newest first.
+//
+// One query, ordered by version, and the collapsing rule is applied in the
+// domain: the alternative is a window function that has to encode the same
+// rule in SQL, where it cannot be tested without a database.
+//
+// Only revisions that were actually published are read. A draft or rejected
+// revision is a price nobody ever saw, and a public history is the wrong place
+// to find out that one exists. Revisions carry no evidence-freshness gate: an
+// observation behind a two-month-old price is expected to have expired, and
+// dropping the row for that reason would erase the history it documents.
+func (repository *Repository) ListPriceRecord(
+	ctx context.Context,
+	productID domain.ProductID,
+) ([]domain.PriceObservation, error) {
+	rows, err := repository.pool.Query(ctx, `
+		SELECT COALESCE(facts.published_at, facts.created_at),
+			facts.price_minor, facts.currency,
+			facts.billing_period, facts.pricing_unit, facts.pricing_unit_note,
+			facts.annual_price_minor, facts.review_note
+		FROM evidence.product_fact_revisions facts
+		WHERE facts.product_id = $1
+		  AND facts.price_minor IS NOT NULL
+		  AND facts.workflow_status IN ('published', 'superseded')
+		ORDER BY facts.version DESC
+		LIMIT $2`, string(productID), maximumPriceRevisions)
+	if err != nil {
+		return nil, fmt.Errorf("list product price revisions: %w", err)
+	}
+	defer rows.Close()
+
+	revisions := make([]domain.PriceRevision, 0, maximumPriceRevisions)
+	for rows.Next() {
+		var revision domain.PriceRevision
+		// Billing is one fact: a revision either restates all four columns or
+		// none of them, and none means the basis it was published under is not
+		// recorded on this revision.
+		var period, unit, unitNote sql.NullString
+		var annualPrice sql.NullInt64
+		if err := rows.Scan(
+			&revision.ObservedAt,
+			&revision.Price.AmountMinor,
+			&revision.Price.Currency,
+			&period,
+			&unit,
+			&unitNote,
+			&annualPrice,
+			&revision.Note,
+		); err != nil {
+			return nil, fmt.Errorf("scan product price revision: %w", err)
+		}
+		if period.Valid && unit.Valid {
+			billing := domain.Billing{
+				Period: domain.BillingPeriod(period.String),
+				Unit:   domain.PricingUnit(unit.String),
+			}
+			if unitNote.Valid {
+				billing.UnitNote = &unitNote.String
+			}
+			if annualPrice.Valid {
+				billing.AnnualPriceMinor = &annualPrice.Int64
+			}
+			revision.Billing = &billing
+		}
+		revisions = append(revisions, revision)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read product price revisions: %w", err)
+	}
+	return domain.PriceRecord(revisions), nil
+}
+
 func (repository *Repository) loadEvidence(
 	ctx context.Context,
 	productIDs []string,
@@ -726,7 +804,8 @@ func (repository *Repository) loadImages(
 }
 
 var (
-	_ ports.CategoryRepository = (*Repository)(nil)
-	_ ports.BrandRepository    = (*Repository)(nil)
-	_ ports.ProductRepository  = (*Repository)(nil)
+	_ ports.CategoryRepository    = (*Repository)(nil)
+	_ ports.BrandRepository       = (*Repository)(nil)
+	_ ports.ProductRepository     = (*Repository)(nil)
+	_ ports.PriceRecordRepository = (*Repository)(nil)
 )
