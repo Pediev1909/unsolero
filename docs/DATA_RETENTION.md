@@ -17,7 +17,7 @@ forever and not a claim of legal necessity.
 | Security events | Hold, append-only | No automatic deletion until security/legal review | Security owner |
 | Consent history | Hold | Account deletion immediately unlinks identity; duration unresolved | Privacy owner |
 | Administrative audit | Hold | No automatic deletion until security/legal review | Module owner |
-| Newsletter subscription, pending | 48 h (confirmation link lifetime) | Delete the row once the link expires | Audience module, `PurgeExpiredPending` |
+| Newsletter subscription, pending | 48 h (confirmation link lifetime) | Delete the row once the link expires, every worker cycle | Audience module, `PurgeExpiredPending` |
 | Newsletter subscription, confirmed or unsubscribed | Hold | Kept while subscribed; unsubscribed rows kept as suppression records | Privacy owner |
 
 Allowed configuration bounds are 1–730 days for anonymous events, 1–1,095 days
@@ -32,7 +32,8 @@ The existing worker invokes analytics cleanup every
 using indexed `retention_expires_at`, ordered selection, and `FOR UPDATE SKIP
 LOCKED`. It is safe to retry and reports deleted counts in structured logs only
 when work occurred. Affiliate click anonymization remains a separate bounded
-commerce operation.
+commerce operation. The same cycle purges expired pending newsletter sign-ups
+(see "Newsletter subscriptions" below).
 
 Cleanup deliberately does not delete security events, conversion records,
 consent history, or admin audit records while their policies are unresolved.
@@ -67,16 +68,24 @@ No IP address or user agent is recorded: consent is proven by the confirmation
 click itself, and an address that never confirms is not evidence of anything
 worth keeping.
 
-- A pending address that never confirms has given no consent. Its row is
-  eligible for deletion as soon as the 48-hour link expires;
-  `PurgeExpiredPending` on the newsletter service does this. Calling it from
-  the worker cycle next to `CleanupExpiredSecurityArtifacts` is a follow-up
-  (the worker's composition root is not yet wired); until then expired pending
-  rows persist.
-- Unsubscribing does not delete the row. It keeps the address with status
-  `unsubscribed` and the timestamp as a suppression record, so a later import
-  or re-subscription cannot silently re-add someone who opted out. Whether and
-  when suppression rows are hashed or deleted is a Hold pending privacy review.
+- A pending address that never confirms has given no consent, so nothing about
+  it is kept once its 48-hour link is dead. `PurgeExpiredPending` on the
+  newsletter service deletes those rows outright, and the commerce worker calls
+  it on every cycle next to `CleanupExpiredSecurityArtifacts` — see
+  `workCycle` in `backend/cmd/worker/main.go`. The pass is unbounded because
+  the predicate is narrow (`status = 'pending' AND confirm_expires_at < now`)
+  and self-limiting: each cycle removes only what expired since the last one.
+  It logs a count only when it deleted something.
+- Unsubscribing does not delete the row, and that is deliberate rather than
+  neglect. The row is kept with status `unsubscribed` and the timestamp as a
+  suppression record: it is what makes a later sign-up, import or re-added list
+  fail to bring back an address whose owner opted out. Deleting the row would
+  destroy the only evidence that the person said no. The confirmation hash is
+  cleared at the same time, so the confirmation link is dead; the unsubscribe
+  hash is kept, because the server matches on it whatever the row's status and
+  a second click on the same link must succeed rather than accuse the reader of
+  a bad link. Whether and when suppression rows are hashed or deleted is a Hold
+  pending privacy review.
 - A subscriber who wants the address removed entirely, rather than suppressed,
   is handled by deleting the row manually; there is no self-service erasure
   route yet.

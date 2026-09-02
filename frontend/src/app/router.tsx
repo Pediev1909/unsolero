@@ -113,6 +113,13 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: '/newsletter/unsubscribe',
+        lazy: async () => ({
+          Component: (await import('../pages/NewsletterUnsubscribePage'))
+            .NewsletterUnsubscribePage,
+        }),
+      },
+      {
         path: '/login/mfa',
         lazy: async () => ({
           Component: (await import('../pages/MfaLoginPage')).MfaLoginPage,

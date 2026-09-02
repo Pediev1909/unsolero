@@ -8,9 +8,6 @@ export interface ComparisonProduct {
   name: string
   shortName: string
   priceMinor: number
-  /** Which tier the price refers to. Software is tiered, so a bare price is
-   *  ambiguous without saying what it buys. */
-  planLabel: string
   easeScore: number
   /** How well the tool connects to the rest of a stack. This is the dimension
    *  that separates a coherent stack from a pile of subscriptions. */
@@ -53,12 +50,29 @@ export const exampleSetup = {
     'Add scheduling once client booking becomes the bottleneck rather than a convenience.',
 }
 
+/**
+ * The worked example behind the home page's comparison table.
+ *
+ * These rows are written by hand — the section illustrates how a decision is
+ * reached and must render without a request — but the products are real, so
+ * the figures are checked against the catalog rather than invented. Verified
+ * against `GET /api/catalog/products/{slug}` on 2026-09-02: the three prices
+ * below are the ones the catalog holds, and all three are on the same basis
+ * (`per_user`, `monthly`).
+ *
+ * Each row used to carry its own basis string, all three reading "Entry plan,
+ * monthly". That was wrong twice over: it never said the price was per seat,
+ * and a hand-written basis here cannot be checked against the catalog by any
+ * test, so it drifts the moment a vendor changes terms. The basis is identical
+ * for all three rows anyway, which made it a table column that repeated itself
+ * three times and compared nothing. It is now stated once, correctly, in the
+ * section's footnote, and a row says only what the demo needs it to say.
+ */
 export const comparisonProducts: ComparisonProduct[] = [
   {
     name: 'HubSpot Starter Customer Platform',
     shortName: 'HubSpot Starter',
     priceMinor: 2000,
-    planLabel: 'Entry plan, monthly',
     easeScore: 90,
     integrationScore: 74,
     verdict: 'Best fit for this brief',
@@ -68,7 +82,6 @@ export const comparisonProducts: ComparisonProduct[] = [
     name: 'Salesflare Growth',
     shortName: 'Salesflare',
     priceMinor: 3900,
-    planLabel: 'Entry plan, monthly',
     easeScore: 78,
     integrationScore: 92,
     verdict: 'Connects to more, costs more',
@@ -77,7 +90,6 @@ export const comparisonProducts: ComparisonProduct[] = [
     name: 'ClickUp Unlimited',
     shortName: 'ClickUp',
     priceMinor: 1000,
-    planLabel: 'Entry plan, monthly',
     easeScore: 64,
     integrationScore: 80,
     verdict: 'Useful later, not at this size',

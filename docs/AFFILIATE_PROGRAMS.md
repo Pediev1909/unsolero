@@ -38,8 +38,8 @@ correction's: the compared price is the monthly-billing list price wherever the
 vendor sells monthly; a per-month figure that exists only on an annual
 contract is marked `annual`, never passed off as monthly.
 
-Six compared prices moved to their monthly-billing figure, two of them on live
-programmes: **SE Ranking Core $103.20 → $129** and **Teachable Starter $29 →
+Ten compared prices moved to their monthly-billing figure across the two
+passes, three of them on live programmes. In pass one, six moved: **SE Ranking Core $103.20 → $129** and **Teachable Starter $29 →
 $39** (their merchant offers were updated in the same seed). Figma, Zapier,
 BigCommerce and Semrush moved too; none of those earns. Twenty-two products
 kept their price and gained an honest `annual` label because their vendor page
@@ -49,6 +49,17 @@ from Bulgaria, so the monthly USD figure could not be read that day (monday.com,
 Cal.com, n8n, Thinkific, Shopify, Notion, Sketch, Tidio, Framer, Webflow and
 others — each block's note in the seed says which). Those are the ones to
 re-read from a US IP or in a browser before the next price refresh.
+
+**Pass two, the same day** (`catalog_billing_basis_pass2_2026_09_02.sql`).
+Four of the EUR-only pages turned out to carry their USD figures inside the
+page itself — Squarespace and monday.com in their offer markup, Sketch in the
+price elements' own data attributes, Notion in the multi-currency payload the
+page ships to its currency switcher. Those four moved to their monthly-billing
+price: **monday.com Basic $9 → $12** (a live programme, its offer moved with
+it), Notion Plus $10 → $12, Sketch Standard $12 → $14, Squarespace Basic
+$19 → $25. Webflow publishes both figures but renders only the yearly one, and
+Zoho loads its prices from a JSON file whose address is not in the page, so
+those stay labelled `annual` at their current figure.
 
 Every product received a new published fact revision, a score revision carried
 forward unchanged, and an evidence observation dated 2026-09-02 pointing at the
