@@ -47,6 +47,22 @@ type contentBlockResponse struct {
 	// else — the entire audience that can actually click it.
 	Promotion string `json:"promotion,omitempty"`
 	Label     string `json:"label,omitempty"`
+	// The same omission, repeated for the three block types added on
+	// 2026-09-02 and caught in production the same day: the rows were stored
+	// correctly and the server-rendered body printed them, so a crawler saw a
+	// vendor exit and a question-and-answer list while every reader running
+	// the application saw an empty heading and a paragraph with no button.
+	// A block type is not shipped until its fields appear here AND in
+	// TestContentDetailCarriesEveryBlockField.
+	Pros      []string                  `json:"pros,omitempty"`
+	Cons      []string                  `json:"cons,omitempty"`
+	Questions []contentQuestionResponse `json:"questions,omitempty"`
+	Product   string                    `json:"product,omitempty"`
+}
+
+type contentQuestionResponse struct {
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
 }
 
 type contentAuthorResponse struct {
@@ -162,10 +178,20 @@ func contentSummaryDTO(entry domain.Summary) contentSummaryResponse {
 func contentDetailDTO(entry domain.Entry) contentDetailResponse {
 	blocks := make([]contentBlockResponse, 0, len(entry.Content))
 	for _, block := range entry.Content {
+		questions := make([]contentQuestionResponse, 0, len(block.Questions))
+		for _, pair := range block.Questions {
+			questions = append(questions, contentQuestionResponse{Question: pair.Question, Answer: pair.Answer})
+		}
+		if len(questions) == 0 {
+			// omitempty only drops a nil slice, and an empty one would put
+			// "questions": [] on every paragraph in the document.
+			questions = nil
+		}
 		blocks = append(blocks, contentBlockResponse{
 			Type: string(block.Type), Heading: block.Heading, Text: block.Text,
 			Items: block.Items, Attribution: block.Attribution,
 			Promotion: block.Promotion, Label: block.Label,
+			Pros: block.Pros, Cons: block.Cons, Questions: questions, Product: block.Product,
 		})
 	}
 	products := make([]productSummaryResponse, 0, len(entry.RelatedProducts))

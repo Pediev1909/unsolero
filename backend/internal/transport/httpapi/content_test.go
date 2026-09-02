@@ -154,3 +154,59 @@ func TestListContentFiltersByProductSlugAndRejectsGarbage(t *testing.T) {
 		}
 	}
 }
+
+// Every field of every block type has to survive the trip to JSON. Two block
+// types shipped without theirs — cta once, then offer, faq and pros_cons on
+// 2026-09-02 — and both times the data was stored correctly, the crawler body
+// printed it, and the reader running the application got a heading with
+// nothing under it. This test fails the build rather than the page.
+func TestContentDetailCarriesEveryBlockField(t *testing.T) {
+	entry := domain.Entry{
+		Content: []domain.Block{
+			{Type: domain.BlockCTA, Heading: "H", Text: "T", Promotion: "a-promo", Label: "Go"},
+			{Type: domain.BlockOffer, Heading: "Where to get them", Text: "T", Product: "kit-creator", Label: "View at Kit"},
+			{Type: domain.BlockProsCons, Heading: "P", Pros: []string{"Cheap"}, Cons: []string{"Thin"}},
+			{Type: domain.BlockFAQ, Heading: "Questions people ask", Questions: []domain.QuestionAnswer{{Question: "Is it cheaper?", Answer: "At 1,000 contacts, yes."}}},
+			{Type: domain.BlockParagraph, Text: "Plain."},
+		},
+	}
+
+	encoded, err := json.Marshal(contentDetailDTO(entry).Content)
+	if err != nil {
+		t.Fatalf("marshal blocks: %v", err)
+	}
+	var decoded []map[string]any
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("decode blocks: %v", err)
+	}
+	if len(decoded) != 5 {
+		t.Fatalf("blocks = %d, want 5", len(decoded))
+	}
+
+	if decoded[0]["promotion"] != "a-promo" || decoded[0]["label"] != "Go" {
+		t.Errorf("cta lost its destination: %v", decoded[0])
+	}
+	if decoded[1]["product"] != "kit-creator" || decoded[1]["label"] != "View at Kit" {
+		t.Errorf("offer lost the product it points at: %v", decoded[1])
+	}
+	pros, _ := decoded[2]["pros"].([]any)
+	cons, _ := decoded[2]["cons"].([]any)
+	if len(pros) != 1 || len(cons) != 1 {
+		t.Errorf("pros_cons lost a side: %v", decoded[2])
+	}
+	questions, _ := decoded[3]["questions"].([]any)
+	if len(questions) != 1 {
+		t.Fatalf("faq lost its questions: %v", decoded[3])
+	}
+	first, _ := questions[0].(map[string]any)
+	if first["question"] != "Is it cheaper?" || first["answer"] != "At 1,000 contacts, yes." {
+		t.Errorf("faq question round-tripped wrong: %v", first)
+	}
+
+	// A paragraph must not gain empty collections just because the fields exist.
+	for _, key := range []string{"pros", "cons", "questions", "product", "promotion", "label"} {
+		if _, present := decoded[4][key]; present {
+			t.Errorf("paragraph carries %q: %v", key, decoded[4])
+		}
+	}
+}
