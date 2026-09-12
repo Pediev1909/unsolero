@@ -58,9 +58,16 @@ export function CatalogProductCard({
             <div className="min-w-0">
               {/* Small caps set at 10px left an 11px-tall tap target. The hit
                   box is raised to 24px and pulled back up by the same amount
-                  it added, so the card's spacing is unchanged. */}
+                  it added, so the card's spacing is unchanged.
+
+                  Truncating rather than wrapping: the longest vendor names are
+                  a single unbreakable word, and in a two-up grid on a narrow
+                  screen ACTIVECAMPAIGN ran straight under the save control.
+                  The min-w-0 above this was already here for a truncation that
+                  was never written; leading-6 holds the tap target that
+                  items-center used to. */}
               <Link
-                className="-mt-1 inline-flex min-h-6 items-center text-[0.625rem] font-bold tracking-[0.13em] text-ink/65 uppercase hover:text-bronze-dark"
+                className="-mt-1 block min-h-6 max-w-full truncate text-[0.625rem] leading-6 font-bold tracking-[0.13em] text-ink/65 uppercase hover:text-bronze-dark"
                 to={`/brands/${product.brand.slug}`}
               >
                 {product.brand.name}
@@ -93,7 +100,9 @@ export function CatalogProductCard({
             ) : (
               <Bookmark aria-hidden="true" size={18} />
             )}
-            {saved ? 'Saved' : 'Save'}
+            {/* The word costs 34px it does not have below md, where two cards
+                share the row. The accessible name carries it regardless. */}
+            <span className="hidden md:inline">{saved ? 'Saved' : 'Save'}</span>
           </Button>
         </div>
 
