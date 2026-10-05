@@ -12,6 +12,7 @@ Start with [../README.md](../README.md) for setup and
 | Document | What it settles |
 | --- | --- |
 | [AFFILIATE_PROGRAMS.md](./AFFILIATE_PROGRAMS.md) | **Which programmes have approved us and which link is live where.** Start here. |
+| [AFFILIATE_LINK_AUDIT_2026_10_06.md](./AFFILIATE_LINK_AUDIT_2026_10_06.md) | Tidio activation, all existing partner destinations, stale-offer recovery and unresolved checks |
 | [AFFILIATE_LINK_AUDIT_2026_08_26.md](./AFFILIATE_LINK_AUDIT_2026_08_26.md) | The audit method, and why no affiliate URL is ever followed automatically |
 | [affiliate-links-zoho.md](./affiliate-links-zoho.md) | The 91-row Zoho link reconciliation and its transcription trap |
 | [affiliate-links-mailerlite.md](./affiliate-links-mailerlite.md) | The Trackdesk link, its parameters, and why none may be edited |

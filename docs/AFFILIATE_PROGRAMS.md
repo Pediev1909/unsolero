@@ -4,7 +4,7 @@ The single answer to "which programmes have accepted us, and which link is
 live where". Everything else about affiliate links — the per-vendor detail, the
 audit method, the application playbook — hangs off this page.
 
-Last reconciled against the repository on **2026-08-29**.
+Last reconciled against the repository and production on **2026-10-06**.
 
 Two things this page deliberately does not do. It does not follow an affiliate
 URL: provider terms prohibit automated or artificial clicks, and a redirect
@@ -14,18 +14,69 @@ dashboard proves provider-side attribution, conversion, and payment.
 
 ## Summary
 
+The October audit supersedes the historical deployment counts below. Full
+per-link findings and verification limits are in
+[the 2026-10-06 audit](./AFFILIATE_LINK_AUDIT_2026_10_06.md).
+
 | | Count |
 | --- | ---: |
 | Brands in the SaaS catalog | 46 |
-| Brands with an approved, active affiliate link | 8 |
-| Live merchant offers behind those links | 14 |
-| Approved and seeded, pending application | 1 (ActiveCampaign) |
-| Standalone promotions deployed | 2 (ClickFunnels) |
+| Catalog merchant programmes with approved links, including this release | 10 |
+| Configured merchant offers, including this release | 16 |
+| Servable merchant offers before this release | 13 |
+| Servable merchant offers after applying this release | 15 |
+| Offers held for a new price verification | 1 (Pipedrive) |
+| Standalone promotions deployed | 3 (ClickFunnels ×2, ActiveCampaign ×1) |
 
-Eight of forty-six is the number that matters. Thirty-eight brands are in the catalog
-because the ranking has to be honest about the market, not because they pay.
-That is the design — but it also means most of the catalog cannot earn, and
-adding a programme is the cheapest growth lever available.
+### Tidio activation and existing-link audit, 2026-10-06
+
+The account owner supplied `https://affiliate.tidio.com/s92aresrdhui` for the
+newly approved Tidio partnership. `backend/seeds/tidio_affiliate.sql` attaches
+that exact PartnerStack link to the existing `tidio-starter` product. The
+[official pricing page](https://www.tidio.com/pricing/) still shows USD 24.17
+per month billed annually, at 100 billable conversations. The seed records the
+price read, creates the merchant and offer, and retains the normal tracked
+purchase path and affiliate disclosure. No commission is inferred from the
+programme's advertised maximum. Product facts, scores and policy are unchanged.
+
+The supplied link is sufficient for activation. Its external landing page and
+provider-side attribution have not been tested by automated clicks. A pricing
+deep link is optional: in PartnerStack, open Tidio → Links, create a custom link
+with destination `https://www.tidio.com/pricing/` if the programme enables that
+control, and copy the generated affiliate URL. If custom links are unavailable,
+ask the Tidio programme manager to provide it. Do not append guessed parameters
+to the supplied link.
+
+Production already serves ActiveCampaign's pricing offer and MailChimp Switch
+promotion; the August "not yet applied" section below is historical. The 13
+servable existing offers and all three promotions were last price/destination
+checked on 2026-09-24, and remain within production's `OFFER_MAXIMUM_AGE=720h`
+window. A working landing page is not a new price verification, so this audit
+does not reset their timestamps. Their window ends on **2026-10-24 at 12:47 UTC**
+unless the underlying offer/promotion is checked again.
+
+SE Ranking was hidden because its previous read was 2026-09-02. Its official
+USD price still matches USD 129 monthly (103.20 with annual billing), so
+`backend/seeds/se_ranking_reverification_2026_10_06.sql` records new evidence and
+restores the existing offer without changing its price or affiliate URL.
+
+Pipedrive's last read remains 2026-08-28. Its stored USD 19.90 monthly price
+could not be re-verified from an authoritative current monthly USD view, so
+its offer stays unavailable. The existing link also retains the programme
+landing-page caveat below. Ask `affiliates@pipedrive.com` for a tracked pricing
+destination and confirmation of the Lite monthly USD price; a different link
+alone does not fix expired price evidence.
+
+The two untagged ClickFunnels landing pages returned HTTP 403 to automated
+reads. The stored promotions remain active; this response does not establish
+whether normal visitors are blocked. Confirm their destination in the partner
+dashboard or a normal browser before requesting replacement links.
+
+Both October seeds are transactional, assert the expected published facts,
+and keep fixed observation timestamps on rerun. Apply them explicitly after
+deploying the repository changes; the demo seed command does not load real
+partner programmes. No schema migration, public API or frontend change is
+needed.
 
 ## Billing basis audit, 2026-09-02
 
@@ -67,7 +118,7 @@ vendor page, so "Read from the vendor on" is current for the whole catalog.
 `affiliate_offer_audit_2026_08_26.sql` is a dated assertion and now fails on SE
 Ranking by design; it is not to be re-run.
 
-## Approved and live
+## Historical approved-and-live inventory, 2026-08-29
 
 Fourteen offers, all confirmed against the production API on 2026-08-29 —
 `/api/catalog/products/{slug}/offers` returns a `purchase_path` only when the
@@ -164,7 +215,10 @@ already like for like. Moving Teachable alone would put it a dollar from
 Thinkific on screen while the real monthly gap is far wider — replacing a
 correct comparison with a misleading one in order to satisfy a rule.
 
-## Approved and seeded, not yet applied to the database
+## Historical ActiveCampaign activation, 2026-08-29
+
+**Current status:** deployed and serving as of the 2026-10-06 audit. The notes
+below preserve the original activation decision and dashboard link inventory.
 
 **ActiveCampaign** — PartnerStack, approved and read from the partner dashboard
 2026-08-29. The only programme currently in this state: the seed is written and
