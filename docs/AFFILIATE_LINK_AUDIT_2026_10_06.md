@@ -83,12 +83,20 @@ It preserves the existing 13 visible offers, keeps Pipedrive unavailable until
 its monthly USD price is confirmed, and leaves the three promotion rows intact.
 This produces **15 eligible product offers out of 16 configured offers**.
 
-Post-deployment production API and application-only redirect checks are
-pending at the time of this audit document's initial write. The release check
-must compare each UNSOLERO `302 Location` with the approved destination
-without following it. Use the application's bot classification so diagnostic
-requests cannot emit countable affiliate events; they may still create raw
-diagnostic records. Never send those requests to the provider's tracking URL.
+Deployed as **`a9d1e1e`** on 2026-10-06 after a verified local production
+backup. Both SQL transactions committed. The live offers API returns exactly
+the expected **15 offers**, including Tidio and SE Ranking; Pipedrive still
+returns an empty offer list. All 15 product redirects and all three promotion
+redirects returned **302 with the exact approved `Location`** and `no-store`.
+Redirects were not followed. Diagnostic requests used a bot user agent and
+stable request IDs; production records confirm no countable clicks or
+analytics events were created by these checks.
+
+Both public health endpoints returned HTTP 200 and version `a9d1e1e`; all
+services with health checks were healthy. Browser checks at 390 × 844 and
+1280 × 900 verified visible Tidio and SE Ranking merchant buttons, disclosures,
+same-origin tracked paths and sponsored link attributes. No horizontal
+overflow, JavaScript errors or outbound affiliate requests occurred.
 
 ## Existing promotions
 

@@ -24,7 +24,7 @@ per-link findings and verification limits are in
 | Catalog merchant programmes with approved links, including this release | 10 |
 | Configured merchant offers, including this release | 16 |
 | Servable merchant offers before this release | 13 |
-| Servable merchant offers after applying this release | 15 |
+| Servable merchant offers verified after deployment | 15 |
 | Offers held for a new price verification | 1 (Pipedrive) |
 | Standalone promotions deployed | 3 (ClickFunnels ×2, ActiveCampaign ×1) |
 
@@ -39,13 +39,19 @@ price read, creates the merchant and offer, and retains the normal tracked
 purchase path and affiliate disclosure. No commission is inferred from the
 programme's advertised maximum. Product facts, scores and policy are unchanged.
 
+Deployment `a9d1e1e` applied both October seeds successfully. Production checks
+confirmed 15 exact offer redirects and three exact promotion redirects without
+following the external URLs, plus visible Tidio and SE Ranking actions and
+disclosures on mobile and desktop.
+
 The supplied link is sufficient for activation. Its external landing page and
 provider-side attribution have not been tested by automated clicks. A pricing
 deep link is optional: in PartnerStack, open Tidio → Links, create a custom link
 with destination `https://www.tidio.com/pricing/` if the programme enables that
-control, and copy the generated affiliate URL. If custom links are unavailable,
-ask the Tidio programme manager to provide it. Do not append guessed parameters
-to the supplied link.
+control, and copy the generated affiliate URL. Follow
+[PartnerStack's custom-link instructions](https://support.partnerstack.com/hc/en-us/articles/360009476833-Creating-custom-referral-links).
+If custom links are unavailable, ask the Tidio programme manager to provide it.
+Do not append guessed parameters to the supplied link.
 
 Production already serves ActiveCampaign's pricing offer and MailChimp Switch
 promotion; the August "not yet applied" section below is historical. The 13
